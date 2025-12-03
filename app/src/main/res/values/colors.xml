@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NesVentory brand colors - light theme (default/day mode) -->
+    
+    <!-- Primary colors (cyan/sky blue accent) -->
+    <color name="primary">#FF0284C7</color>
+    <color name="primary_variant">#FF0369A1</color>
+    <color name="primary_container">#FFE0F2FE</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    
+    <!-- Secondary colors (green/success) -->
+    <color name="secondary">#FF16A34A</color>
+    <color name="secondary_variant">#FF15803D</color>
+    <color name="secondary_container">#FFDCFCE7</color>
+    <color name="on_secondary">#FFFFFFFF</color>
+    
+    <!-- Background colors (light) -->
+    <color name="background">#FFF8FAFC</color>
+    <color name="background_elevated">#FFFFFFFF</color>
+    <color name="surface">#FFF1F5F9</color>
+    <color name="on_background">#FF1E293B</color>
+    <color name="on_surface">#FF1E293B</color>
+    <color name="on_surface_variant">#FF64748B</color>
+    
+    <!-- Error colors -->
+    <color name="error">#FFDC2626</color>
+    <color name="on_error">#FFFFFFFF</color>
+    
+    <!-- Outline/border colors -->
+    <color name="outline">#FF64748B</color>
+    <color name="outline_variant">#FFCBD5E1</color>
+</resources>

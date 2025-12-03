@@ -1,0 +1,64 @@
+name: Commit Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+      - Dev
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install commitlint
+        run: |
+          npm install @commitlint/cli @commitlint/config-conventional
+
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.js << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [
+                2,
+                'always',
+                [
+                  'feat',
+                  'fix',
+                  'docs',
+                  'style',
+                  'refactor',
+                  'perf',
+                  'test',
+                  'build',
+                  'ci',
+                  'chore',
+                  'revert',
+                ],
+              ],
+            },
+            ignores: [
+              (commit) => commit.startsWith('Merge'),
+              (commit) => commit.startsWith('Bump '),
+              (commit) => commit.startsWith('Bumps '),
+              (commit) => commit.includes('dependabot[bot]'),
+            ],
+          };
+          EOF
+
+      - name: Lint commits
+        run: |
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to HEAD --verbose

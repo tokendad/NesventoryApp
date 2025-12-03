@@ -1,0 +1,88 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file
+local.properties
+
+# Android Studio
+*.iml
+.idea/
+.DS_Store
+.externalNativeBuild/
+.cxx/
+
+# Signing files
+*.jks
+*.keystore
+
+# Google Services
+google-services.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific
+*.swp
+*.swo
+*~
+
+# Captures
+captures/
+
+# Keystore
+*.keystore
+*.jks
+
+# Local .properties files
+local.properties
+
+# Proguard
+proguard/
+
+# Output of native builds
+obj/
+
+# Dependency directories
+node_modules/
+
+# Crashlytics
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties

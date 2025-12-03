@@ -1,0 +1,251 @@
+name: Monitor Base NesVentory Program
+
+on:
+  schedule:
+    # Run daily at 6:00 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_check:
+        description: 'Force check even if no changes detected'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      has_new_release: ${{ steps.check_release.outputs.has_new_release }}
+      latest_release: ${{ steps.check_release.outputs.latest_release }}
+      has_new_commits: ${{ steps.check_commits.outputs.has_new_commits }}
+      commit_count: ${{ steps.check_commits.outputs.commit_count }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Get last known upstream state
+        id: last_state
+        run: |
+          # Create tracking file if it doesn't exist
+          if [ ! -f .github/upstream-state.json ]; then
+            echo '{"last_release": "", "last_commit": "", "last_check": ""}' > .github/upstream-state.json
+          fi
+
+          last_release=$(jq -r '.last_release // ""' .github/upstream-state.json)
+          last_commit=$(jq -r '.last_commit // ""' .github/upstream-state.json)
+
+          echo "last_release=$last_release" >> "$GITHUB_OUTPUT"
+          echo "last_commit=$last_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Check for new releases
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get latest release from upstream repository
+          latest_release=$(gh api repos/tokendad/NesVentory/releases/latest --jq '.tag_name' 2>/dev/null || echo "")
+
+          if [ -z "$latest_release" ]; then
+            echo "No releases found in upstream repository"
+            echo "has_new_release=false" >> "$GITHUB_OUTPUT"
+            echo "latest_release=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Latest upstream release: $latest_release"
+          echo "Last known release: ${{ steps.last_state.outputs.last_release }}"
+
+          if [ "$latest_release" != "${{ steps.last_state.outputs.last_release }}" ] && [ -n "$latest_release" ]; then
+            echo "has_new_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_new_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "latest_release=$latest_release" >> "$GITHUB_OUTPUT"
+
+      - name: Check for new commits
+        id: check_commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get latest commit from upstream repository main branch
+          latest_commit=$(gh api repos/tokendad/NesVentory/commits/main --jq '.sha' 2>/dev/null || echo "")
+
+          if [ -z "$latest_commit" ]; then
+            echo "Could not fetch latest commit"
+            echo "has_new_commits=false" >> "$GITHUB_OUTPUT"
+            echo "commit_count=0" >> "$GITHUB_OUTPUT"
+            echo "latest_commit=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Latest upstream commit: $latest_commit"
+          echo "Last known commit: ${{ steps.last_state.outputs.last_commit }}"
+
+          if [ "$latest_commit" != "${{ steps.last_state.outputs.last_commit }}" ] && [ -n "${{ steps.last_state.outputs.last_commit }}" ]; then
+            echo "has_new_commits=true" >> "$GITHUB_OUTPUT"
+
+            # Count commits since last known commit
+            commit_count=$(gh api "repos/tokendad/NesVentory/compare/${{ steps.last_state.outputs.last_commit }}...$latest_commit" --jq '.total_commits' 2>/dev/null || echo "0")
+            # Validate commit_count is a number
+            if ! [[ "$commit_count" =~ ^[0-9]+$ ]]; then
+              commit_count="0"
+            fi
+            echo "commit_count=$commit_count" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_new_commits=false" >> "$GITHUB_OUTPUT"
+            echo "commit_count=0" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "latest_commit=$latest_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Get upstream changes summary
+        id: changes_summary
+        if: steps.check_release.outputs.has_new_release == 'true' || steps.check_commits.outputs.has_new_commits == 'true' || github.event.inputs.force_check == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get release notes if new release
+          if [ "${{ steps.check_release.outputs.has_new_release }}" == "true" ]; then
+            release_body=$(gh api repos/tokendad/NesVentory/releases/latest --jq '.body' 2>/dev/null | head -c 1900 || echo "No release notes available")
+            # Add ellipsis if truncated
+            if [ ${#release_body} -ge 1900 ]; then
+              release_body="${release_body}... (truncated)"
+            fi
+            {
+              echo "release_body<<EOF"
+              echo "$release_body"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+          # Get recent commits
+          recent_commits=$(gh api repos/tokendad/NesVentory/commits --jq '.[0:10] | .[] | "- \(.commit.message | split("\n")[0]) (\(.sha[0:7]))"' 2>/dev/null || echo "Could not fetch commits")
+          {
+            echo "recent_commits<<EOF"
+            echo "$recent_commits"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update tracking state
+        if: steps.check_release.outputs.latest_release != '' || steps.check_commits.outputs.latest_commit != ''
+        run: |
+          latest_release="${{ steps.check_release.outputs.latest_release }}"
+          latest_commit="${{ steps.check_commits.outputs.latest_commit }}"
+          current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Update state file
+          jq -n \
+            --arg release "$latest_release" \
+            --arg commit "$latest_commit" \
+            --arg check "$current_date" \
+            '{last_release: $release, last_commit: $commit, last_check: $check}' > .github/upstream-state.json
+
+          cat .github/upstream-state.json
+
+      - name: Commit updated state
+        if: steps.check_release.outputs.has_new_release == 'true' || steps.check_commits.outputs.has_new_commits == 'true'
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          git add .github/upstream-state.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update upstream tracking state"
+            git push
+          fi
+
+  create-notification:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.has_new_release == 'true' || needs.check-upstream.outputs.has_new_commits == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create issue for new upstream changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build issue title
+          title="Upstream NesVentory Update Detected"
+          if [ "${{ needs.check-upstream.outputs.has_new_release }}" == "true" ]; then
+            title="$title - New Release: ${{ needs.check-upstream.outputs.latest_release }}"
+          fi
+
+          # Build issue body
+          cat > issue_body.md << 'EOFBODY'
+          ## Upstream NesVentory Changes Detected
+
+          The base NesVentory program has been updated. This issue was automatically created to track potential updates needed for Android-NesVentory.
+
+          ### Summary
+          EOFBODY
+
+          if [ "${{ needs.check-upstream.outputs.has_new_release }}" == "true" ]; then
+            cat >> issue_body.md << EOFRELEASE
+
+          **New Release:** ${{ needs.check-upstream.outputs.latest_release }}
+
+          [View Release](https://github.com/tokendad/NesVentory/releases/tag/${{ needs.check-upstream.outputs.latest_release }})
+          EOFRELEASE
+          fi
+
+          if [ "${{ needs.check-upstream.outputs.has_new_commits }}" == "true" ]; then
+            cat >> issue_body.md << EOFCOMMITS
+
+          **New Commits:** ${{ needs.check-upstream.outputs.commit_count }} commits since last check
+
+          [View Commits](https://github.com/tokendad/NesVentory/commits/main)
+          EOFCOMMITS
+          fi
+
+          cat >> issue_body.md << 'EOFACTIONS'
+
+          ### Recommended Actions
+
+          1. **Review API Changes**: Check if there are any changes to the API endpoints used by this app:
+             - `POST /token` - OAuth2 token authentication
+             - `GET /users/me` - Current user information
+             - `GET /items/` - List all items
+             - `GET /locations/` - List all locations
+
+          2. **Review New Features**: Check if there are new features in NesVentory that should be implemented in the Android app
+
+          3. **Review Breaking Changes**: Look for any breaking changes that may require updates to the Android app
+
+          4. **Update Dependencies**: If the upstream repository has updated dependencies, consider updating corresponding Android dependencies
+
+          ### Links
+
+          - [NesVentory Repository](https://github.com/tokendad/NesVentory)
+          - [NesVentory Releases](https://github.com/tokendad/NesVentory/releases)
+          - [NesVentory Commits](https://github.com/tokendad/NesVentory/commits/main)
+
+          ---
+          *This issue was automatically created by the upstream monitoring workflow.*
+          EOFACTIONS
+
+          # Check if similar open issue exists (get most recent by sorting by created date descending)
+          existing_issue=$(gh issue list --state open --label "upstream-update" --json number,createdAt --jq 'sort_by(.createdAt) | reverse | .[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$existing_issue" ]; then
+            echo "Updating existing issue #$existing_issue"
+            gh issue comment "$existing_issue" --body "$(cat issue_body.md)"
+          else
+            echo "Creating new issue"
+            gh issue create \
+              --title "$title" \
+              --body "$(cat issue_body.md)" \
+              --label "upstream-update,enhancement"
+          fi
