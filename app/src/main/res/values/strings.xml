@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NesVentory</string>
+    <string name="login">Login</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="server_settings">Server Settings</string>
+    <string name="api_token">API Access Token</string>
+    <string name="remote_url">Remote URL</string>
+    <string name="local_url">Local URL</string>
+    <string name="local_ssid">Local WiFi SSID</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="cancel">Cancel</string>
+    <string name="logout">Logout</string>
+    <string name="items">Items</string>
+    <string name="locations">Locations</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="loading">Loading…</string>
+    <string name="error_login">Login failed. Please check your credentials.</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="settings_saved">Settings saved successfully</string>
+    <string name="using_local_connection">Using local connection</string>
+    <string name="using_remote_connection">Using remote connection</string>
+</resources>

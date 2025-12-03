@@ -1,0 +1,235 @@
+name: Automated Release Creation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get current version
+        id: get_version
+        run: |
+          version=$(cat VERSION | tr -d '\n')
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+          # Parse version components
+          IFS='.' read -r major minor patch <<< "${version%-*}"
+          echo "major=$major" >> $GITHUB_OUTPUT
+          echo "minor=$minor" >> $GITHUB_OUTPUT
+          echo "patch=$patch" >> $GITHUB_OUTPUT
+
+          # Check if this is a prerelease
+          if [[ "$version" == *"-alpha"* ]] || [[ "$version" == *"-beta"* ]] || [[ "$version" == *"-rc"* ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK files
+        run: |
+          version="${{ steps.get_version.outputs.version }}"
+
+          # Rename release APK
+          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            mv app/build/outputs/apk/release/app-release-unsigned.apk \
+               app/build/outputs/apk/release/nesventory-android-${version}-release.apk
+          elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            mv app/build/outputs/apk/release/app-release.apk \
+               app/build/outputs/apk/release/nesventory-android-${version}-release.apk
+          fi
+
+          # Rename debug APK
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            mv app/build/outputs/apk/debug/app-debug.apk \
+               app/build/outputs/apk/debug/nesventory-android-${version}-debug.apk
+          fi
+
+          # List generated APKs
+          echo "Generated APKs:"
+          find app/build/outputs/apk -name "*.apk" -type f
+
+      - name: Fetch tags
+        run: git fetch --tags
+
+      - name: Get last tag
+        id: last_tag
+        run: |
+          tag=$(git tag --sort=-creatordate | head -n1)
+          echo "last_tag=$tag" >> $GITHUB_OUTPUT
+
+          # Determine if this is a major version bump
+          if [ -n "$tag" ]; then
+            last_major=$(echo "$tag" | sed 's/^v//' | cut -d. -f1)
+            current_major="${{ steps.get_version.outputs.major }}"
+            if [ "$current_major" -gt "$last_major" ] 2>/dev/null; then
+              echo "is_major=true" >> $GITHUB_OUTPUT
+            else
+              echo "is_major=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "is_major=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          version="${{ steps.get_version.outputs.version }}"
+          is_major="${{ steps.last_tag.outputs.is_major }}"
+          last_tag="${{ steps.last_tag.outputs.last_tag }}"
+
+          # Determine log range
+          if [ -z "$last_tag" ]; then
+            log_range=""
+          else
+            log_range="$last_tag..HEAD"
+          fi
+
+          # Start building release notes
+          {
+            echo "# Android-NesVentory v${version} Release Notes"
+            echo ""
+            echo "## Overview"
+            echo ""
+            echo "Android companion app for NesVentory - Version ${version}"
+            echo ""
+            echo "## Downloads"
+            echo ""
+            echo "- **nesventory-android-${version}-release.apk** - Release build (recommended)"
+            echo "- **nesventory-android-${version}-debug.apk** - Debug build (for testing)"
+            echo ""
+          } > release_notes.txt
+
+          # Collect commits by type
+          features=$(git log $log_range --pretty=format:"%s" 2>/dev/null | grep -E '^feat(\(.+\))?:' | sed 's/^feat(\([^)]*\)): /- **\1**: /' | sed 's/^feat: /- /' || true)
+          fixes=$(git log $log_range --pretty=format:"%s" 2>/dev/null | grep -E '^fix(\(.+\))?:' | sed 's/^fix(\([^)]*\)): /- **\1**: /' | sed 's/^fix: /- /' || true)
+          breaking=$(git log $log_range --pretty=format:"%s" 2>/dev/null | grep -iE '^(breaking change|BREAKING CHANGE)' || true)
+          deps=$(git log $log_range --pretty=format:"%s" 2>/dev/null | grep -iE '^(chore\(deps\)|build\(deps\)|Bump .+ from .+ to)' | sed 's/^chore(deps): //' | sed 's/^build(deps): //' | head -20 || true)
+
+          # Add New Features section
+          if [ -n "$features" ]; then
+            {
+              echo "## New Features"
+              echo ""
+              echo "$features"
+              echo ""
+            } >> release_notes.txt
+          fi
+
+          # Add Bug Fixes section
+          if [ -n "$fixes" ]; then
+            {
+              echo "## Bug Fixes"
+              echo ""
+              echo "$fixes"
+              echo ""
+            } >> release_notes.txt
+          fi
+
+          # Add Breaking Changes section
+          if [ -n "$breaking" ]; then
+            {
+              echo "## Breaking Changes"
+              echo ""
+              echo "$breaking" | sed 's/^/- /'
+              echo ""
+            } >> release_notes.txt
+          else
+            {
+              echo "## Breaking Changes"
+              echo ""
+              echo "None"
+              echo ""
+            } >> release_notes.txt
+          fi
+
+          # Add Dependency Updates section
+          if [ -n "$deps" ]; then
+            {
+              echo "## Dependency Updates"
+              echo ""
+              echo "$deps" | sed 's/^/- /'
+              echo ""
+            } >> release_notes.txt
+          fi
+
+          # Only include full feature list for major releases
+          if [ "$is_major" = "true" ]; then
+            {
+              echo "## Features"
+              echo ""
+              echo "### Core Features"
+              echo "- 📱 **Login with Server Settings** - Configure API token, remote URL, local URL, and local SSID"
+              echo "- 🔄 **Auto URL Switching** - Automatically switches between local and remote URLs based on WiFi SSID"
+              echo "- 📦 **Inventory View** - View and manage your inventory items"
+              echo "- 📍 **Locations** - Browse inventory locations"
+              echo "- 🔐 **Secure Storage** - Credentials stored securely using Android DataStore"
+              echo ""
+              echo "### Technical"
+              echo "- Built with Kotlin and Jetpack Compose"
+              echo "- Material 3 Design"
+              echo "- Hilt Dependency Injection"
+              echo "- Retrofit for networking"
+              echo "- Support for Android 8.0 (API 26) and above"
+              echo ""
+            } >> release_notes.txt
+          fi
+
+          # Add installation instructions
+          {
+            echo "## Installation"
+            echo ""
+            echo "1. Download the APK file"
+            echo "2. Enable 'Install from unknown sources' in your Android settings"
+            echo "3. Open the downloaded APK to install"
+            echo ""
+            echo "---"
+            echo ""
+            echo "See complete PRs: https://github.com/${{ github.repository }}/pulls?q=is%3Apr+is%3Aclosed"
+          } >> release_notes.txt
+
+          echo "Release notes generated for v${version} (major=$is_major)"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Version ${{ steps.get_version.outputs.version }}
+          body_path: release_notes.txt
+          draft: false
+          prerelease: ${{ steps.get_version.outputs.prerelease }}
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

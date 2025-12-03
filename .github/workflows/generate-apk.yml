@@ -1,0 +1,92 @@
+name: Generate Test APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'APK build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+          - both
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v5
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build Debug APK
+      if: ${{ inputs.build_type == 'debug' || inputs.build_type == 'both' }}
+      run: ./gradlew assembleDebug --no-daemon
+
+    - name: Build Release APK
+      if: ${{ inputs.build_type == 'release' || inputs.build_type == 'both' }}
+      run: ./gradlew assembleRelease --no-daemon
+
+    - name: Get version
+      id: version
+      run: |
+        version=$(cat VERSION | tr -d '\n')
+        echo "version=$version" >> $GITHUB_OUTPUT
+        echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Rename APK files
+      run: |
+        version="${{ steps.version.outputs.version }}"
+        date="${{ steps.version.outputs.date }}"
+
+        # Rename debug APK if it exists
+        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/nesventory-android-${version}-${date}-debug.apk
+        fi
+
+        # Rename release APK if it exists
+        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          mv app/build/outputs/apk/release/app-release-unsigned.apk \
+             app/build/outputs/apk/release/nesventory-android-${version}-${date}-release.apk
+        elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/nesventory-android-${version}-${date}-release.apk
+        fi
+
+        # List generated APKs
+        echo "Generated APKs:"
+        find app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || echo "No APKs found"
+
+    - name: Upload Debug APK
+      if: ${{ inputs.build_type == 'debug' || inputs.build_type == 'both' }}
+      uses: actions/upload-artifact@v5
+      with:
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+        retention-days: 30
+
+    - name: Upload Release APK
+      if: ${{ inputs.build_type == 'release' || inputs.build_type == 'both' }}
+      uses: actions/upload-artifact@v5
+      with:
+        name: release-apk
+        path: app/build/outputs/apk/release/*.apk
+        retention-days: 30
