@@ -1,9 +1,15 @@
 package com.nesventory.android.data.api
 
+import com.nesventory.android.data.model.AIStatus
 import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.model.Location
+import com.nesventory.android.data.model.MaintenanceTask
+import com.nesventory.android.data.model.PluginStatus
+import com.nesventory.android.data.model.SystemStatus
+import com.nesventory.android.data.model.Tag
 import com.nesventory.android.data.model.TokenResponse
 import com.nesventory.android.data.model.User
+import com.nesventory.android.data.model.Video
 import retrofit2.Response
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -51,4 +57,50 @@ interface NesVentoryApi {
     suspend fun getLocations(
         @Header("Authorization") authorization: String
     ): Response<List<Location>>
+
+    /**
+     * Get all tags.
+     */
+    @GET("api/tags/")
+    suspend fun getTags(
+        @Header("Authorization") authorization: String
+    ): Response<List<Tag>>
+
+    /**
+     * Get all maintenance tasks.
+     */
+    @GET("api/maintenance/")
+    suspend fun getMaintenanceTasks(
+        @Header("Authorization") authorization: String
+    ): Response<List<MaintenanceTask>>
+
+    /**
+     * Get all videos for a specific item.
+     */
+    @GET("api/videos/")
+    suspend fun getVideos(
+        @Header("Authorization") authorization: String
+    ): Response<List<Video>>
+
+    /**
+     * Get system status including version and feature flags.
+     */
+    @GET("api/status")
+    suspend fun getSystemStatus(): Response<SystemStatus>
+
+    /**
+     * Get AI service status.
+     */
+    @GET("api/ai/status")
+    suspend fun getAIStatus(
+        @Header("Authorization") authorization: String
+    ): Response<AIStatus>
+
+    /**
+     * Get plugin status and available plugins.
+     */
+    @GET("api/plugins/status")
+    suspend fun getPluginStatus(
+        @Header("Authorization") authorization: String
+    ): Response<PluginStatus>
 }

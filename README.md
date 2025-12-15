@@ -76,12 +76,21 @@ When connected to the specified WiFi SSID, the app automatically uses the local 
 
 ## 📖 API Compatibility
 
-This app is designed to work with [NesVentory v5.x](https://github.com/tokendad/NesVentory). It uses the following API endpoints:
+This app is designed to work with [NesVentory v6.x](https://github.com/tokendad/NesVentory). It uses the following API endpoints:
 
+### Core Endpoints
 - `POST /token` - OAuth2 token authentication
 - `GET /users/me` - Current user information
 - `GET /items/` - List all items
 - `GET /locations/` - List all locations
+
+### Version 6.0 Features
+- `GET /api/tags/` - List all tags
+- `GET /api/videos/` - List all videos
+- `GET /api/maintenance/` - List maintenance tasks
+- `GET /api/status` - System status and version
+- `GET /api/ai/status` - AI service configuration status
+- `GET /api/plugins/status` - Plugin system status
 
 ## 🔧 Development
 

@@ -49,6 +49,7 @@ data class Item(
     @SerialName("updated_at")
     val updatedAt: String,
     val photos: List<Photo> = emptyList(),
+    val videos: List<Video> = emptyList(),
     val documents: List<Document> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val warranties: List<Warranty> = emptyList()
