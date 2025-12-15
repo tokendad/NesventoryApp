@@ -36,6 +36,9 @@ fun ServerSettingsScreen(
     val localSsid by viewModel.localSsid.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val focusManager = LocalFocusManager.current
+    
+    // Compute validity based on state to enable reactive UI updates
+    val isValid = remoteUrl.trim().isNotBlank() || localUrl.trim().isNotBlank()
 
     Scaffold(
         topBar = {
@@ -178,7 +181,7 @@ fun ServerSettingsScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                if (viewModel.isValid()) {
+                                if (isValid) {
                                     viewModel.saveSettings(onSettingsSaved)
                                 }
                             }
@@ -217,7 +220,7 @@ fun ServerSettingsScreen(
                     viewModel.saveSettings(onSettingsSaved)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isSaving && viewModel.isValid()
+                enabled = !isSaving && isValid
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
