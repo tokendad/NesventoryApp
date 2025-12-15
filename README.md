@@ -1,6 +1,6 @@
 # Android-NesVentory
 
-**Version: 0.1.0-alpha**
+**Version: 0.2.0-alpha**
 
 Android companion app for [NesVentory](https://github.com/tokendad/NesVentory) - a modern home inventory management system.
 
