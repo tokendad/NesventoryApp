@@ -1,10 +1,16 @@
 package com.nesventory.android.data.repository
 
 import com.nesventory.android.data.api.NesVentoryApi
+import com.nesventory.android.data.model.AIStatus
 import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.model.Location
+import com.nesventory.android.data.model.MaintenanceTask
+import com.nesventory.android.data.model.PluginStatus
+import com.nesventory.android.data.model.SystemStatus
+import com.nesventory.android.data.model.Tag
 import com.nesventory.android.data.model.TokenResponse
 import com.nesventory.android.data.model.User
+import com.nesventory.android.data.model.Video
 import com.nesventory.android.data.preferences.PreferencesManager
 import com.nesventory.android.data.preferences.ServerSettings
 import com.nesventory.android.util.NetworkUtils
@@ -206,6 +212,164 @@ class NesVentoryRepository @Inject constructor(
                 ApiResult.Success(locations)
             } else {
                 ApiResult.Error("Failed to get locations: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get all tags.
+     */
+    suspend fun getTags(): ApiResult<List<Tag>> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.getTags("Bearer ${session.accessToken}")
+            
+            if (response.isSuccessful) {
+                val tags = response.body() ?: emptyList()
+                ApiResult.Success(tags)
+            } else {
+                ApiResult.Error("Failed to get tags: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get all maintenance tasks.
+     */
+    suspend fun getMaintenanceTasks(): ApiResult<List<MaintenanceTask>> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.getMaintenanceTasks("Bearer ${session.accessToken}")
+            
+            if (response.isSuccessful) {
+                val tasks = response.body() ?: emptyList()
+                ApiResult.Success(tasks)
+            } else {
+                ApiResult.Error("Failed to get maintenance tasks: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get all videos.
+     */
+    suspend fun getVideos(): ApiResult<List<Video>> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.getVideos("Bearer ${session.accessToken}")
+            
+            if (response.isSuccessful) {
+                val videos = response.body() ?: emptyList()
+                ApiResult.Success(videos)
+            } else {
+                ApiResult.Error("Failed to get videos: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get system status.
+     * Note: This endpoint does not require authentication per backend design.
+     */
+    suspend fun getSystemStatus(): ApiResult<SystemStatus> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            
+            val response = api.getSystemStatus()
+            
+            if (response.isSuccessful) {
+                val status = response.body()
+                if (status != null) {
+                    ApiResult.Success(status)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                ApiResult.Error("Failed to get system status: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get AI service status.
+     */
+    suspend fun getAIStatus(): ApiResult<AIStatus> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.getAIStatus("Bearer ${session.accessToken}")
+            
+            if (response.isSuccessful) {
+                val status = response.body()
+                if (status != null) {
+                    ApiResult.Success(status)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                ApiResult.Error("Failed to get AI status: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Get plugin status.
+     */
+    suspend fun getPluginStatus(): ApiResult<PluginStatus> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.getPluginStatus("Bearer ${session.accessToken}")
+            
+            if (response.isSuccessful) {
+                val status = response.body()
+                if (status != null) {
+                    ApiResult.Success(status)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                ApiResult.Error("Failed to get plugin status: ${response.code()}", response.code())
             }
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")

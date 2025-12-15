@@ -7,7 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - 5.0 Feature Integration
+### Added - 6.0 API Integration
+- **New API Endpoints:**
+  - Tags endpoint (`GET /api/tags/`)
+  - Videos endpoint (`GET /api/videos/`)
+  - Maintenance tasks endpoint (`GET /api/maintenance/`)
+  - System status endpoint (`GET /api/status`)
+  - AI status endpoint (`GET /api/ai/status`)
+  - Plugin status endpoint (`GET /api/plugins/status`)
+
+- **New Data Models:**
+  - `Video` model for video management
+  - `MaintenanceTask` model with priority and status enums
+  - `SystemStatus` model for system information
+  - `Plugin` and `PluginStatus` models for plugin system
+  - `AIStatus` model for AI service status
+  - `Tag` model (moved from Item.kt for consistency)
+
+- **Item Model Enhancement:**
+  - Added `videos` field to Item model for video attachments
+
+### Changed
+- Updated README to reflect NesVentory v6.x compatibility
+- Updated API compatibility documentation
+- Version bumped to 0.2.0-alpha
+
+### Documentation
+- Updated README.md with version 6.0 endpoints
+- All new models include comprehensive KDoc comments
+
+## [0.1.0-alpha] - Initial Release
 - **Location Enhancements:**
   - `LocationType` enum with values: RESIDENTIAL, COMMERCIAL, RETAIL, INDUSTRIAL, APARTMENT_COMPLEX, CONDO, MULTI_FAMILY, OTHER
   - Owner information support (`ownerInfo` field)
