@@ -295,6 +295,7 @@ class NesVentoryRepository @Inject constructor(
 
     /**
      * Get system status.
+     * Note: This endpoint does not require authentication per backend design.
      */
     suspend fun getSystemStatus(): ApiResult<SystemStatus> = withContext(Dispatchers.IO) {
         try {

@@ -75,7 +75,7 @@ interface NesVentoryApi {
     ): Response<List<MaintenanceTask>>
 
     /**
-     * Get all videos for a specific item.
+     * Get all videos.
      */
     @GET("api/videos/")
     suspend fun getVideos(
