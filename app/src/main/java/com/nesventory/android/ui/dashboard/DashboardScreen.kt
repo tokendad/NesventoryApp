@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -201,11 +200,7 @@ fun DashboardScreen(
                     actions = {
                         // Connection status indicator
                         Icon(
-                            imageVector = if (uiState.isUsingLocalConnection) {
-                                Icons.Filled.Wifi
-                            } else {
-                                Icons.Filled.WifiOff
-                            },
+                            imageVector = Icons.Filled.Wifi,
                             contentDescription = if (uiState.isUsingLocalConnection) {
                                 "Local connection"
                             } else {
@@ -398,7 +393,7 @@ private fun ConnectionInfoCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (isUsingLocalConnection) Icons.Filled.Wifi else Icons.Filled.WifiOff,
+                imageVector = Icons.Filled.Wifi,
                 contentDescription = null,
                 tint = if (isUsingLocalConnection) {
                     MaterialTheme.colorScheme.onPrimaryContainer
