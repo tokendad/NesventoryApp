@@ -28,7 +28,7 @@ interface NesVentoryApi {
      * Uses OAuth2 form-based authentication.
      */
     @FormUrlEncoded
-    @POST("token")
+    @POST("api/token")
     suspend fun login(
         @Field("username") username: String,
         @Field("password") password: String
@@ -37,7 +37,7 @@ interface NesVentoryApi {
     /**
      * Get current user information.
      */
-    @GET("users/me")
+    @GET("api/users/me")
     suspend fun getCurrentUser(
         @Header("Authorization") authorization: String
     ): Response<User>
@@ -45,7 +45,7 @@ interface NesVentoryApi {
     /**
      * Get all items.
      */
-    @GET("items/")
+    @GET("api/items/")
     suspend fun getItems(
         @Header("Authorization") authorization: String
     ): Response<List<Item>>
@@ -53,7 +53,7 @@ interface NesVentoryApi {
     /**
      * Get all locations.
      */
-    @GET("locations/")
+    @GET("api/locations/")
     suspend fun getLocations(
         @Header("Authorization") authorization: String
     ): Response<List<Location>>
