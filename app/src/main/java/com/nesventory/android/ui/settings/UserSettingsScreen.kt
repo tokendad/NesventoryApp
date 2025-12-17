@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nesventory.android.data.model.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,9 +116,9 @@ fun UserSettingsScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
-                                if (user.isSuperuser) {
+                                if (user.role == UserRole.ADMIN) {
                                     Text(
-                                        text = "Superuser",
+                                        text = "Administrator",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.padding(top = 8.dp)
