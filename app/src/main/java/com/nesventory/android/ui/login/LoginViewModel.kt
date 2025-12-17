@@ -63,7 +63,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             val demoSettings = ServerSettings(
                 apiToken = "",
-                remoteUrl = "http://nesdemo.welshrd.com/",
+                remoteUrl = "http://nesdemo.welshrd.com:8001/",
                 localUrl = "",
                 localSsid = ""
             )
