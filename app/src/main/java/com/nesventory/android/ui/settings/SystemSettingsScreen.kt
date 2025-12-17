@@ -227,7 +227,7 @@ fun SystemSettingsScreen(
                                 )
                                 Text(
                                     text = if (uiState.pluginStatus?.configured == true) {
-                                        "${uiState.pluginStatus.plugins.size} plugins available"
+                                        "${uiState.pluginStatus?.plugins?.size ?: 0} plugins available"
                                     } else {
                                         "Not Configured"
                                     },
