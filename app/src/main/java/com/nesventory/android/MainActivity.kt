@@ -62,8 +62,8 @@ fun NesVentoryApp() {
     val isServerConfigured by mainViewModel.isServerConfigured.collectAsState(initial = false)
 
     // Determine start destination based on configuration and login state
+    // In demo version, skip server settings configuration
     val startDestination = when {
-        !isServerConfigured -> Screen.ServerSettings.route
         isLoggedIn -> Screen.Dashboard.route
         else -> Screen.Login.route
     }
