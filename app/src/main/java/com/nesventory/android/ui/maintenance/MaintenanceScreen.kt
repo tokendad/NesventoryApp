@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.data.model.MaintenanceTask
 import com.nesventory.android.data.model.MaintenanceStatus
 import com.nesventory.android.data.model.MaintenancePriority
+import com.nesventory.android.util.toDisplayName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,14 +188,14 @@ private fun MaintenanceTaskCard(task: MaintenanceTask) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Status: ${task.status.name.lowercase().replace('_', ' ')}",
+                        text = "Status: ${task.status.toDisplayName()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
                     task.priority?.let { priority ->
                         Text(
-                            text = "Priority: ${priority.name.lowercase()}",
+                            text = "Priority: ${priority.toDisplayName()}",
                             style = MaterialTheme.typography.bodySmall,
                             color = when (priority) {
                                 MaintenancePriority.HIGH -> MaterialTheme.colorScheme.error

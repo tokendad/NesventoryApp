@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.data.model.Location
+import com.nesventory.android.util.toDisplayName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,7 +171,7 @@ private fun LocationCard(location: Location) {
                 
                 location.locationType?.let { type ->
                     Text(
-                        text = "Type: ${type.name.lowercase().replace('_', ' ')}",
+                        text = "Type: ${type.toDisplayName()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
