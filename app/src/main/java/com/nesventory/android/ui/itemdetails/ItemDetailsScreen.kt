@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -368,7 +369,7 @@ private fun PhotoCard(
                 contentDescription = "Item photo",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .size(300.dp),
+                    .height(300.dp),
                 contentScale = ContentScale.Crop
             )
             

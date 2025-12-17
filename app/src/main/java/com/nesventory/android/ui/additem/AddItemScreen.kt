@@ -323,7 +323,9 @@ private fun PhotoSection(
 
 private fun createImageUri(context: Context): Uri {
     val directory = File(context.cacheDir, "images")
-    directory.mkdirs()
+    if (!directory.exists()) {
+        directory.mkdirs()
+    }
     val file = File.createTempFile(
         "image_${System.currentTimeMillis()}",
         ".jpg",
