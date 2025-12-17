@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -120,6 +121,15 @@ fun LoginScreen(
                     text = "Home Inventory Management",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Demo Version",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -222,19 +232,19 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Server settings button
-                TextButton(
-                    onClick = viewModel::showServerSettings,
-                    enabled = !uiState.isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Server Settings")
-                }
+                // Server settings button - hidden in demo version
+                // TextButton(
+                //     onClick = viewModel::showServerSettings,
+                //     enabled = !uiState.isLoading
+                // ) {
+                //     Icon(
+                //         imageVector = Icons.Filled.Settings,
+                //         contentDescription = null,
+                //         modifier = Modifier.size(20.dp)
+                //     )
+                //     Spacer(modifier = Modifier.size(8.dp))
+                //     Text("Server Settings")
+                // }
             }
         }
     }

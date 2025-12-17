@@ -19,8 +19,8 @@ import javax.inject.Inject
  * UI state for the login screen.
  */
 data class LoginUiState(
-    val email: String = "",
-    val password: String = "",
+    val email: String = "editor@nesventory.local",
+    val password: String = "password",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false,
@@ -55,6 +55,22 @@ class LoginViewModel @Inject constructor(
     init {
         loadServerSettings()
         checkConnectionStatus()
+        // Auto-configure demo server settings
+        configureDemoServer()
+    }
+
+    private fun configureDemoServer() {
+        viewModelScope.launch {
+            val demoSettings = ServerSettings(
+                apiToken = "",
+                remoteUrl = "http://nesdemo.welshrd.com/",
+                localUrl = "",
+                localSsid = ""
+            )
+            repository.saveServerSettings(demoSettings)
+            _uiState.value = _uiState.value.copy(serverSettings = demoSettings)
+            checkConnectionStatus()
+        }
     }
 
     private fun loadServerSettings() {
