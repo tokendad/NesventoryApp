@@ -140,13 +140,13 @@ fun SystemSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = if (uiState.aiStatus?.enabled == true) {
+                                imageVector = if (uiState.aiStatus?.configured == true) {
                                     Icons.Filled.CheckCircle
                                 } else {
                                     Icons.Filled.Error
                                 },
                                 contentDescription = null,
-                                tint = if (uiState.aiStatus?.enabled == true) {
+                                tint = if (uiState.aiStatus?.configured == true) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.error
@@ -159,22 +159,31 @@ fun SystemSettingsScreen(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
-                                    text = if (uiState.aiStatus?.enabled == true) {
-                                        "Enabled"
+                                    text = if (uiState.aiStatus?.configured == true) {
+                                        "Configured"
                                     } else {
-                                        "Disabled"
+                                        "Not Configured"
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
-                                uiState.aiStatus?.provider?.let { provider ->
-                                    Text(
-                                        text = "Provider: $provider",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
+                                uiState.aiStatus?.let { status ->
+                                    if (status.geminiConfigured) {
+                                        Text(
+                                            text = "Provider: Gemini",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    } else if (status.pluginConfigured) {
+                                        Text(
+                                            text = "Provider: Plugin",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -198,13 +207,13 @@ fun SystemSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = if (uiState.pluginStatus?.enabled == true) {
+                                imageVector = if (uiState.pluginStatus?.configured == true) {
                                     Icons.Filled.CheckCircle
                                 } else {
                                     Icons.Filled.Error
                                 },
                                 contentDescription = null,
-                                tint = if (uiState.pluginStatus?.enabled == true) {
+                                tint = if (uiState.pluginStatus?.configured == true) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.error
@@ -217,10 +226,10 @@ fun SystemSettingsScreen(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
-                                    text = if (uiState.pluginStatus?.enabled == true) {
-                                        "${uiState.pluginStatus.availablePlugins.size} plugins available"
+                                    text = if (uiState.pluginStatus?.configured == true) {
+                                        "${uiState.pluginStatus.plugins.size} plugins available"
                                     } else {
-                                        "Disabled"
+                                        "Not Configured"
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
