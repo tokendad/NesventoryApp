@@ -74,17 +74,6 @@ fun AddItemScreen(
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showPermissionRationale by remember { mutableStateOf(false) }
 
-    // Camera permission launcher
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            showPermissionRationale = false
-        } else {
-            showPermissionRationale = true
-        }
-    }
-
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -92,6 +81,24 @@ fun AddItemScreen(
         if (success && imageUri != null) {
             viewModel.addPhoto(imageUri!!)
             imageUri = null
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showPermissionRationale = false
+            // Permission granted, now launch camera
+            val uri = createImageUri(context)
+            imageUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            showPermissionRationale = true
+            scope.launch {
+                snackbarHostState.showSnackbar("Camera permission is required to take photos")
+            }
         }
     }
 
@@ -155,11 +162,8 @@ fun AddItemScreen(
                 PhotoSection(
                     photoUris = uiState.photoUris,
                     onTakePhoto = {
-                        // Request camera permission and take photo
+                        // Request camera permission
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        val uri = createImageUri(context)
-                        imageUri = uri
-                        cameraLauncher.launch(uri)
                     },
                     onSelectFromGallery = {
                         galleryLauncher.launch("image/*")

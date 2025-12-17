@@ -7,6 +7,7 @@ import com.nesventory.android.data.model.Photo
 import com.nesventory.android.data.repository.ApiResult
 import com.nesventory.android.data.repository.NesVentoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,7 +122,7 @@ class ItemDetailsViewModel @Inject constructor(
             // TODO: Implement actual API call when PATCH /api/items/{id} is added
             // For now, simulate a successful save
             try {
-                kotlinx.coroutines.delay(1000) // Simulate network delay
+                delay(1000) // Simulate network delay
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nesventory.android.data.repository.ApiResult
 import com.nesventory.android.data.repository.NesVentoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,7 +73,7 @@ class AddItemViewModel @Inject constructor(
             // For now, simulate a successful save
             try {
                 // Placeholder for API call
-                kotlinx.coroutines.delay(1000) // Simulate network delay
+                delay(1000) // Simulate network delay
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
