@@ -1,5 +1,6 @@
 package com.nesventory.android.ui.inventory
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ fun InventoryScreen(
     viewModel: InventoryViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAddItem: () -> Unit,
+    onNavigateToItemDetails: (String) -> Unit,
     onAIScan: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -161,7 +163,10 @@ fun InventoryScreen(
                         }
                     } else {
                         items(filteredItems) { item ->
-                            ItemCard(item = item)
+                            ItemCard(
+                                item = item,
+                                onClick = { onNavigateToItemDetails(item.id) }
+                            )
                         }
                     }
                 }
@@ -171,9 +176,11 @@ fun InventoryScreen(
 }
 
 @Composable
-private fun ItemCard(item: Item) {
+private fun ItemCard(item: Item, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier

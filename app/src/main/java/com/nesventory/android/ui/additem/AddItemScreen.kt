@@ -1,19 +1,39 @@
 package com.nesventory.android.ui.additem
 
+import android.Manifest
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -22,26 +42,82 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(
+    viewModel: AddItemViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     
-    var itemName by remember { mutableStateOf("") }
-    var itemDescription by remember { mutableStateOf("") }
-    var itemBrand by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var showPermissionRationale by remember { mutableStateOf(false) }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showPermissionRationale = false
+        } else {
+            showPermissionRationale = true
+        }
+    }
+
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && imageUri != null) {
+            viewModel.addPhoto(imageUri!!)
+            imageUri = null
+        }
+    }
+
+    // Gallery launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.addPhoto(it) }
+    }
+
+    // Handle errors
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearError()
+        }
+    }
+
+    // Handle successful save
+    LaunchedEffect(uiState.isSaved) {
+        if (uiState.isSaved) {
+            snackbarHostState.showSnackbar("Item saved successfully!")
+            viewModel.resetSavedState()
+            onNavigateBack()
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -69,6 +145,33 @@ fun AddItemScreen(
         ) {
             item {
                 Text(
+                    text = "Photos",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                PhotoSection(
+                    photoUris = uiState.photoUris,
+                    onTakePhoto = {
+                        // Request camera permission and take photo
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        val uri = createImageUri(context)
+                        imageUri = uri
+                        cameraLauncher.launch(uri)
+                    },
+                    onSelectFromGallery = {
+                        galleryLauncher.launch("image/*")
+                    },
+                    onRemovePhoto = { uri ->
+                        viewModel.removePhoto(uri)
+                    }
+                )
+            }
+
+            item {
+                Text(
                     text = "Item Details",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -77,17 +180,17 @@ fun AddItemScreen(
 
             item {
                 OutlinedTextField(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text("Item Name") },
+                    value = uiState.itemName,
+                    onValueChange = { viewModel.updateItemName(it) },
+                    label = { Text("Item Name *") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             item {
                 OutlinedTextField(
-                    value = itemDescription,
-                    onValueChange = { itemDescription = it },
+                    value = uiState.itemDescription,
+                    onValueChange = { viewModel.updateItemDescription(it) },
                     label = { Text("Description") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
@@ -96,35 +199,136 @@ fun AddItemScreen(
 
             item {
                 OutlinedTextField(
-                    value = itemBrand,
-                    onValueChange = { itemBrand = it },
+                    value = uiState.itemBrand,
+                    onValueChange = { viewModel.updateItemBrand(it) },
                     label = { Text("Brand") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             item {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                "Add item functionality will be implemented with create/update API endpoints"
-                            )
-                        }
-                    },
+                OutlinedTextField(
+                    value = uiState.itemModelNumber,
+                    onValueChange = { viewModel.updateItemModelNumber(it) },
+                    label = { Text("Model Number") },
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = uiState.itemSerialNumber,
+                    onValueChange = { viewModel.updateItemSerialNumber(it) },
+                    label = { Text("Serial Number") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            item {
+                Button(
+                    onClick = { viewModel.saveItem() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading && uiState.itemName.isNotBlank()
                 ) {
-                    Text("Save Item")
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Save Item")
+                    }
                 }
             }
 
             item {
                 Text(
-                    text = "Note: This is a placeholder screen. Full item creation with photos, documents, and location assignment will be implemented with POST /api/items/ endpoint.",
+                    text = "Note: Full item creation with backend integration will be implemented with POST /api/items/ endpoint.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
+}
+
+@Composable
+private fun PhotoSection(
+    photoUris: List<Uri>,
+    onTakePhoto: () -> Unit,
+    onSelectFromGallery: () -> Unit,
+    onRemovePhoto: (Uri) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onTakePhoto,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Filled.Camera, "Take Photo", modifier = Modifier.size(18.dp))
+                Text("Take Photo", modifier = Modifier.padding(start = 8.dp))
+            }
+            
+            OutlinedButton(
+                onClick = onSelectFromGallery,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Filled.PhotoLibrary, "Gallery", modifier = Modifier.size(18.dp))
+                Text("Gallery", modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+
+        if (photoUris.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(photoUris) { uri ->
+                    Box {
+                        Card(
+                            modifier = Modifier.size(120.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Item photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        IconButton(
+                            onClick = { onRemovePhoto(uri) },
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                "Remove photo",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun createImageUri(context: Context): Uri {
+    val directory = File(context.cacheDir, "images")
+    directory.mkdirs()
+    val file = File.createTempFile(
+        "image_${System.currentTimeMillis()}",
+        ".jpg",
+        directory
+    )
+    val authority = "${context.packageName}.fileprovider"
+    return FileProvider.getUriForFile(
+        context,
+        authority,
+        file
+    )
 }
