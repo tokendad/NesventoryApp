@@ -15,9 +15,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.nesventory.android.ui.additem.AddItemScreen
 import com.nesventory.android.ui.dashboard.DashboardScreen
+import com.nesventory.android.ui.inventory.InventoryScreen
+import com.nesventory.android.ui.locations.LocationsScreen
 import com.nesventory.android.ui.login.LoginScreen
+import com.nesventory.android.ui.maintenance.MaintenanceScreen
 import com.nesventory.android.ui.serversettings.ServerSettingsScreen
+import com.nesventory.android.ui.settings.SystemSettingsScreen
+import com.nesventory.android.ui.settings.UserSettingsScreen
 import com.nesventory.android.ui.theme.NesVentoryTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -49,6 +55,12 @@ sealed class Screen(val route: String) {
     data object ServerSettings : Screen("server_settings")
     data object Login : Screen("login")
     data object Dashboard : Screen("dashboard")
+    data object Inventory : Screen("inventory")
+    data object Locations : Screen("locations")
+    data object AddItem : Screen("add_item")
+    data object Maintenance : Screen("maintenance")
+    data object UserSettings : Screen("user_settings")
+    data object SystemSettings : Screen("system_settings")
 }
 
 /**
@@ -98,7 +110,73 @@ fun NesVentoryApp() {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Dashboard.route) { inclusive = true }
                     }
+                },
+                onNavigateToInventory = {
+                    navController.navigate(Screen.Inventory.route)
+                },
+                onNavigateToLocations = {
+                    navController.navigate(Screen.Locations.route)
+                },
+                onNavigateToAddItem = {
+                    navController.navigate(Screen.AddItem.route)
+                },
+                onNavigateToUserSettings = {
+                    navController.navigate(Screen.UserSettings.route)
+                },
+                onNavigateToMaintenance = {
+                    navController.navigate(Screen.Maintenance.route)
+                },
+                onNavigateToSystemSettings = {
+                    navController.navigate(Screen.SystemSettings.route)
                 }
+            )
+        }
+
+        composable(Screen.Inventory.route) {
+            InventoryScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddItem = {
+                    navController.navigate(Screen.AddItem.route)
+                },
+                onAIScan = {
+                    // AI scan placeholder - will be implemented with camera integration
+                }
+            )
+        }
+
+        composable(Screen.Locations.route) {
+            LocationsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAddLocation = {
+                    // Add location functionality - will be implemented with POST /api/locations/
+                }
+            )
+        }
+
+        composable(Screen.AddItem.route) {
+            AddItemScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Maintenance.route) {
+            MaintenanceScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAddTask = {
+                    // Add task functionality - will be implemented with POST /api/maintenance/
+                }
+            )
+        }
+
+        composable(Screen.UserSettings.route) {
+            UserSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.SystemSettings.route) {
+            SystemSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }
