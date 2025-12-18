@@ -42,6 +42,9 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
+    // Packaging configuration for 16 KB page size compatibility
+    // useLegacyPackaging = false ensures proper 16 KB alignment for JNI libraries
+    // Required for Android 15+ devices to meet Google Play requirements
     packaging {
         jniLibs {
             useLegacyPackaging = false
