@@ -91,7 +91,7 @@ class AddItemViewModel @Inject constructor(
                 is ApiResult.Error -> {
                     // Only show error if it's not a "not configured" error
                     // (AI is optional, so we don't want to alarm users if it's just not set up)
-                    val errorMessage = if (result.message?.contains("not configured") == true) {
+                    val errorMessage = if (result.code == 503 || result.message?.contains("not configured", ignoreCase = true) == true) {
                         null // Silently ignore if AI is not configured
                     } else {
                         result.message

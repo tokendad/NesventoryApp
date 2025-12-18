@@ -258,7 +258,10 @@ fun AddItemScreen(
                                                 text = buildString {
                                                     if (item.brand != null) append(item.brand)
                                                     if (item.brand != null && item.estimatedValue != null) append(" • ")
-                                                    if (item.estimatedValue != null) append("$${item.estimatedValue.toInt()}")
+                                                    if (item.estimatedValue != null) {
+                                                        append("$")
+                                                        append(String.format("%.0f", item.estimatedValue))
+                                                    }
                                                 },
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant

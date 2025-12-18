@@ -416,6 +416,17 @@ class NesVentoryRepository @Inject constructor(
             // Determine MIME type
             val mimeType = contentResolver.getType(imageUri) ?: "image/jpeg"
             
+            // Get filename from URI or generate one based on MIME type
+            val filename = imageUri.lastPathSegment ?: run {
+                val extension = when (mimeType) {
+                    "image/png" -> "png"
+                    "image/webp" -> "webp"
+                    "image/gif" -> "gif"
+                    else -> "jpg"
+                }
+                "image.$extension"
+            }
+            
             // Create RequestBody for the image
             val requestBody = okhttp3.RequestBody.create(
                 okhttp3.MediaType.Companion.toMediaType(mimeType),
@@ -425,7 +436,7 @@ class NesVentoryRepository @Inject constructor(
             // Create MultipartBody.Part for the file
             val filePart = okhttp3.MultipartBody.Part.createFormData(
                 "file",
-                "image.jpg",
+                filename,
                 requestBody
             )
             
@@ -441,7 +452,7 @@ class NesVentoryRepository @Inject constructor(
             } else {
                 val errorMessage = when (response.code()) {
                     429 -> "AI rate limit exceeded. Please try again later."
-                    503 -> "AI service not configured on server"
+                    503 -> "AI service not configured"
                     else -> "Failed to process image: ${response.code()}"
                 }
                 ApiResult.Error(errorMessage, response.code())
