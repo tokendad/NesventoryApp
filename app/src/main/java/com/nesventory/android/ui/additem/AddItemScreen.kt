@@ -245,44 +245,37 @@ fun AddItemScreen(
                 
                 // AI Detected Items - List
                 items(uiState.aiDetectedItems) { item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
+                    OutlinedButton(
+                        onClick = { viewModel.applyDetectedItem(item) },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = { viewModel.applyDetectedItem(item) },
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.Start
-                            ) {
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            if (item.description != null) {
                                 Text(
-                                    text = item.name,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    text = item.description,
+                                    style = MaterialTheme.typography.bodySmall
                                 )
-                                if (item.description != null) {
-                                    Text(
-                                        text = item.description,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                if (item.brand != null || item.estimatedValue != null) {
-                                    Text(
-                                        text = buildString {
-                                            if (item.brand != null) append(item.brand)
-                                            if (item.brand != null && item.estimatedValue != null) append(" • ")
-                                            if (item.estimatedValue != null) {
-                                                append("$")
-                                                append(String.format("%.0f", item.estimatedValue))
-                                            }
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                            }
+                            if (item.brand != null || item.estimatedValue != null) {
+                                Text(
+                                    text = buildString {
+                                        if (item.brand != null) append(item.brand)
+                                        if (item.brand != null && item.estimatedValue != null) append(" • ")
+                                        if (item.estimatedValue != null) {
+                                            append("$")
+                                            append(String.format("%.0f", item.estimatedValue))
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
