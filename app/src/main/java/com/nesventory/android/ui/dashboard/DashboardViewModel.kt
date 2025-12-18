@@ -6,6 +6,7 @@ import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.model.Location
 import com.nesventory.android.data.model.User
 import com.nesventory.android.data.repository.ApiResult
+import com.nesventory.android.data.repository.ConnectionStatus
 import com.nesventory.android.data.repository.NesVentoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,8 @@ data class DashboardUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isUsingLocalConnection: Boolean = false,
-    val activeBaseUrl: String? = null
+    val activeBaseUrl: String? = null,
+    val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_CONFIGURED
 )
 
 /**
@@ -49,10 +51,21 @@ class DashboardViewModel @Inject constructor(
             // Check connection status
             val isLocal = repository.isUsingLocalConnection()
             val baseUrl = repository.getActiveBaseUrl()
+            val status = repository.checkConnectionStatus()
             _uiState.value = _uiState.value.copy(
                 isUsingLocalConnection = isLocal,
-                activeBaseUrl = baseUrl
+                activeBaseUrl = baseUrl,
+                connectionStatus = status
             )
+
+            // If not connected, show error and return early
+            if (status != ConnectionStatus.CONNECTED) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = repository.getConnectionStatusMessage(status)
+                )
+                return@launch
+            }
 
             // Load user info
             when (val userResult = repository.getCurrentUser()) {

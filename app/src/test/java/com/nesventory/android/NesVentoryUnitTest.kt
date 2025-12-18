@@ -1,5 +1,6 @@
 package com.nesventory.android
 
+import com.nesventory.android.data.repository.ConnectionStatus
 import org.junit.Test
 import org.junit.Assert.*
 
@@ -48,5 +49,21 @@ class NesVentoryUnitTest {
         assertEquals("", settings.remoteUrl)
         assertEquals("", settings.localUrl)
         assertEquals("", settings.localSsid)
+    }
+
+    @Test
+    fun connectionStatus_enumValues_exist() {
+        // Verify all connection status enum values are defined
+        assertNotNull(ConnectionStatus.CONNECTED)
+        assertNotNull(ConnectionStatus.DISCONNECTED)
+        assertNotNull(ConnectionStatus.NO_NETWORK)
+        assertNotNull(ConnectionStatus.NOT_CONFIGURED)
+    }
+
+    @Test
+    fun connectionStatus_enumValues_count() {
+        // Verify we have exactly 4 connection status values
+        val values = ConnectionStatus.entries
+        assertEquals(4, values.size)
     }
 }
