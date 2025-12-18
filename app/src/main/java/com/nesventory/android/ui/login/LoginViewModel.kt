@@ -19,8 +19,8 @@ import javax.inject.Inject
  * UI state for the login screen.
  */
 data class LoginUiState(
-    val email: String = "editor@nesventory.local",
-    val password: String = "password",
+    val email: String = "demouser@nesventory.local",
+    val password: String = "demo123",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false,
