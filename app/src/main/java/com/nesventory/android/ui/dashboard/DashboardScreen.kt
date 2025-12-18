@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.repository.ConnectionStatus
+import com.nesventory.android.util.Quadruple
 import kotlinx.coroutines.launch
 
 /**
@@ -412,8 +413,8 @@ private fun ConnectionInfoCard(
             } else {
                 Quadruple(
                     Icons.Filled.CheckCircle,
-                    MaterialTheme.colorScheme.tertiaryContainer,
-                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
                     "Connected (Remote)"
                 )
             }
@@ -552,11 +553,3 @@ private fun ItemCard(item: Item) {
         }
     }
 }
-
-// Helper data class for quadruple
-private data class Quadruple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)

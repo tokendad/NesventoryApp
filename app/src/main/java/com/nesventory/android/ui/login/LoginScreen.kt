@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.R
 import com.nesventory.android.data.repository.ConnectionStatus
+import com.nesventory.android.util.Quadruple
 
 /**
  * Login screen composable with server settings configuration.
@@ -378,14 +379,6 @@ private fun ConnectionStatusCard(
         }
     }
 }
-
-// Helper data class for quadruple
-private data class Quadruple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)
 
 /**
  * Dialog for configuring server settings.
