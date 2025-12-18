@@ -17,14 +17,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.data.model.Item
+import com.nesventory.android.data.repository.ConnectionStatus
 import kotlinx.coroutines.launch
 
 /**
@@ -199,14 +204,31 @@ fun DashboardScreen(
                     },
                     actions = {
                         // Connection status indicator
+                        val connectionIcon = when (uiState.connectionStatus) {
+                            ConnectionStatus.CONNECTED -> Icons.Filled.CheckCircle
+                            ConnectionStatus.DISCONNECTED -> Icons.Filled.Error
+                            ConnectionStatus.NO_NETWORK -> Icons.Filled.WifiOff
+                            ConnectionStatus.NOT_CONFIGURED -> Icons.Filled.Warning
+                        }
+                        
+                        val connectionTint = when (uiState.connectionStatus) {
+                            ConnectionStatus.CONNECTED -> MaterialTheme.colorScheme.onPrimaryContainer
+                            else -> MaterialTheme.colorScheme.error
+                        }
+                        
                         Icon(
-                            imageVector = Icons.Filled.Wifi,
-                            contentDescription = if (uiState.isUsingLocalConnection) {
-                                "Local connection"
-                            } else {
-                                "Remote connection"
+                            imageVector = connectionIcon,
+                            contentDescription = when (uiState.connectionStatus) {
+                                ConnectionStatus.CONNECTED -> if (uiState.isUsingLocalConnection) {
+                                    "Connected (Local)"
+                                } else {
+                                    "Connected (Remote)"
+                                }
+                                ConnectionStatus.DISCONNECTED -> "Server Unavailable"
+                                ConnectionStatus.NO_NETWORK -> "No Internet"
+                                ConnectionStatus.NOT_CONFIGURED -> "Not Configured"
                             },
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = connectionTint,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         
@@ -288,6 +310,7 @@ fun DashboardScreen(
                         // Connection info
                         item {
                             ConnectionInfoCard(
+                                connectionStatus = uiState.connectionStatus,
                                 isUsingLocalConnection = uiState.isUsingLocalConnection,
                                 activeBaseUrl = uiState.activeBaseUrl
                             )
@@ -373,18 +396,57 @@ private fun StatsCard(
  */
 @Composable
 private fun ConnectionInfoCard(
+    connectionStatus: ConnectionStatus,
     isUsingLocalConnection: Boolean,
     activeBaseUrl: String?
 ) {
+    val (icon, containerColor, contentColor, statusText) = when (connectionStatus) {
+        ConnectionStatus.CONNECTED -> {
+            if (isUsingLocalConnection) {
+                Quadruple(
+                    Icons.Filled.CheckCircle,
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                    "Connected (Local)"
+                )
+            } else {
+                Quadruple(
+                    Icons.Filled.CheckCircle,
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    "Connected (Remote)"
+                )
+            }
+        }
+        ConnectionStatus.DISCONNECTED -> {
+            Quadruple(
+                Icons.Filled.Error,
+                MaterialTheme.colorScheme.errorContainer,
+                MaterialTheme.colorScheme.onErrorContainer,
+                "Server Unavailable"
+            )
+        }
+        ConnectionStatus.NO_NETWORK -> {
+            Quadruple(
+                Icons.Filled.WifiOff,
+                MaterialTheme.colorScheme.errorContainer,
+                MaterialTheme.colorScheme.onErrorContainer,
+                "No Internet Connection"
+            )
+        }
+        ConnectionStatus.NOT_CONFIGURED -> {
+            Quadruple(
+                Icons.Filled.Warning,
+                MaterialTheme.colorScheme.tertiaryContainer,
+                MaterialTheme.colorScheme.onTertiaryContainer,
+                "Server Not Configured"
+            )
+        }
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isUsingLocalConnection) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.tertiaryContainer
-            }
-        )
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Row(
             modifier = Modifier
@@ -393,34 +455,22 @@ private fun ConnectionInfoCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Filled.Wifi,
+                imageVector = icon,
                 contentDescription = null,
-                tint = if (isUsingLocalConnection) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onTertiaryContainer
-                }
+                tint = contentColor
             )
             Spacer(modifier = Modifier.size(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isUsingLocalConnection) "Local Connection" else "Remote Connection",
+                    text = statusText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUsingLocalConnection) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onTertiaryContainer
-                    }
+                    color = contentColor
                 )
                 activeBaseUrl?.let { url ->
                     Text(
                         text = url,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isUsingLocalConnection) {
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        } else {
-                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        },
+                        color = contentColor.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -502,3 +552,11 @@ private fun ItemCard(item: Item) {
         }
     }
 }
+
+// Helper data class for quadruple
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)

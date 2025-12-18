@@ -36,6 +36,16 @@ sealed class ApiResult<out T> {
 }
 
 /**
+ * Server connection status.
+ */
+enum class ConnectionStatus {
+    CONNECTED,          // Server is reachable and responding
+    DISCONNECTED,       // Server is not reachable
+    NO_NETWORK,         // No internet connection available
+    NOT_CONFIGURED      // Server settings not configured
+}
+
+/**
  * Repository for NesVentory API operations.
  * Handles automatic URL switching based on network connection.
  */
@@ -103,10 +113,54 @@ class NesVentoryRepository @Inject constructor(
     }
 
     /**
+     * Check the current connection status to the backend server.
+     * 
+     * @return ConnectionStatus indicating the current state of the server connection
+     */
+    suspend fun checkConnectionStatus(): ConnectionStatus = withContext(Dispatchers.IO) {
+        // Check if network is available
+        if (!networkUtils.isNetworkAvailable()) {
+            return@withContext ConnectionStatus.NO_NETWORK
+        }
+        
+        // Get active URL
+        val baseUrl = getActiveBaseUrl()
+        if (baseUrl == null) {
+            return@withContext ConnectionStatus.NOT_CONFIGURED
+        }
+        
+        // Check if server is reachable
+        val isReachable = networkUtils.isServerReachable(baseUrl)
+        return@withContext if (isReachable) {
+            ConnectionStatus.CONNECTED
+        } else {
+            ConnectionStatus.DISCONNECTED
+        }
+    }
+
+    /**
+     * Get a human-readable message for the current connection status.
+     */
+    fun getConnectionStatusMessage(status: ConnectionStatus): String {
+        return when (status) {
+            ConnectionStatus.CONNECTED -> "Connected to server"
+            ConnectionStatus.DISCONNECTED -> "Server unavailable"
+            ConnectionStatus.NO_NETWORK -> "No internet connection"
+            ConnectionStatus.NOT_CONFIGURED -> "Server not configured"
+        }
+    }
+
+    /**
      * Login with email and password.
      */
     suspend fun login(email: String, password: String): ApiResult<TokenResponse> = withContext(Dispatchers.IO) {
         try {
+            // Check connection status first
+            val connectionStatus = checkConnectionStatus()
+            if (connectionStatus != ConnectionStatus.CONNECTED) {
+                return@withContext ApiResult.Error(getConnectionStatusMessage(connectionStatus))
+            }
+            
             val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
             
             val response = api.login(email, password)
@@ -127,6 +181,12 @@ class NesVentoryRepository @Inject constructor(
                 }
                 ApiResult.Error(errorMessage, response.code())
             }
+        } catch (e: java.net.UnknownHostException) {
+            ApiResult.Error("Cannot reach server - check your connection")
+        } catch (e: java.net.SocketTimeoutException) {
+            ApiResult.Error("Server timeout - please try again")
+        } catch (e: java.net.ConnectException) {
+            ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
         }
@@ -188,6 +248,12 @@ class NesVentoryRepository @Inject constructor(
             } else {
                 ApiResult.Error("Failed to get items: ${response.code()}", response.code())
             }
+        } catch (e: java.net.UnknownHostException) {
+            ApiResult.Error("Cannot reach server")
+        } catch (e: java.net.SocketTimeoutException) {
+            ApiResult.Error("Server timeout")
+        } catch (e: java.net.ConnectException) {
+            ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
         }
@@ -313,6 +379,12 @@ class NesVentoryRepository @Inject constructor(
             } else {
                 ApiResult.Error("Failed to get system status: ${response.code()}", response.code())
             }
+        } catch (e: java.net.UnknownHostException) {
+            ApiResult.Error("Cannot reach server")
+        } catch (e: java.net.SocketTimeoutException) {
+            ApiResult.Error("Server timeout")
+        } catch (e: java.net.ConnectException) {
+            ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
         }

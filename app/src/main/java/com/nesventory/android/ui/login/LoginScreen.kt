@@ -16,9 +16,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
@@ -56,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nesventory.android.R
+import com.nesventory.android.data.repository.ConnectionStatus
 
 /**
  * Login screen composable with server settings configuration.
@@ -136,9 +141,11 @@ fun LoginScreen(
 
                 // Connection status indicator
                 ConnectionStatusCard(
+                    connectionStatus = uiState.connectionStatus,
                     isUsingLocalConnection = uiState.isUsingLocalConnection,
                     activeBaseUrl = uiState.activeBaseUrl,
-                    isConfigured = uiState.serverSettings.isConfigured()
+                    isCheckingConnection = uiState.isCheckingConnection,
+                    onRefresh = viewModel::refreshConnectionStatus
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -271,23 +278,59 @@ fun LoginScreen(
  */
 @Composable
 private fun ConnectionStatusCard(
+    connectionStatus: ConnectionStatus,
     isUsingLocalConnection: Boolean,
     activeBaseUrl: String?,
-    isConfigured: Boolean
+    isCheckingConnection: Boolean,
+    onRefresh: () -> Unit
 ) {
+    val (icon, containerColor, contentColor, statusText) = when (connectionStatus) {
+        ConnectionStatus.CONNECTED -> {
+            if (isUsingLocalConnection) {
+                Quadruple(
+                    Icons.Filled.CheckCircle,
+                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.onPrimaryContainer,
+                    "Connected (Local)"
+                )
+            } else {
+                Quadruple(
+                    Icons.Filled.CheckCircle,
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
+                    "Connected (Remote)"
+                )
+            }
+        }
+        ConnectionStatus.DISCONNECTED -> {
+            Quadruple(
+                Icons.Filled.Error,
+                MaterialTheme.colorScheme.errorContainer,
+                MaterialTheme.colorScheme.onErrorContainer,
+                "Server Unavailable"
+            )
+        }
+        ConnectionStatus.NO_NETWORK -> {
+            Quadruple(
+                Icons.Filled.WifiOff,
+                MaterialTheme.colorScheme.errorContainer,
+                MaterialTheme.colorScheme.onErrorContainer,
+                "No Internet Connection"
+            )
+        }
+        ConnectionStatus.NOT_CONFIGURED -> {
+            Quadruple(
+                Icons.Filled.Warning,
+                MaterialTheme.colorScheme.tertiaryContainer,
+                MaterialTheme.colorScheme.onTertiaryContainer,
+                "Server Not Configured"
+            )
+        }
+    }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isConfigured) {
-                if (isUsingLocalConnection) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.secondaryContainer
-                }
-            } else {
-                MaterialTheme.colorScheme.errorContainer
-            }
-        )
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Row(
             modifier = Modifier
@@ -295,53 +338,54 @@ private fun ConnectionStatusCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (isConfigured) Icons.Filled.Wifi else Icons.Filled.WifiOff,
-                contentDescription = null,
-                tint = if (isConfigured) {
-                    if (isUsingLocalConnection) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    }
-                } else {
-                    MaterialTheme.colorScheme.onErrorContainer
-                }
-            )
+            if (isCheckingConnection) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = contentColor
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor
+                )
+            }
             Spacer(modifier = Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when {
-                        !isConfigured -> "Server not configured"
-                        isUsingLocalConnection -> "Using local connection"
-                        else -> "Using remote connection"
-                    },
+                    text = statusText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isConfigured) {
-                        if (isUsingLocalConnection) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        }
-                    } else {
-                        MaterialTheme.colorScheme.onErrorContainer
-                    }
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor
                 )
-                if (isConfigured && activeBaseUrl != null) {
+                if (activeBaseUrl != null) {
                     Text(
                         text = activeBaseUrl,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isUsingLocalConnection) {
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        }
+                        color = contentColor.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            if (!isCheckingConnection) {
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Refresh connection status",
+                        tint = contentColor
                     )
                 }
             }
         }
     }
 }
+
+// Helper data class for quadruple
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
 
 /**
  * Dialog for configuring server settings.

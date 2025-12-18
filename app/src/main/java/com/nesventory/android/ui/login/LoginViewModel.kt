@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nesventory.android.data.preferences.ServerSettings
 import com.nesventory.android.data.repository.ApiResult
+import com.nesventory.android.data.repository.ConnectionStatus
 import com.nesventory.android.data.repository.NesVentoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,9 @@ data class LoginUiState(
     val showServerSettings: Boolean = false,
     val serverSettings: ServerSettings = ServerSettings(),
     val isUsingLocalConnection: Boolean = false,
-    val activeBaseUrl: String? = null
+    val activeBaseUrl: String? = null,
+    val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_CONFIGURED,
+    val isCheckingConnection: Boolean = false
 )
 
 /**
@@ -86,13 +89,23 @@ class LoginViewModel @Inject constructor(
 
     private fun checkConnectionStatus() {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCheckingConnection = true)
+            
             val isLocal = repository.isUsingLocalConnection()
             val baseUrl = repository.getActiveBaseUrl()
+            val status = repository.checkConnectionStatus()
+            
             _uiState.value = _uiState.value.copy(
                 isUsingLocalConnection = isLocal,
-                activeBaseUrl = baseUrl
+                activeBaseUrl = baseUrl,
+                connectionStatus = status,
+                isCheckingConnection = false
             )
         }
+    }
+
+    fun refreshConnectionStatus() {
+        checkConnectionStatus()
     }
 
     fun onEmailChange(email: String) {

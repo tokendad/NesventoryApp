@@ -5,6 +5,11 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -102,5 +107,42 @@ class NetworkUtils @Inject constructor(
         if (localSsid.isBlank()) return false
         val currentSsid = getCurrentSsid() ?: return false
         return currentSsid.equals(localSsid, ignoreCase = true)
+    }
+
+    /**
+     * Check if a server URL is reachable by attempting to connect to its status endpoint.
+     * 
+     * @param baseUrl The base URL of the server to check
+     * @param timeoutMs Timeout in milliseconds for the connection attempt (default: 5000ms)
+     * @return true if the server is reachable, false otherwise
+     */
+    suspend fun isServerReachable(baseUrl: String, timeoutMs: Long = 5000): Boolean = withContext(Dispatchers.IO) {
+        if (baseUrl.isBlank()) return@withContext false
+        
+        // First check if network is available at all
+        if (!isNetworkAvailable()) return@withContext false
+        
+        return@withContext try {
+            withTimeoutOrNull(timeoutMs) {
+                val normalizedUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+                val url = URL("${normalizedUrl}api/status")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.apply {
+                    requestMethod = "GET"
+                    connectTimeout = timeoutMs.toInt()
+                    readTimeout = timeoutMs.toInt()
+                    useCaches = false
+                    instanceFollowRedirects = true
+                }
+                
+                val responseCode = connection.responseCode
+                connection.disconnect()
+                
+                // Accept any 2xx or 3xx response as success
+                responseCode in 200..399
+            } ?: false
+        } catch (e: Exception) {
+            false
+        }
     }
 }
