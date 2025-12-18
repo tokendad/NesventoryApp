@@ -15,9 +15,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.nesventory.android.ui.additem.AddItemScreen
 import com.nesventory.android.ui.dashboard.DashboardScreen
 import com.nesventory.android.ui.inventory.InventoryScreen
+import com.nesventory.android.ui.itemdetails.ItemDetailsScreen
 import com.nesventory.android.ui.locations.LocationsScreen
 import com.nesventory.android.ui.login.LoginScreen
 import com.nesventory.android.ui.maintenance.MaintenanceScreen
@@ -61,6 +64,9 @@ sealed class Screen(val route: String) {
     data object Maintenance : Screen("maintenance")
     data object UserSettings : Screen("user_settings")
     data object SystemSettings : Screen("system_settings")
+    data object ItemDetails : Screen("item_details/{itemId}") {
+        fun createRoute(itemId: String) = "item_details/$itemId"
+    }
 }
 
 /**
@@ -138,6 +144,9 @@ fun NesVentoryApp() {
                 onNavigateToAddItem = {
                     navController.navigate(Screen.AddItem.route)
                 },
+                onNavigateToItemDetails = { itemId ->
+                    navController.navigate(Screen.ItemDetails.createRoute(itemId))
+                },
                 onAIScan = {
                     // AI scan placeholder - will be implemented with camera integration
                 }
@@ -155,6 +164,17 @@ fun NesVentoryApp() {
 
         composable(Screen.AddItem.route) {
             AddItemScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.ItemDetails.route,
+            arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+            ItemDetailsScreen(
+                itemId = itemId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
