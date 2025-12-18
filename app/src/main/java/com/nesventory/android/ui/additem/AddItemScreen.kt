@@ -79,7 +79,7 @@ fun AddItemScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && imageUri != null) {
-            viewModel.addPhoto(imageUri!!)
+            viewModel.addPhoto(imageUri!!, context)
             imageUri = null
         }
     }
@@ -106,7 +106,7 @@ fun AddItemScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { viewModel.addPhoto(it) }
+        uri?.let { viewModel.addPhoto(it, context) }
     }
 
     // Handle errors
@@ -172,6 +172,144 @@ fun AddItemScreen(
                         viewModel.removePhoto(uri)
                     }
                 )
+            }
+
+            // AI Processing Status
+            if (uiState.isProcessingAI) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = "Processing image with AI...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+
+            // AI Detected Items
+            if (uiState.aiDetectedItems.isNotEmpty() && !uiState.isProcessingAI) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "AI Detected ${uiState.aiDetectedItems.size} item(s)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                IconButton(
+                                    onClick = { viewModel.clearAIResults() }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Dismiss",
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                            
+                            uiState.aiDetectedItems.forEach { item ->
+                                OutlinedButton(
+                                    onClick = { viewModel.applyDetectedItem(item) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalAlignment = Alignment.Start
+                                    ) {
+                                        Text(
+                                            text = item.name,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        if (item.description != null) {
+                                            Text(
+                                                text = item.description,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                        if (item.brand != null || item.estimatedValue != null) {
+                                            Text(
+                                                text = buildString {
+                                                    if (item.brand != null) append(item.brand)
+                                                    if (item.brand != null && item.estimatedValue != null) append(" • ")
+                                                    if (item.estimatedValue != null) append("$${item.estimatedValue.toInt()}")
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Text(
+                                text = "Tap an item to apply its details",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+
+            // AI Error
+            if (uiState.aiError != null && !uiState.isProcessingAI) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = uiState.aiError,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { viewModel.clearAIResults() }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             item {

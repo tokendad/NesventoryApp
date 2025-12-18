@@ -389,4 +389,65 @@ class NesVentoryRepository @Inject constructor(
     suspend fun getServerSettings(): ServerSettings {
         return preferencesManager.serverSettings.first()
     }
+
+    /**
+     * Process an image with AI to detect items.
+     * 
+     * @param imageUri URI of the image to process
+     * @param context Android context for content resolver
+     * @return ApiResult containing detected items or error
+     */
+    suspend fun processImageWithAI(imageUri: android.net.Uri, context: android.content.Context): ApiResult<com.nesventory.android.data.model.DetectionResult> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+
+            // Get the image data from URI
+            val contentResolver = context.contentResolver
+            val inputStream = contentResolver.openInputStream(imageUri)
+                ?: return@withContext ApiResult.Error("Failed to read image")
+
+            val imageBytes = inputStream.use { it.readBytes() }
+            
+            // Determine MIME type
+            val mimeType = contentResolver.getType(imageUri) ?: "image/jpeg"
+            
+            // Create RequestBody for the image
+            val requestBody = okhttp3.RequestBody.create(
+                okhttp3.MediaType.Companion.toMediaType(mimeType),
+                imageBytes
+            )
+            
+            // Create MultipartBody.Part for the file
+            val filePart = okhttp3.MultipartBody.Part.createFormData(
+                "file",
+                "image.jpg",
+                requestBody
+            )
+            
+            val response = api.detectItems("Bearer ${session.accessToken}", filePart)
+            
+            if (response.isSuccessful) {
+                val result = response.body()
+                if (result != null) {
+                    ApiResult.Success(result)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                val errorMessage = when (response.code()) {
+                    429 -> "AI rate limit exceeded. Please try again later."
+                    503 -> "AI service not configured on server"
+                    else -> "Failed to process image: ${response.code()}"
+                }
+                ApiResult.Error(errorMessage, response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
 }

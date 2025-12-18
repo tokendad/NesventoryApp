@@ -1,6 +1,7 @@
 package com.nesventory.android.data.api
 
 import com.nesventory.android.data.model.AIStatus
+import com.nesventory.android.data.model.DetectionResult
 import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.model.Location
 import com.nesventory.android.data.model.MaintenanceTask
@@ -10,12 +11,15 @@ import com.nesventory.android.data.model.Tag
 import com.nesventory.android.data.model.TokenResponse
 import com.nesventory.android.data.model.User
 import com.nesventory.android.data.model.Video
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 /**
  * NesVentory API service interface.
@@ -103,4 +107,15 @@ interface NesVentoryApi {
     suspend fun getPluginStatus(
         @Header("Authorization") authorization: String
     ): Response<PluginStatus>
+
+    /**
+     * Analyze an uploaded image using AI to detect household items.
+     * Returns a list of detected items with names, descriptions, and estimated values.
+     */
+    @Multipart
+    @POST("api/ai/detect-items")
+    suspend fun detectItems(
+        @Header("Authorization") authorization: String,
+        @Part file: MultipartBody.Part
+    ): Response<DetectionResult>
 }
