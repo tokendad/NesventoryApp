@@ -124,8 +124,8 @@ class NetworkUtils @Inject constructor(
         
         return@withContext try {
             withTimeoutOrNull(timeoutMs) {
-                val normalizedUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-                val url = URL("${normalizedUrl}api/status")
+                val normalizedUrl = baseUrl.trimEnd('/')
+                val url = URL("$normalizedUrl/api/status")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.apply {
                     requestMethod = "GET"

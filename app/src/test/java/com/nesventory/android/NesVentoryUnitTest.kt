@@ -63,7 +63,7 @@ class NesVentoryUnitTest {
     @Test
     fun connectionStatus_enumValues_count() {
         // Verify we have exactly 4 connection status values
-        val values = ConnectionStatus.values()
+        val values = ConnectionStatus.entries
         assertEquals(4, values.size)
     }
 }

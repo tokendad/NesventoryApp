@@ -23,6 +23,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -181,11 +184,11 @@ class NesVentoryRepository @Inject constructor(
                 }
                 ApiResult.Error(errorMessage, response.code())
             }
-        } catch (e: java.net.UnknownHostException) {
+        } catch (e: UnknownHostException) {
             ApiResult.Error("Cannot reach server - check your connection")
-        } catch (e: java.net.SocketTimeoutException) {
+        } catch (e: SocketTimeoutException) {
             ApiResult.Error("Server timeout - please try again")
-        } catch (e: java.net.ConnectException) {
+        } catch (e: ConnectException) {
             ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
@@ -248,11 +251,11 @@ class NesVentoryRepository @Inject constructor(
             } else {
                 ApiResult.Error("Failed to get items: ${response.code()}", response.code())
             }
-        } catch (e: java.net.UnknownHostException) {
+        } catch (e: UnknownHostException) {
             ApiResult.Error("Cannot reach server")
-        } catch (e: java.net.SocketTimeoutException) {
+        } catch (e: SocketTimeoutException) {
             ApiResult.Error("Server timeout")
-        } catch (e: java.net.ConnectException) {
+        } catch (e: ConnectException) {
             ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
@@ -379,11 +382,11 @@ class NesVentoryRepository @Inject constructor(
             } else {
                 ApiResult.Error("Failed to get system status: ${response.code()}", response.code())
             }
-        } catch (e: java.net.UnknownHostException) {
+        } catch (e: UnknownHostException) {
             ApiResult.Error("Cannot reach server")
-        } catch (e: java.net.SocketTimeoutException) {
+        } catch (e: SocketTimeoutException) {
             ApiResult.Error("Server timeout")
-        } catch (e: java.net.ConnectException) {
+        } catch (e: ConnectException) {
             ApiResult.Error("Cannot connect to server")
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
