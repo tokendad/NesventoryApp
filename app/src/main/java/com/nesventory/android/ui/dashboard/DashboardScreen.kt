@@ -76,7 +76,6 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onNavigateToInventory: () -> Unit = {},
     onNavigateToLocations: () -> Unit = {},
-    onNavigateToAddItem: () -> Unit = {},
     onNavigateToUserSettings: () -> Unit = {},
     onNavigateToMaintenance: () -> Unit = {},
     onNavigateToSystemSettings: () -> Unit = {}
