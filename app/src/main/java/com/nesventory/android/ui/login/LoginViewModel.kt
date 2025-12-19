@@ -60,6 +60,19 @@ class LoginViewModel @Inject constructor(
         checkConnectionStatus()
         // Auto-configure demo server settings
         configureDemoServer()
+        // Check if user is already logged in
+        checkExistingSession()
+    }
+
+    private fun checkExistingSession() {
+        viewModelScope.launch {
+            // Observe the user session from preferences to check existing login state
+            repository.observeUserSession().collect { session ->
+                if (session.isLoggedIn && !_uiState.value.isLoggedIn) {
+                    _uiState.value = _uiState.value.copy(isLoggedIn = true)
+                }
+            }
+        }
     }
 
     private fun configureDemoServer() {

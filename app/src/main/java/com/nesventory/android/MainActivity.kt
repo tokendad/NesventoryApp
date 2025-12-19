@@ -75,20 +75,13 @@ sealed class Screen(val route: String) {
 @Composable
 fun NesVentoryApp() {
     val navController = rememberNavController()
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val isLoggedIn by mainViewModel.isLoggedIn.collectAsState(initial = false)
-    val isServerConfigured by mainViewModel.isServerConfigured.collectAsState(initial = false)
 
-    // Determine start destination based on configuration and login state
-    // In demo version, skip server settings configuration
-    val startDestination = when {
-        isLoggedIn -> Screen.Dashboard.route
-        else -> Screen.Login.route
-    }
-
+    // Use a fixed startDestination to prevent composition instability.
+    // The NavHost structure must remain stable across recompositions.
+    // Auto-navigation based on login state is handled inside LoginScreen.
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = Screen.Login.route
     ) {
         composable(Screen.ServerSettings.route) {
             ServerSettingsScreen(

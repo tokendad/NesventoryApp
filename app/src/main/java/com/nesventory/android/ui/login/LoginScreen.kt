@@ -76,6 +76,8 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     var passwordVisible by remember { mutableStateOf(false) }
 
+    // Handle auto-navigation when user is logged in
+    // This is called from the fixed startDestination (Screen.Login.route)
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onLoginSuccess()

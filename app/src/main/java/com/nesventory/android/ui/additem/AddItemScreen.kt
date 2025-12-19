@@ -248,9 +248,8 @@ fun AddItemScreen(
             if (uiState.aiDetectedItems.isNotEmpty() && !uiState.isProcessingAI) {
                 items(
                     items = uiState.aiDetectedItems,
-                    key = { item -> 
-                        "${item.name}|${item.description.orEmpty()}|${item.brand.orEmpty()}|${item.estimatedValue ?: 0}" 
-                    }
+                    // Simplified key to avoid potential issues with complex expressions
+                    key = { item -> "${item.hashCode()}" }
                 ) { item ->
                     OutlinedButton(
                         onClick = { viewModel.applyDetectedItem(item) },
