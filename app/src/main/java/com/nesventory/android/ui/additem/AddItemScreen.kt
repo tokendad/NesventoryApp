@@ -200,9 +200,9 @@ fun AddItemScreen(
                 }
             }
 
-            // AI Detected Items - Header
+            // AI Detected Items - Header and List
             if (uiState.aiDetectedItems.isNotEmpty() && !uiState.isProcessingAI) {
-                item {
+                item(key = "ai_header") {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -242,9 +242,16 @@ fun AddItemScreen(
                         }
                     }
                 }
-                
-                // AI Detected Items - List
-                items(uiState.aiDetectedItems) { item ->
+            }
+            
+            // AI Detected Items - List
+            if (uiState.aiDetectedItems.isNotEmpty() && !uiState.isProcessingAI) {
+                items(
+                    items = uiState.aiDetectedItems,
+                    key = { item -> 
+                        "${item.name}|${item.description.orEmpty()}|${item.brand.orEmpty()}|${item.estimatedValue ?: 0}" 
+                    }
+                ) { item ->
                     OutlinedButton(
                         onClick = { viewModel.applyDetectedItem(item) },
                         modifier = Modifier.fillMaxWidth()
