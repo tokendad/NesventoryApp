@@ -504,8 +504,8 @@ class NesVentoryRepository @Inject constructor(
             
             // Create RequestBody for the image
             val requestBody = okhttp3.RequestBody.create(
-                mimeType.toMediaType(),
-                imageBytes
+                imageBytes,
+                mimeType.toMediaType()
             )
             
             // Create MultipartBody.Part for the file

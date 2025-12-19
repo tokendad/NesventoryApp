@@ -71,7 +71,7 @@ fun ServerSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Divider()
+            HorizontalDivider()
 
             // Remote Server Section
             Card(

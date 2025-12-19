@@ -77,7 +77,6 @@ fun NesVentoryApp() {
     val navController = rememberNavController()
     val mainViewModel: MainViewModel = hiltViewModel()
     val isLoggedIn by mainViewModel.isLoggedIn.collectAsState(initial = false)
-    val isServerConfigured by mainViewModel.isServerConfigured.collectAsState(initial = false)
 
     // Determine start destination based on configuration and login state
     // In demo version, skip server settings configuration
@@ -122,9 +121,6 @@ fun NesVentoryApp() {
                 },
                 onNavigateToLocations = {
                     navController.navigate(Screen.Locations.route)
-                },
-                onNavigateToAddItem = {
-                    navController.navigate(Screen.AddItem.route)
                 },
                 onNavigateToUserSettings = {
                     navController.navigate(Screen.UserSettings.route)
