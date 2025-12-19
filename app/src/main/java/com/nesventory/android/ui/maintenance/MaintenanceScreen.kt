@@ -122,7 +122,10 @@ fun MaintenanceScreen(
                         )
                     }
                 } else {
-                    items(uiState.tasks) { task ->
+                    items(
+                        items = uiState.tasks,
+                        key = { task -> task.id }
+                    ) { task ->
                         MaintenanceTaskCard(task = task)
                     }
                 }

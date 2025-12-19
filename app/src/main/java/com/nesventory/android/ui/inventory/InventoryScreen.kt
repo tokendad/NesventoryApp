@@ -169,7 +169,10 @@ fun InventoryScreen(
                             )
                         }
                     } else {
-                        items(filteredItems) { item ->
+                        items(
+                            items = filteredItems,
+                            key = { item -> item.id }
+                        ) { item ->
                             ItemCard(
                                 item = item,
                                 onClick = { onNavigateToItemDetails(item.id) }

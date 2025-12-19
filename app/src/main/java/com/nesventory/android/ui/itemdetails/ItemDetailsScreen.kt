@@ -132,7 +132,10 @@ fun ItemDetailsScreen(
                             )
                         }
 
-                        items(item.photos) { photo ->
+                        items(
+                            items = item.photos,
+                            key = { photo -> photo.id }
+                        ) { photo ->
                             PhotoCard(
                                 photo = photo,
                                 isEditing = uiState.isEditing,
