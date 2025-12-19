@@ -109,9 +109,9 @@ Four distinct states with unique visual indicators:
 ### Smart Connection Checking
 ```kotlin
 // Checks in this order:
-1. Is network available? → NO_NETWORK
-2. Is server configured? → NOT_CONFIGURED
-3. Is server reachable? → CONNECTED or DISCONNECTED
+// 1. Is network available? → NO_NETWORK
+// 2. Is server configured? → NOT_CONFIGURED
+// 3. Is server reachable? → CONNECTED or DISCONNECTED
 ```
 
 ### Proactive Error Prevention
