@@ -277,7 +277,7 @@ fun AddItemScreen(
                                         if (item.brand != null && item.estimatedValue != null) append(" • ")
                                         if (item.estimatedValue != null) {
                                             append("$")
-                                            append(String.format("%.0f", item.estimatedValue))
+                                            append(String.format(java.util.Locale.US, "%.0f", item.estimatedValue))
                                         }
                                     },
                                     style = MaterialTheme.typography.bodySmall,
