@@ -66,11 +66,11 @@ class LoginViewModel @Inject constructor(
 
     private fun checkExistingSession() {
         viewModelScope.launch {
-            // Observe the user session from preferences to check existing login state
-            repository.observeUserSession().collect { session ->
-                if (session.isLoggedIn && !_uiState.value.isLoggedIn) {
-                    _uiState.value = _uiState.value.copy(isLoggedIn = true)
-                }
+            // Check the initial user session from preferences
+            // Only check once at initialization to avoid unnecessary updates
+            val session = repository.observeUserSession().first()
+            if (session.isLoggedIn && !_uiState.value.isLoggedIn) {
+                _uiState.value = _uiState.value.copy(isLoggedIn = true)
             }
         }
     }

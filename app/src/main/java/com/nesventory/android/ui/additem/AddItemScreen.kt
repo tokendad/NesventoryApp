@@ -246,11 +246,11 @@ fun AddItemScreen(
             
             // AI Detected Items - List
             if (uiState.aiDetectedItems.isNotEmpty() && !uiState.isProcessingAI) {
-                items(
+                itemsIndexed(
                     items = uiState.aiDetectedItems,
-                    // Simplified key to avoid potential issues with complex expressions
-                    key = { item -> "${item.hashCode()}" }
-                ) { item ->
+                    // Use index-based key for stability since DetectedItem doesn't have a unique ID
+                    key = { index, _ -> "ai_item_$index" }
+                ) { _, item ->
                     OutlinedButton(
                         onClick = { viewModel.applyDetectedItem(item) },
                         modifier = Modifier.fillMaxWidth()
