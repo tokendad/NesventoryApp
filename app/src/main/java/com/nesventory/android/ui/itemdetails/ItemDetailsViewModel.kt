@@ -151,8 +151,10 @@ class ItemDetailsViewModel @Inject constructor(
         val photos = item.photos.toMutableList()
         val index = photos.indexOf(photo)
         if (index > 0) {
-            photos.removeAt(index)
-            photos.add(index - 1, photo)
+            // Swap with the previous photo
+            val temp = photos[index]
+            photos[index] = photos[index - 1]
+            photos[index - 1] = temp
             _uiState.value = _uiState.value.copy(
                 item = item.copy(photos = photos)
             )
@@ -164,8 +166,10 @@ class ItemDetailsViewModel @Inject constructor(
         val photos = item.photos.toMutableList()
         val index = photos.indexOf(photo)
         if (index in 0 until photos.size - 1) {
-            photos.removeAt(index)
-            photos.add(index + 1, photo)
+            // Swap with the next photo
+            val temp = photos[index]
+            photos[index] = photos[index + 1]
+            photos[index + 1] = temp
             _uiState.value = _uiState.value.copy(
                 item = item.copy(photos = photos)
             )
