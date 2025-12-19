@@ -69,7 +69,7 @@ class LoginViewModel @Inject constructor(
             // Check the initial user session from preferences
             // Only check once at initialization to avoid unnecessary updates
             val session = repository.observeUserSession().first()
-            if (session.isLoggedIn && !_uiState.value.isLoggedIn) {
+            if (session.isLoggedIn) {
                 _uiState.value = _uiState.value.copy(isLoggedIn = true)
             }
         }
