@@ -152,7 +152,9 @@ class ItemDetailsViewModel @Inject constructor(
         val index = photos.indexOf(photo)
         if (index > 0) {
             // Swap with the previous photo
-            photos[index] = photos[index - 1].also { photos[index - 1] = photos[index] }
+            val temp = photos[index]
+            photos[index] = photos[index - 1]
+            photos[index - 1] = temp
             _uiState.value = _uiState.value.copy(
                 item = item.copy(photos = photos)
             )
@@ -165,7 +167,9 @@ class ItemDetailsViewModel @Inject constructor(
         val index = photos.indexOf(photo)
         if (index in 0 until photos.size - 1) {
             // Swap with the next photo
-            photos[index] = photos[index + 1].also { photos[index + 1] = photos[index] }
+            val temp = photos[index]
+            photos[index] = photos[index + 1]
+            photos[index + 1] = temp
             _uiState.value = _uiState.value.copy(
                 item = item.copy(photos = photos)
             )
