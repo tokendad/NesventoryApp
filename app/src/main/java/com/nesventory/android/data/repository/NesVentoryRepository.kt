@@ -466,6 +466,11 @@ class NesVentoryRepository @Inject constructor(
     }
 
     /**
+     * Observe user session state for checking login status.
+     */
+    fun observeUserSession() = preferencesManager.userSession
+
+    /**
      * Process an image with AI to detect items.
      * 
      * @param imageUri URI of the image to process

@@ -85,9 +85,12 @@ fun NesVentoryApp() {
         else -> Screen.Login.route
     }
 
+    // Use a fixed startDestination to prevent composition instability.
+    // The NavHost structure must remain stable across recompositions.
+    // Auto-navigation based on login state is handled inside LoginScreen.
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = Screen.Login.route
     ) {
         composable(Screen.ServerSettings.route) {
             ServerSettingsScreen(
