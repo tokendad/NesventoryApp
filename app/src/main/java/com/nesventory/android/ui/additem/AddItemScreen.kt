@@ -442,7 +442,10 @@ private fun PhotoSection(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(photoUris) { uri ->
+                items(
+                    items = photoUris,
+                    key = { uri -> uri.toString() }
+                ) { uri ->
                     Box {
                         Card(
                             modifier = Modifier.size(120.dp),

@@ -335,7 +335,10 @@ fun DashboardScreen(
                                 )
                             }
                         } else {
-                            items(uiState.items.take(10)) { item ->
+                            items(
+                                items = uiState.items.take(10),
+                                key = { item -> item.id }
+                            ) { item ->
                                 ItemCard(item = item)
                             }
                         }

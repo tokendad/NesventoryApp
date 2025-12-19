@@ -116,7 +116,10 @@ fun LocationsScreen(
                         )
                     }
                 } else {
-                    items(uiState.locations) { location ->
+                    items(
+                        items = uiState.locations,
+                        key = { location -> location.id }
+                    ) { location ->
                         LocationCard(location = location)
                     }
                 }
