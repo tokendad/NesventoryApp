@@ -141,7 +141,7 @@ interface NesVentoryApi {
      *
      * @param authorization Bearer token for authentication
      * @param locationFilter Filter by location name or ID
-     * @param mediaType Filter by media type ('photo' or 'video')
+     * @param mediaType Filter by media type ('photo', 'video', or 'location_photo')
      * @param unassignedOnly Only show media not assigned to any item (photos only)
      */
     @GET("api/media/list")

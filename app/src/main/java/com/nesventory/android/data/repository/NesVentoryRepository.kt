@@ -577,7 +577,7 @@ class NesVentoryRepository @Inject constructor(
      * List all media with optional filtering.
      * 
      * @param locationFilter Filter by location name or ID
-     * @param mediaType Filter by media type ('photo' or 'video')
+     * @param mediaType Filter by media type ('photo', 'video', or 'location_photo')
      * @param unassignedOnly Only show media not assigned to any item (photos only)
      */
     suspend fun listMedia(
@@ -618,6 +618,9 @@ class NesVentoryRepository @Inject constructor(
     /**
      * Bulk delete media files.
      * 
+     * Note: The mediaIds and mediaTypes lists must be the same length and correspond by index.
+     * For example, if mediaIds[0] is a photo ID, then mediaTypes[0] must be "photo".
+     * 
      * @param mediaIds List of media IDs to delete
      * @param mediaTypes Corresponding media types ('photo', 'video', or 'location_photo')
      */
@@ -631,6 +634,11 @@ class NesVentoryRepository @Inject constructor(
             
             if (!session.isLoggedIn) {
                 return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            // Validate that the lists are synchronized
+            if (mediaIds.size != mediaTypes.size) {
+                return@withContext ApiResult.Error("Media IDs and types lists must have the same length")
             }
             
             val request = MediaBulkDeleteRequest(
