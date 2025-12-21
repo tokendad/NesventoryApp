@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - 6.0 API Integration
+### Added - 6.2 API Integration
+- **New Media Management API Endpoints:**
+  - Media statistics endpoint (`GET /api/media/stats`)
+  - Media list endpoint with filtering (`GET /api/media/list`)
+  - Bulk delete media endpoint (`DELETE /api/media/bulk-delete`)
+  - Update media metadata endpoint (`PATCH /api/media/{media_id}`)
+
+- **New Data Models:**
+  - `MediaStats` model for media statistics
+  - `MediaItem` model for media list items
+  - `MediaListResponse` model for media list response
+  - `MediaBulkDeleteRequest` model for bulk delete operations
+  - `MediaUpdateRequest` model for updating media metadata
+
+- **Repository Methods:**
+  - `getMediaStats()` - Fetch media statistics
+  - `listMedia()` - List and filter media files
+  - `bulkDeleteMedia()` - Delete multiple media files
+  - `updateMedia()` - Update media metadata
+
+### Changed
+- Updated README to reflect NesVentory v6.2.x compatibility
+- Updated API compatibility documentation with v6.2 features
+
+## [0.2.0-alpha] - 6.0 API Integration
 - **New API Endpoints:**
   - Tags endpoint (`GET /api/tags/`)
   - Videos endpoint (`GET /api/videos/`)
