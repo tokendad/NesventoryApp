@@ -92,6 +92,12 @@ This app is designed to work with [NesVentory v6.x](https://github.com/tokendad/
 - `GET /api/ai/status` - AI service configuration status
 - `GET /api/plugins/status` - Plugin system status
 
+### Version 6.2 Features
+- `GET /api/media/stats` - Get media statistics and storage info
+- `GET /api/media/list` - List and filter all media files
+- `DELETE /api/media/bulk-delete` - Bulk delete media files
+- `PATCH /api/media/{media_id}` - Update media metadata
+
 ## 🔧 Development
 
 ### Project Structure

@@ -5,6 +5,10 @@ import com.nesventory.android.data.model.AIStatus
 import com.nesventory.android.data.model.Item
 import com.nesventory.android.data.model.Location
 import com.nesventory.android.data.model.MaintenanceTask
+import com.nesventory.android.data.model.MediaBulkDeleteRequest
+import com.nesventory.android.data.model.MediaListResponse
+import com.nesventory.android.data.model.MediaStats
+import com.nesventory.android.data.model.MediaUpdateRequest
 import com.nesventory.android.data.model.PluginStatus
 import com.nesventory.android.data.model.SystemStatus
 import com.nesventory.android.data.model.Tag
@@ -536,6 +540,168 @@ class NesVentoryRepository @Inject constructor(
                     else -> "Failed to process image: ${response.code()}"
                 }
                 ApiResult.Error(errorMessage, response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    // Media Management methods (v6.2.0+)
+
+    /**
+     * Get media statistics including total counts and storage info.
+     * Note: This endpoint does not require authentication per backend design.
+     */
+    suspend fun getMediaStats(): ApiResult<MediaStats> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            
+            val response = api.getMediaStats()
+            
+            if (response.isSuccessful) {
+                val stats = response.body()
+                if (stats != null) {
+                    ApiResult.Success(stats)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                ApiResult.Error("Failed to get media stats: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * List all media with optional filtering.
+     * 
+     * @param locationFilter Filter by location name or ID
+     * @param mediaType Filter by media type ('photo', 'video', or 'location_photo')
+     * @param unassignedOnly Only show media not assigned to any item (photos only)
+     */
+    suspend fun listMedia(
+        locationFilter: String? = null,
+        mediaType: String? = null,
+        unassignedOnly: Boolean = false
+    ): ApiResult<MediaListResponse> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val response = api.listMedia(
+                authorization = "Bearer ${session.accessToken}",
+                locationFilter = locationFilter,
+                mediaType = mediaType,
+                unassignedOnly = unassignedOnly
+            )
+            
+            if (response.isSuccessful) {
+                val mediaList = response.body()
+                if (mediaList != null) {
+                    ApiResult.Success(mediaList)
+                } else {
+                    ApiResult.Error("Empty response from server")
+                }
+            } else {
+                ApiResult.Error("Failed to list media: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Bulk delete media files.
+     * 
+     * Note: The mediaIds and mediaTypes lists must be the same length and correspond by index.
+     * For example, if mediaIds[0] is a photo ID, then mediaTypes[0] must be "photo".
+     * 
+     * @param mediaIds List of media IDs to delete
+     * @param mediaTypes Corresponding media types ('photo', 'video', or 'location_photo')
+     */
+    suspend fun bulkDeleteMedia(
+        mediaIds: List<String>,
+        mediaTypes: List<String>
+    ): ApiResult<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            // Validate that the lists are synchronized
+            if (mediaIds.size != mediaTypes.size) {
+                return@withContext ApiResult.Error("Media IDs and types lists must have the same length")
+            }
+            
+            val request = MediaBulkDeleteRequest(
+                mediaIds = mediaIds,
+                mediaTypes = mediaTypes
+            )
+            
+            val response = api.bulkDeleteMedia(
+                authorization = "Bearer ${session.accessToken}",
+                request = request
+            )
+            
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                ApiResult.Error("Failed to delete media: ${response.code()}", response.code())
+            }
+        } catch (e: Exception) {
+            ApiResult.Error("Network error: ${e.message}")
+        }
+    }
+
+    /**
+     * Update media metadata.
+     * 
+     * @param mediaId The ID of the media to update
+     * @param itemId Optional new item ID to associate the media with
+     * @param locationId Optional new location ID to associate the media with
+     * @param photoType Optional new photo type
+     * @param videoType Optional new video type
+     */
+    suspend fun updateMedia(
+        mediaId: String,
+        itemId: String? = null,
+        locationId: String? = null,
+        photoType: String? = null,
+        videoType: String? = null
+    ): ApiResult<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val api = createApi() ?: return@withContext ApiResult.Error("Server not configured")
+            val session = preferencesManager.userSession.first()
+            
+            if (!session.isLoggedIn) {
+                return@withContext ApiResult.Error("Not logged in")
+            }
+            
+            val request = MediaUpdateRequest(
+                itemId = itemId,
+                locationId = locationId,
+                photoType = photoType,
+                videoType = videoType
+            )
+            
+            val response = api.updateMedia(
+                authorization = "Bearer ${session.accessToken}",
+                mediaId = mediaId,
+                request = request
+            )
+            
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                ApiResult.Error("Failed to update media: ${response.code()}", response.code())
             }
         } catch (e: Exception) {
             ApiResult.Error("Network error: ${e.message}")
