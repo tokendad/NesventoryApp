@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `updateMedia()` - Update media metadata
 
 ### Changed
+- **Build Configuration:**
+  - Android Gradle Plugin (AGP) upgraded from 8.2.0 to 8.13.2
+  - Gradle wrapper upgraded from 8.13 to 9.0.0 (officially compatible with AGP 8.13.2)
 - Updated README to reflect NesVentory v6.2.x compatibility
 - Updated API compatibility documentation with v6.2 features
 
