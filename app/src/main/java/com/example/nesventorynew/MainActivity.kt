@@ -18,7 +18,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.nesventorynew.ui.dashboard.DashboardScreen
 import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
+import com.example.nesventorynew.ui.locationdetail.LocationDetailScreen
 import com.example.nesventorynew.ui.items.ItemsScreen
+import com.example.nesventorynew.ui.locations.LocationsScreen
 import com.example.nesventorynew.ui.login.LoginScreen
 import com.example.nesventorynew.ui.theme.NesVentoryNewTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,6 +63,9 @@ class MainActivity : ComponentActivity() {
                             DashboardScreen(
                                 onNavigateToItems = {
                                     navController.navigate(Routes.ITEMS)
+                                },
+                                onNavigateToLocations = {
+                                    navController.navigate(Routes.LOCATIONS)
                                 }
                             )
                         }
@@ -74,12 +79,33 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // 3b. Locations List Screen
+                        composable(Routes.LOCATIONS) {
+                            LocationsScreen(
+                                onLocationClick = { locationId ->
+                                    navController.navigate(Routes.locationDetails(locationId.toString()))
+                                }
+                            )
+                        }
+
                         // 4. Item Detail Screen
                         composable(
                             route = Routes.ITEM_DETAILS,
                             arguments = listOf(navArgument("itemId") { type = NavType.StringType })
                         ) {
                             ItemDetailScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // 5. Location Detail Screen
+                        composable(
+                            route = Routes.LOCATION_DETAILS,
+                            arguments = listOf(navArgument("locationId") { type = NavType.StringType })
+                        ) {
+                            LocationDetailScreen(
                                 onBackClick = {
                                     navController.popBackStack()
                                 }
@@ -111,7 +137,10 @@ object Routes {
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val ITEMS = "items"
+    const val LOCATIONS = "locations"
     const val ITEM_DETAILS = "item_details/{itemId}"
+    const val LOCATION_DETAILS = "location_details/{locationId}"
 
     fun itemDetails(itemId: String) = "item_details/$itemId"
+    fun locationDetails(locationId: String) = "location_details/$locationId"
 }

@@ -11,7 +11,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToItems: () -> Unit
+    onNavigateToItems: () -> Unit,
+    onNavigateToLocations: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -44,12 +45,20 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Refresh Data")
+            }
+
             Button(
                 onClick = onNavigateToItems,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                    Text("View Inventory Items")
-              }
+                Text("View Inventory Items")
+            }
+
+            Button(
+                onClick = onNavigateToLocations,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("View Locations")
             }
         }
     }

@@ -49,4 +49,16 @@ interface NesVentoryApi {
      */
     @GET("api/items/{id}")
     suspend fun getItem(@Path("id") id: UUID): Item
+
+    /**
+     * Get Locations List
+     */
+    @GET("api/locations/")
+    suspend fun getLocations(): List<Location>
+
+    /**
+     * Get Single Location Details
+     */
+    @GET("api/locations/{id}")
+    suspend fun getLocation(@Path("id") id: UUID): Location
 }
