@@ -4,6 +4,8 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
+import java.util.UUID
 
 // Data model for the Token response
 data class LoginResponse(
@@ -36,9 +38,15 @@ interface NesVentoryApi {
     @GET("api/media/stats")
     suspend fun getMediaStats(): Map<String, Any>
     /**
-     * Get Item Details
+     * Get Items List
      */
 
     @GET("api/items/")
     suspend fun getItems(): List<Item>
+
+    /**
+     * Get Single Item Details
+     */
+    @GET("api/items/{id}")
+    suspend fun getItem(@Path("id") id: UUID): Item
 }

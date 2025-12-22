@@ -11,10 +11,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.nesventorynew.ui.dashboard.DashboardScreen
+import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
 import com.example.nesventorynew.ui.items.ItemsScreen
 import com.example.nesventorynew.ui.login.LoginScreen
 import com.example.nesventorynew.ui.serversettings.ServerSettingsScreen
@@ -74,7 +77,23 @@ class MainActivity : ComponentActivity() {
 
                         // 4. Items List Screen
                         composable(Routes.ITEMS) {
-                            ItemsScreen()
+                            ItemsScreen(
+                                onItemClick = { itemId ->
+                                    navController.navigate(Routes.itemDetails(itemId.toString()))
+                                }
+                            )
+                        }
+
+                        // 5. Item Detail Screen
+                        composable(
+                            route = Routes.ITEM_DETAILS,
+                            arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+                        ) {
+                            ItemDetailScreen(
+                                onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
                     }
                 }
@@ -104,4 +123,7 @@ object Routes {
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val ITEMS = "items"
+    const val ITEM_DETAILS = "item_details/{itemId}"
+
+    fun itemDetails(itemId: String) = "item_details/$itemId"
 }

@@ -1,0 +1,101 @@
+package com.example.nesventorynew.ui.itemdetail
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.nesventorynew.data.remote.Item
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ItemDetailScreen(
+    onBackClick: () -> Unit,
+    viewModel: ItemDetailViewModel = hiltViewModel()
+) {
+    val item = viewModel.item
+    val isLoading = viewModel.isLoading
+    val errorMessage = viewModel.errorMessage
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = item?.name ?: "Item Details") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
+            } else if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
+                )
+            } else if (item != null) {
+                ItemDetailContent(item)
+            }
+        }
+    }
+}
+
+@Composable
+fun ItemDetailContent(item: Item) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Name
+        Text(text = item.name, style = MaterialTheme.typography.headlineMedium)
+        
+        // Brand & Model
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item.brand?.let {
+                AssistChip(onClick = {}, label = { Text("Brand: $it") })
+            }
+            item.model_number?.let {
+                 AssistChip(onClick = {}, label = { Text("Model: $it") })
+            }
+        }
+
+        HorizontalDivider()
+
+        // Description
+        if (!item.description.isNullOrBlank()) {
+            Text(text = "Description", style = MaterialTheme.typography.titleMedium)
+            Text(text = item.description, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        // Value
+        item.estimated_value?.let {
+            Text(text = "Estimated Value", style = MaterialTheme.typography.titleMedium)
+            Text(text = "$$it", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        HorizontalDivider()
+
+        // Timestamps
+        Column {
+            Text(text = "Created: ${item.created_at}", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Updated: ${item.updated_at}", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
