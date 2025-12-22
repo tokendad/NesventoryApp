@@ -20,7 +20,6 @@ import com.example.nesventorynew.ui.dashboard.DashboardScreen
 import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
 import com.example.nesventorynew.ui.items.ItemsScreen
 import com.example.nesventorynew.ui.login.LoginScreen
-import com.example.nesventorynew.ui.serversettings.ServerSettingsScreen
 import com.example.nesventorynew.ui.theme.NesVentoryNewTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -43,30 +42,21 @@ class MainActivity : ComponentActivity() {
                 ) {
                     NavHost(
                         navController = navController,
-                        startDestination = Routes.SERVER_SETTINGS
+                        startDestination = Routes.LOGIN
                     ) {
-                        // 1. Server Settings Screen
-                        composable(Routes.SERVER_SETTINGS) {
-                            ServerSettingsScreen(
-                                onSettingsSaved = {
-                                    navController.navigate(Routes.LOGIN)
-                                }
-                            )
-                        }
-
-                        // 2. Login Screen
+                        // 1. Login Screen (Now the start destination)
                         composable(Routes.LOGIN) {
                             LoginScreen(
                                 onLoginSuccess = {
                                     // Navigate to Dashboard and clear backstack
                                     navController.navigate(Routes.DASHBOARD) {
-                                        popUpTo(Routes.SERVER_SETTINGS) { inclusive = true }
+                                        popUpTo(Routes.LOGIN) { inclusive = true }
                                     }
                                 }
                             )
                         }
 
-                        // 3. Dashboard Screen (Now with navigation to Items)
+                        // 2. Dashboard Screen (Now with navigation to Items)
                         composable(Routes.DASHBOARD) {
                             DashboardScreen(
                                 onNavigateToItems = {
@@ -75,7 +65,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 4. Items List Screen
+                        // 3. Items List Screen
                         composable(Routes.ITEMS) {
                             ItemsScreen(
                                 onItemClick = { itemId ->
@@ -84,7 +74,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 5. Item Detail Screen
+                        // 4. Item Detail Screen
                         composable(
                             route = Routes.ITEM_DETAILS,
                             arguments = listOf(navArgument("itemId") { type = NavType.StringType })
@@ -98,14 +88,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Initial redirect: If token exists, skip settings and login
+                // Initial redirect: If token exists, skip login
                 LaunchedEffect(uiState.isLoggedIn) {
                     if (uiState.isLoggedIn) {
-                        // Only navigate if we are currently on a setup screen
                         val currentRoute = navController.currentBackStackEntry?.destination?.route
-                        if (currentRoute == Routes.SERVER_SETTINGS || currentRoute == Routes.LOGIN) {
+                        if (currentRoute == Routes.LOGIN) {
                             navController.navigate(Routes.DASHBOARD) {
-                                popUpTo(Routes.SERVER_SETTINGS) { inclusive = true }
+                                popUpTo(Routes.LOGIN) { inclusive = true }
                             }
                         }
                     }
@@ -119,7 +108,6 @@ class MainActivity : ComponentActivity() {
  * Global Navigation Routes
  */
 object Routes {
-    const val SERVER_SETTINGS = "server_settings"
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val ITEMS = "items"

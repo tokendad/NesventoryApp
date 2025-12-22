@@ -8,8 +8,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.nesventorynew.data.remote.Item
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +65,28 @@ fun ItemDetailContent(item: Item) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Primary Photo
+        val primaryPhoto = item.photos.find { it.is_primary }
+        primaryPhoto?.let { photo ->
+            val imageUrl = if (photo.path.startsWith("http")) {
+                photo.path
+            } else {
+                 // Assuming relative path from base URL. 
+                 // Note: Hardcoding base URL here is not ideal, but quick for now.
+                 // Ideally, we should get it from a config or helper.
+                 "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+            }
+            
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Primary Photo for ${item.name}",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+
         // Name
         Text(text = item.name, style = MaterialTheme.typography.headlineMedium)
         
