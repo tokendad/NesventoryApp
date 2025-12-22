@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -20,7 +19,7 @@ import com.example.nesventorynew.ui.dashboard.DashboardScreen
 import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
 import com.example.nesventorynew.ui.locationdetail.LocationDetailScreen
 import com.example.nesventorynew.ui.items.ItemsScreen
-import com.example.nesventorynew.ui.locations.LocationsScreen
+import com.example.nesventorynew.ui.main.MainScreen
 import com.example.nesventorynew.ui.login.LoginScreen
 import com.example.nesventorynew.ui.theme.NesVentoryNewTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,37 +57,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 2. Dashboard Screen (Now with navigation to Items)
+                        // 2. Main Screen (Dashboard with Bottom Nav)
                         composable(Routes.DASHBOARD) {
-                            DashboardScreen(
-                                onNavigateToItems = {
-                                    navController.navigate(Routes.ITEMS)
-                                },
-                                onNavigateToLocations = {
-                                    navController.navigate(Routes.LOCATIONS)
-                                }
-                            )
-                        }
-
-                        // 3. Items List Screen
-                        composable(Routes.ITEMS) {
-                            ItemsScreen(
+                            MainScreen(
                                 onItemClick = { itemId ->
                                     navController.navigate(Routes.itemDetails(itemId.toString()))
-                                }
-                            )
-                        }
-
-                        // 3b. Locations List Screen
-                        composable(Routes.LOCATIONS) {
-                            LocationsScreen(
+                                },
                                 onLocationClick = { locationId ->
                                     navController.navigate(Routes.locationDetails(locationId.toString()))
                                 }
                             )
                         }
 
-                        // 4. Item Detail Screen
+                        // 3. Item Detail Screen
                         composable(
                             route = Routes.ITEM_DETAILS,
                             arguments = listOf(navArgument("itemId") { type = NavType.StringType })
@@ -100,7 +81,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 5. Location Detail Screen
+                        // 4. Location Detail Screen
                         composable(
                             route = Routes.LOCATION_DETAILS,
                             arguments = listOf(navArgument("locationId") { type = NavType.StringType })
