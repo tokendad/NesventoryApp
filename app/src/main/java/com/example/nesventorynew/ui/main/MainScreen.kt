@@ -24,7 +24,9 @@ import java.util.UUID
 @Composable
 fun MainScreen(
     onItemClick: (UUID) -> Unit,
-    onLocationClick: (UUID) -> Unit
+    onLocationClick: (UUID) -> Unit,
+    onAddItemClick: () -> Unit,
+    onAddLocationClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     // Sharing ViewModels between tabs if needed, but here tabs are mostly independent.
@@ -74,10 +76,12 @@ fun MainScreen(
                     onItemClick = onItemClick
                 )
                 1 -> ItemsScreen(
-                    onItemClick = onItemClick
+                    onItemClick = onItemClick,
+                    onAddItemClick = onAddItemClick
                 )
                 2 -> LocationsScreen(
-                    onLocationClick = onLocationClick
+                    onLocationClick = onLocationClick,
+                    onAddLocationClick = onAddLocationClick
                 )
                 3 -> MaintenanceScreen()
                 4 -> StatusScreen(

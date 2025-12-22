@@ -1,9 +1,14 @@
 package com.example.nesventorynew.data.remote
 
+import okhttp3.MultipartBody
+import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import java.util.UUID
 
@@ -45,10 +50,29 @@ interface NesVentoryApi {
     suspend fun getItems(): List<Item>
 
     /**
+     * Create a new Item
+     */
+    @POST("api/items/")
+    suspend fun createItem(@Body item: ItemCreate): Item
+
+    /**
+     * Detect Items from Image
+     */
+    @Multipart
+    @POST("api/ai/detect-items")
+    suspend fun detectItems(@Part file: MultipartBody.Part): DetectionResult
+
+    /**
      * Get Single Item Details
      */
     @GET("api/items/{id}")
     suspend fun getItem(@Path("id") id: UUID): Item
+
+    /**
+     * Delete an Item
+     */
+    @DELETE("api/items/{id}")
+    suspend fun deleteItem(@Path("id") id: UUID)
 
     /**
      * Get Locations List
@@ -57,8 +81,20 @@ interface NesVentoryApi {
     suspend fun getLocations(): List<Location>
 
     /**
+     * Create a new Location
+     */
+    @POST("api/locations/")
+    suspend fun createLocation(@Body location: LocationCreate): Location
+
+    /**
      * Get Single Location Details
      */
     @GET("api/locations/{id}")
     suspend fun getLocation(@Path("id") id: UUID): Location
+
+    /**
+     * Delete a Location
+     */
+    @DELETE("api/locations/{id}")
+    suspend fun deleteLocation(@Path("id") id: UUID)
 }

@@ -48,4 +48,19 @@ class ItemDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteItem(onSuccess: () -> Unit) {
+        val currentItem = item ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                api.deleteItem(currentItem.id)
+                onSuccess()
+            } catch (e: Exception) {
+                errorMessage = "Failed to delete item: ${e.localizedMessage}"
+                isLoading = false
+            }
+        }
+    }
 }

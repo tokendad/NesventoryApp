@@ -19,11 +19,29 @@ class LocationsViewModel @Inject constructor(
 
     var locations by mutableStateOf<List<Location>>(emptyList())
     var hierarchicalLocations by mutableStateOf<List<Pair<Location, Int>>>(emptyList())
+    var searchQuery by mutableStateOf("")
+
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    val filteredHierarchicalLocations: List<Pair<Location, Int>>
+        get() = if (searchQuery.isBlank()) {
+            hierarchicalLocations
+        } else {
+            // When searching, we filter the list. 
+            // We might lose the visual "tree" context but we keep the depth for now.
+            hierarchicalLocations.filter { (location, _) ->
+                location.name.contains(searchQuery, ignoreCase = true) ||
+                (location.friendly_name?.contains(searchQuery, ignoreCase = true) == true)
+            }
+        }
+
     init {
         fetchLocations()
+    }
+    
+    fun onSearchQueryChange(query: String) {
+        searchQuery = query
     }
 
     fun fetchLocations() {

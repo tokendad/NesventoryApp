@@ -48,4 +48,19 @@ class LocationDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteLocation(onSuccess: () -> Unit) {
+        val currentLocation = location ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                api.deleteLocation(currentLocation.id)
+                onSuccess()
+            } catch (e: Exception) {
+                errorMessage = "Failed to delete location: ${e.localizedMessage}"
+                isLoading = false
+            }
+        }
+    }
 }

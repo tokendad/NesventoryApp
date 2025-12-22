@@ -19,6 +19,8 @@ import com.example.nesventorynew.ui.dashboard.DashboardScreen
 import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
 import com.example.nesventorynew.ui.locationdetail.LocationDetailScreen
 import com.example.nesventorynew.ui.items.ItemsScreen
+import com.example.nesventorynew.ui.additem.AddItemScreen
+import com.example.nesventorynew.ui.addlocation.AddLocationScreen
 import com.example.nesventorynew.ui.main.MainScreen
 import com.example.nesventorynew.ui.login.LoginScreen
 import com.example.nesventorynew.ui.theme.NesVentoryNewTheme
@@ -65,6 +67,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onLocationClick = { locationId ->
                                     navController.navigate(Routes.locationDetails(locationId.toString()))
+                                },
+                                onAddItemClick = {
+                                    navController.navigate(Routes.ADD_ITEM)
+                                },
+                                onAddLocationClick = {
+                                    navController.navigate(Routes.ADD_LOCATION)
                                 }
                             )
                         }
@@ -88,6 +96,26 @@ class MainActivity : ComponentActivity() {
                         ) {
                             LocationDetailScreen(
                                 onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // 5. Add Item Screen
+                        composable(Routes.ADD_ITEM) {
+                            AddItemScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onItemCreated = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // 6. Add Location Screen
+                        composable(Routes.ADD_LOCATION) {
+                            AddLocationScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onLocationCreated = {
                                     navController.popBackStack()
                                 }
                             )
@@ -119,6 +147,8 @@ object Routes {
     const val DASHBOARD = "dashboard"
     const val ITEMS = "items"
     const val LOCATIONS = "locations"
+    const val ADD_ITEM = "add_item"
+    const val ADD_LOCATION = "add_location"
     const val ITEM_DETAILS = "item_details/{itemId}"
     const val LOCATION_DETAILS = "location_details/{locationId}"
 

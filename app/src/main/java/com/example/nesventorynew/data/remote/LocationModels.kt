@@ -27,3 +27,13 @@ data class LocationPhoto(
     val is_primary: Boolean,
     val uploaded_at: String
 )
+
+data class LocationCreate(
+    val name: String,
+    val description: String? = null,
+    val friendly_name: String? = null,
+    val address: String? = null,
+    val parent_id: UUID? = null,
+    val is_primary_location: Boolean = false,
+    val is_container: Boolean = false
+)
