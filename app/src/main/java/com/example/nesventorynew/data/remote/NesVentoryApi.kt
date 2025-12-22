@@ -35,4 +35,10 @@ interface NesVentoryApi {
      */
     @GET("api/media/stats")
     suspend fun getMediaStats(): Map<String, Any>
+    /**
+     * Get Item Details
+     */
+
+    @GET("api/items/")
+    suspend fun getItems(): List<Item>
 }
