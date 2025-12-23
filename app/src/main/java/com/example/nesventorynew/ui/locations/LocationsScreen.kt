@@ -6,7 +6,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,26 +28,36 @@ import java.util.UUID
 fun LocationsScreen(
     onLocationClick: (UUID) -> Unit = {},
     onAddLocationClick: () -> Unit = {},
+    onExit: () -> Unit = {},
     viewModel: LocationsViewModel = hiltViewModel()
 ) {
     Scaffold(
         topBar = {
             Column {
-                CenterAlignedTopAppBar(title = { Text("Locations") })
+                TopAppBar(
+                    title = { Text("Locations", style = MaterialTheme.typography.titleMedium) },
+                    actions = {
+                        IconButton(onClick = onExit) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                        }
+                    }
+                )
                 OutlinedTextField(
                     value = viewModel.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Search locations...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                    singleLine = true
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(50.dp), // Compact height
+                    placeholder = { Text("Search locations...", style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(20.dp)) },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddLocationClick) {
+            FloatingActionButton(onClick = onAddLocationClick, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.Add, contentDescription = "Add Location")
             }
         }
@@ -55,11 +69,21 @@ fun LocationsScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(viewModel.filteredHierarchicalLocations) { (location, depth) ->
-                    LocationRow(location, depth, onClick = { onLocationClick(location.id) })
+                items(viewModel.displayedLocations) { (location, depth) ->
+                    val hasChildren = viewModel.hasChildren(location.id)
+                    val isExpanded = viewModel.expandedIds.contains(location.id)
+                    
+                    LocationRow(
+                        location = location,
+                        depth = depth,
+                        hasChildren = hasChildren,
+                        isExpanded = isExpanded,
+                        onToggleExpand = { viewModel.toggleExpansion(location.id) },
+                        onViewDetails = { onLocationClick(location.id) }
+                    )
                 }
             }
         }
@@ -67,29 +91,45 @@ fun LocationsScreen(
 }
 
 @Composable
-fun LocationRow(location: Location, depth: Int, onClick: () -> Unit) {
+fun LocationRow(
+    location: Location,
+    depth: Int,
+    hasChildren: Boolean,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onViewDetails: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = (depth * 16).dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (depth > 0) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp).padding(end = 4.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // Expand/Collapse Icon
+        if (hasChildren) {
+            IconButton(
+                onClick = onToggleExpand,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.size(24.dp))
         }
         
         ElevatedCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { onClick() }
+                .clickable { 
+                    if (hasChildren) onToggleExpand() else onViewDetails()
+                }
         ) {
             Row(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Primary Photo
@@ -100,7 +140,7 @@ fun LocationRow(location: Location, depth: Int, onClick: () -> Unit) {
                 }
 
                 Card(
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     shape = MaterialTheme.shapes.small
                 ) {
                     if (imageUrl != null) {
@@ -120,24 +160,25 @@ fun LocationRow(location: Location, depth: Int, onClick: () -> Unit) {
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                Column {
-                    Text(location.name, style = MaterialTheme.typography.titleMedium)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(location.name, style = MaterialTheme.typography.titleSmall)
                     location.friendly_name?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                     }
-                    
-                    if (location.is_primary_location || location.is_container) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            if (location.is_primary_location) {
-                                Text("Primary", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                            }
-                            if (location.is_container) {
-                                Text("Container", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
-                            }
-                        }
-                    }
+                }
+                
+                // Info Button for details
+                IconButton(
+                    onClick = onViewDetails,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Details",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

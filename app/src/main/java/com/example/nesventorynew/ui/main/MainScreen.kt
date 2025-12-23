@@ -26,7 +26,8 @@ fun MainScreen(
     onItemClick: (UUID) -> Unit,
     onLocationClick: (UUID) -> Unit,
     onAddItemClick: () -> Unit,
-    onAddLocationClick: () -> Unit
+    onAddLocationClick: () -> Unit,
+    onExit: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     // Sharing ViewModels between tabs if needed, but here tabs are mostly independent.
@@ -35,70 +36,33 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Items") },
-                    label = { Text("Items") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Locations") },
-                    label = { Text("Locations") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
-                    label = { Text("Maint") }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
-                    label = { Text("Server") }
-                )
-            }
+// ... (existing NavigationBar code)
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             when (selectedTab) {
                 0 -> DashboardScreen(
                     viewModel = dashboardViewModel,
-                    onItemClick = onItemClick
+                    onItemClick = onItemClick,
+                    onExit = onExit
                 )
                 1 -> ItemsScreen(
                     onItemClick = onItemClick,
-                    onAddItemClick = onAddItemClick
+                    onAddItemClick = onAddItemClick,
+                    onExit = onExit
                 )
                 2 -> LocationsScreen(
                     onLocationClick = onLocationClick,
-                    onAddLocationClick = onAddLocationClick
+                    onAddLocationClick = onAddLocationClick,
+                    onExit = onExit
                 )
                 3 -> MaintenanceScreen()
-                                4 -> ServerScreen(
-                                    localUrl = dashboardViewModel.localUrl,
-                                    onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
-                                    localSsid = dashboardViewModel.localSsid,
-                                    onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
-                                    prioritizeLocal = dashboardViewModel.prioritizeLocal,
-                                    onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
-                                    remoteStatus = dashboardViewModel.remoteStatus,
-                                    localStatus = dashboardViewModel.localStatus,
-                                    theme = dashboardViewModel.theme,
-                                    onThemeChange = { dashboardViewModel.onThemeChange(it) },
-                                    onTestConnection = { dashboardViewModel.testConnection() }
-                                )
-                            }
-                        }
-                    }
-                }
+                4 -> ServerScreen(
+                    localUrl = dashboardViewModel.localUrl,
+// ...
+
+)
+            }
+        }
+    }
                 

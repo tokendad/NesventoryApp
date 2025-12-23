@@ -17,31 +17,48 @@ class LocationsViewModel @Inject constructor(
     private val api: NesVentoryApi
 ) : ViewModel() {
 
-    var locations by mutableStateOf<List<Location>>(emptyList())
-    var hierarchicalLocations by mutableStateOf<List<Pair<Location, Int>>>(emptyList())
+    private var allLocations = listOf<Location>()
+    var expandedIds by mutableStateOf(setOf<UUID>())
     var searchQuery by mutableStateOf("")
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
-    val filteredHierarchicalLocations: List<Pair<Location, Int>>
-        get() = if (searchQuery.isBlank()) {
-            hierarchicalLocations
-        } else {
-            // When searching, we filter the list. 
-            // We might lose the visual "tree" context but we keep the depth for now.
-            hierarchicalLocations.filter { (location, _) ->
-                location.name.contains(searchQuery, ignoreCase = true) ||
-                (location.friendly_name?.contains(searchQuery, ignoreCase = true) == true)
+    val displayedLocations: List<Pair<Location, Int>>
+        get() {
+            if (searchQuery.isNotBlank()) {
+                // Flat filter when searching
+                return allLocations.filter {
+                    it.name.contains(searchQuery, ignoreCase = true) ||
+                    (it.friendly_name?.contains(searchQuery, ignoreCase = true) == true)
+                }.map { it to 0 } // Depth 0 for flat search results
             }
+
+            // Hierarchical tree
+            val childrenMap = allLocations.groupBy { it.parent_id }
+            val result = mutableListOf<Pair<Location, Int>>()
+
+            fun addNodes(parentId: UUID?, depth: Int) {
+                val children = childrenMap[parentId] ?: emptyList()
+                val sortedChildren = children.sortedWith(
+                    compareByDescending<Location> { it.is_primary_location }
+                        .thenBy { it.name }
+                )
+
+                sortedChildren.forEach { location ->
+                    result.add(location to depth)
+                    if (expandedIds.contains(location.id)) {
+                        addNodes(location.id, depth + 1)
+                    }
+                }
+            }
+
+            addNodes(null, 0)
+            return result
         }
 
     init {
         fetchLocations()
-    }
-    
-    fun onSearchQueryChange(query: String) {
-        searchQuery = query
     }
 
     fun fetchLocations() {
@@ -49,9 +66,7 @@ class LocationsViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                val fetchedLocations = api.getLocations()
-                locations = fetchedLocations
-                hierarchicalLocations = processLocations(fetchedLocations)
+                allLocations = api.getLocations()
             } catch (e: Exception) {
                 errorMessage = "Failed to load locations: ${e.localizedMessage}"
             } finally {
@@ -59,31 +74,20 @@ class LocationsViewModel @Inject constructor(
             }
         }
     }
+    
+    fun onSearchQueryChange(query: String) {
+        searchQuery = query
+    }
 
-    private fun processLocations(allLocations: List<Location>): List<Pair<Location, Int>> {
-        val childrenMap = allLocations.groupBy { it.parent_id }
-        val roots = childrenMap[null] ?: emptyList()
-        
-        val sortedRoots = roots.sortedWith(
-            compareByDescending<Location> { it.is_primary_location }
-                .thenBy { it.name }
-        )
-
-        val result = mutableListOf<Pair<Location, Int>>()
-
-        fun addNode(location: Location, depth: Int) {
-            result.add(location to depth)
-            val children = childrenMap[location.id] ?: emptyList()
-            val sortedChildren = children.sortedBy { it.name }
-            sortedChildren.forEach { child ->
-                addNode(child, depth + 1)
-            }
+    fun toggleExpansion(locationId: UUID) {
+        expandedIds = if (expandedIds.contains(locationId)) {
+            expandedIds - locationId
+        } else {
+            expandedIds + locationId
         }
-
-        sortedRoots.forEach { root ->
-            addNode(root, 0)
-        }
-
-        return result
+    }
+    
+    fun hasChildren(locationId: UUID): Boolean {
+        return allLocations.any { it.parent_id == locationId }
     }
 }

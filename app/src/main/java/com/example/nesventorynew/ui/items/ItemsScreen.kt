@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -23,26 +24,36 @@ import java.util.UUID
 fun ItemsScreen(
     onItemClick: (UUID) -> Unit = {},
     onAddItemClick: () -> Unit = {},
+    onExit: () -> Unit = {},
     viewModel: ItemsViewModel = hiltViewModel()
 ) {
     Scaffold(
         topBar = {
             Column {
-                CenterAlignedTopAppBar(title = { Text("My Inventory") })
+                TopAppBar(
+                    title = { Text("My Inventory", style = MaterialTheme.typography.titleMedium) },
+                    actions = {
+                        IconButton(onClick = onExit) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
+                        }
+                    }
+                )
                 OutlinedTextField(
                     value = viewModel.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Search items...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                    singleLine = true
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(50.dp),
+                    placeholder = { Text("Search items...", style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(20.dp)) },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddItemClick) {
+            FloatingActionButton(onClick = onAddItemClick, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.Add, contentDescription = "Add Item")
             }
         }
@@ -54,8 +65,8 @@ fun ItemsScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(viewModel.filteredItems) { item ->
                     val locationName = item.location_id?.let { viewModel.locationNames[it] }
@@ -74,7 +85,7 @@ fun ItemRow(item: Item, locationName: String?, onClick: () -> Unit) {
             .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Primary Photo
@@ -85,7 +96,7 @@ fun ItemRow(item: Item, locationName: String?, onClick: () -> Unit) {
             }
 
             Card(
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(40.dp),
                 shape = MaterialTheme.shapes.small
             ) {
                 if (imageUrl != null) {
@@ -105,12 +116,12 @@ fun ItemRow(item: Item, locationName: String?, onClick: () -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Column {
-                Text(item.name, style = MaterialTheme.typography.titleMedium)
+                Text(item.name, style = MaterialTheme.typography.titleSmall)
                 locationName?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                 } ?: run {
                     Text("No Location", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
