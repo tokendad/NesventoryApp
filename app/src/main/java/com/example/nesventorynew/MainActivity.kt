@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -32,9 +31,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Need DashboardViewModel here to get the theme, or move theme to MainViewModel.
-            // For expediency, I'll grab DashboardViewModel here too, or just use it.
-            // Ideally, theme should be in MainViewModel.
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val themeSetting = dashboardViewModel.theme
             
@@ -60,11 +56,10 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = Routes.LOGIN
                     ) {
-                        // 1. Login Screen (Now the start destination)
+                        // 1. Login Screen
                         composable(Routes.LOGIN) {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    // Navigate to Dashboard and clear backstack
                                     navController.navigate(Routes.DASHBOARD) {
                                         popUpTo(Routes.LOGIN) { inclusive = true }
                                     }
@@ -74,13 +69,6 @@ class MainActivity : ComponentActivity() {
 
                         // 2. Main Screen (Dashboard with Bottom Nav)
                         composable(Routes.DASHBOARD) {
-                            // We can pass the existing dashboardViewModel if MainScreen accepts it, 
-                            // but MainScreen internally uses hiltViewModel().
-                            // It's fine, Hilt returns the same instance if scoped to Activity/NavGraph correctly, 
-                            // but here they might be different instances if not scoped to nav graph.
-                            // However, PreferencesManager is singleton so they share underlying data.
-                            // The visual sync might be slightly delayed if they are diff instances observing same flow.
-                            // For this task, it's acceptable.
                             MainScreen(
                                 onItemClick = { itemId ->
                                     navController.navigate(Routes.itemDetails(itemId.toString()))
@@ -93,6 +81,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAddLocationClick = {
                                     navController.navigate(Routes.ADD_LOCATION)
+                                },
+                                onExit = {
+                                    finish()
                                 }
                             )
                         }

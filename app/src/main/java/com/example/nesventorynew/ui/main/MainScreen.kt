@@ -30,13 +30,42 @@ fun MainScreen(
     onExit: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    // Sharing ViewModels between tabs if needed, but here tabs are mostly independent.
-    // DashboardViewModel is reused for StatusScreen data
     val dashboardViewModel: DashboardViewModel = hiltViewModel()
 
     Scaffold(
         bottomBar = {
-// ... (existing NavigationBar code)
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home", style = MaterialTheme.typography.labelSmall) }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Items") },
+                    label = { Text("Items", style = MaterialTheme.typography.labelSmall) }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    icon = { Icon(Icons.Default.Place, contentDescription = "Locations") },
+                    label = { Text("Locs", style = MaterialTheme.typography.labelSmall) }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
+                    label = { Text("Maint", style = MaterialTheme.typography.labelSmall) }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
+                    label = { Text("Server", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
@@ -56,13 +85,24 @@ fun MainScreen(
                     onAddLocationClick = onAddLocationClick,
                     onExit = onExit
                 )
-                3 -> MaintenanceScreen()
+                3 -> MaintenanceScreen(
+                    onExit = onExit
+                )
                 4 -> ServerScreen(
                     localUrl = dashboardViewModel.localUrl,
-// ...
-
-)
+                    onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
+                    localSsid = dashboardViewModel.localSsid,
+                    onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
+                    prioritizeLocal = dashboardViewModel.prioritizeLocal,
+                    onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
+                    remoteStatus = dashboardViewModel.remoteStatus,
+                    localStatus = dashboardViewModel.localStatus,
+                    theme = dashboardViewModel.theme,
+                    onThemeChange = { dashboardViewModel.onThemeChange(it) },
+                    onTestConnection = { dashboardViewModel.testConnection() },
+                    onExit = onExit
+                )
             }
         }
     }
-                
+}
