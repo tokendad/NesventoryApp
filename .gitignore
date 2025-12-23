@@ -16,3 +16,4 @@ local.properties
 
 .gemini/
 gha-creds-*.json
+app/release/
