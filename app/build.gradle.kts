@@ -7,15 +7,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nesventorynew"
+    namespace = "com.tokendad.nesventorynew"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.nesventorynew"
+        applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
