@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -27,6 +27,7 @@ import java.util.UUID
 fun LocationsScreen(
     onLocationClick: (UUID) -> Unit = {},
     onAddLocationClick: () -> Unit = {},
+    onEditLocationClick: (UUID) -> Unit = {},
     onExit: () -> Unit = {},
     viewModel: LocationsViewModel = hiltViewModel()
 ) {
@@ -34,7 +35,19 @@ fun LocationsScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("Locations", style = MaterialTheme.typography.titleMedium) },
+                    title = { 
+                        Text(
+                            text = viewModel.currentParent?.name ?: "Locations", 
+                            style = MaterialTheme.typography.titleMedium
+                        ) 
+                    },
+                    navigationIcon = {
+                        if (viewModel.currentParentId != null) {
+                            IconButton(onClick = { viewModel.navigateBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
                     actions = {
                         IconButton(onClick = onExit) {
                             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
@@ -71,17 +84,13 @@ fun LocationsScreen(
                 contentPadding = PaddingValues(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(viewModel.displayedLocations) { (location, depth) ->
-                    val hasChildren = viewModel.hasChildren(location.id)
-                    val isExpanded = viewModel.expandedIds.contains(location.id)
-                    
+                items(viewModel.displayedLocations) { location ->
                     LocationRow(
                         location = location,
-                        depth = depth,
-                        hasChildren = hasChildren,
-                        isExpanded = isExpanded,
-                        onToggleExpand = { viewModel.toggleExpansion(location.id) },
-                        onViewDetails = { onLocationClick(location.id) }
+                        onNavigate = { viewModel.navigateTo(location.id) },
+                        onViewDetails = { onLocationClick(location.id) },
+                        onEdit = { onEditLocationClick(location.id) },
+                        onDelete = { viewModel.deleteLocation(location.id) }
                     )
                 }
             }
@@ -92,40 +101,21 @@ fun LocationsScreen(
 @Composable
 fun LocationRow(
     location: Location,
-    depth: Int,
-    hasChildren: Boolean,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onViewDetails: () -> Unit
+    onNavigate: () -> Unit,
+    onViewDetails: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = (depth * 16).dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Expand/Collapse Icon
-        if (hasChildren) {
-            IconButton(
-                onClick = onToggleExpand,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.size(24.dp))
-        }
-        
         ElevatedCard(
             modifier = Modifier
                 .weight(1f)
-                .clickable { 
-                    if (hasChildren) onToggleExpand() else onViewDetails()
-                }
+                .clickable { onNavigate() }
         ) {
             Row(
                 modifier = Modifier.padding(8.dp),
@@ -178,6 +168,39 @@ fun LocationRow(
                         contentDescription = "Details",
                         tint = MaterialTheme.colorScheme.primary
                     )
+                }
+
+                // Ellipsis Menu
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit Location") },
+                            onClick = {
+                                menuExpanded = false
+                                onEdit()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete Location", color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            }
+                        )
+                    }
                 }
             }
         }

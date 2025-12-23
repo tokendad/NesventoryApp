@@ -8,6 +8,7 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import java.util.UUID
@@ -18,6 +19,7 @@ data class LoginResponse(
     val token_type: String
 )
 
+@Suppress("unused")
 interface NesVentoryApi {
 
     /**
@@ -75,6 +77,72 @@ interface NesVentoryApi {
     suspend fun deleteItem(@Path("id") id: UUID)
 
     /**
+     * Update an Item
+     */
+    @POST("api/items/{id}")
+    suspend fun updateItem(@Path("id") id: UUID, @Body item: ItemCreate): Item
+
+    /**
+     * Enrich Item details via AI
+     */
+    @POST("api/ai/enrich-item/{id}")
+    suspend fun enrichItem(@Path("id") id: UUID): Item
+
+    /**
+     * Maintenance Tasks
+     */
+    @GET("api/maintenance")
+    suspend fun getMaintenanceTasks(): List<MaintenanceTask>
+
+    @POST("api/maintenance")
+    suspend fun createMaintenanceTask(@Body task: MaintenanceTaskCreate): MaintenanceTask
+
+    @GET("api/maintenance/item/{item_id}")
+    suspend fun getMaintenanceTasksForItem(@Path("item_id") itemId: UUID): List<MaintenanceTask>
+
+    @GET("api/maintenance/{task_id}")
+    suspend fun getMaintenanceTask(@Path("task_id") taskId: UUID): MaintenanceTask
+
+    @PUT("api/maintenance/{task_id}")
+    suspend fun updateMaintenanceTask(@Path("task_id") taskId: UUID, @Body task: MaintenanceTaskUpdate): MaintenanceTask
+
+    @DELETE("api/maintenance/{task_id}")
+    suspend fun deleteMaintenanceTask(@Path("task_id") taskId: UUID)
+
+    /**
+     * Media Management
+     */
+    @Multipart
+    @POST("api/items/{item_id}/photos")
+    suspend fun uploadItemPhoto(
+        @Path("item_id") itemId: UUID,
+        @Part file: MultipartBody.Part,
+        @Part("is_primary") isPrimary: Boolean = false,
+        @Part("is_data_tag") isDataTag: Boolean = false,
+        @Part("photo_type") photoType: String? = null
+    ): Photo
+
+    @DELETE("api/items/{item_id}/photos/{photo_id}")
+    suspend fun deleteItemPhoto(
+        @Path("item_id") itemId: UUID,
+        @Path("photo_id") photoId: UUID
+    )
+
+    @Multipart
+    @POST("api/items/{item_id}/documents")
+    suspend fun uploadItemDocument(
+        @Path("item_id") itemId: UUID,
+        @Part file: MultipartBody.Part,
+        @Part("document_type") documentType: String? = null
+    ): Document
+
+    @DELETE("api/items/{item_id}/documents/{document_id}")
+    suspend fun deleteItemDocument(
+        @Path("item_id") itemId: UUID,
+        @Path("document_id") documentId: UUID
+    )
+
+    /**
      * Get Locations List
      */
     @GET("api/locations/")
@@ -97,4 +165,10 @@ interface NesVentoryApi {
      */
     @DELETE("api/locations/{id}")
     suspend fun deleteLocation(@Path("id") id: UUID)
+
+    /**
+     * Update a Location
+     */
+    @POST("api/locations/{id}")
+    suspend fun updateLocation(@Path("id") id: UUID, @Body location: LocationCreate): Location
 }

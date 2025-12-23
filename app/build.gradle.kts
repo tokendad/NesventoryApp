@@ -10,12 +10,15 @@ android {
     namespace = "com.tokendad.nesventorynew"
     compileSdk = 36
 
+    val versionFile = rootProject.file("VERSION")
+    val versionText = if (versionFile.exists()) versionFile.readText().trim() else "1.0.0"
+
     defaultConfig {
         applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = versionText
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,20 +46,38 @@ android {
                 debugSymbolLevel = "FULL"
             }
         }
+        debug {
+            // Fixes the "Unable to strip libraries" warning in debug builds
+            packaging {
+                jniLibs {
+                    keepDebugSymbols.add("**/*.so")
+                }
+            }
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     buildFeatures {
         compose = true
     }
+}
+
+kapt {
+    correctErrorTypes = true
 }
 
 dependencies {
@@ -80,6 +101,12 @@ dependencies {
     // Hilt core and compiler
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+    kaptTest(libs.hilt.compiler)
+    kaptAndroidTest(libs.hilt.compiler)
+
+    // Hilt testing
+    testImplementation(libs.hilt.testing)
+    androidTestImplementation(libs.hilt.testing)
 
     // Hilt integration with Compose Navigation
     implementation(libs.androidx.hilt.navigation.compose)

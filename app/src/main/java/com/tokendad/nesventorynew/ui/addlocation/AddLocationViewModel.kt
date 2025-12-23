@@ -22,6 +22,7 @@ class AddLocationViewModel @Inject constructor(
     var description by mutableStateOf("")
     var friendlyName by mutableStateOf("")
     var address by mutableStateOf("")
+    var estimatedPropertyValue by mutableStateOf("")
     var selectedParentId by mutableStateOf<UUID?>(null)
     var isPrimaryLocation by mutableStateOf(false)
     var isContainer by mutableStateOf(false)
@@ -39,7 +40,7 @@ class AddLocationViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = api.getLocations()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Fail silently
             }
         }
@@ -62,7 +63,8 @@ class AddLocationViewModel @Inject constructor(
                     address = address.ifBlank { null },
                     parent_id = selectedParentId,
                     is_primary_location = isPrimaryLocation,
-                    is_container = isContainer
+                    is_container = isContainer,
+                    estimated_property_value = estimatedPropertyValue.ifBlank { null }
                 )
                 api.createLocation(newLocation)
                 onSuccess()

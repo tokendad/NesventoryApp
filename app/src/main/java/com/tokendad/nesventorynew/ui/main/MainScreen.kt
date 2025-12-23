@@ -26,7 +26,9 @@ fun MainScreen(
     onItemClick: (UUID) -> Unit,
     onLocationClick: (UUID) -> Unit,
     onAddItemClick: () -> Unit,
+    onEditItemClick: (UUID) -> Unit,
     onAddLocationClick: () -> Unit,
+    onEditLocationClick: (UUID) -> Unit,
     onExit: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -73,16 +75,19 @@ fun MainScreen(
                 0 -> DashboardScreen(
                     viewModel = dashboardViewModel,
                     onItemClick = onItemClick,
+                    onEditItemClick = onEditItemClick,
                     onExit = onExit
                 )
                 1 -> ItemsScreen(
                     onItemClick = onItemClick,
                     onAddItemClick = onAddItemClick,
+                    onEditItemClick = onEditItemClick,
                     onExit = onExit
                 )
                 2 -> LocationsScreen(
                     onLocationClick = onLocationClick,
                     onAddLocationClick = onAddLocationClick,
+                    onEditLocationClick = onEditLocationClick,
                     onExit = onExit
                 )
                 3 -> MaintenanceScreen(

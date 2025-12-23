@@ -27,10 +27,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - name: Prepare Release Notes
+        run: |
+          VERSION=$(cat VERSION)
+          mkdir -p distribution/whatsnew
+          # Extract everything after the version header until the next version header or end of file
+          sed -n "/## \[$VERSION\]/,/## \[/{/## \[$VERSION\]/b; /## \[/q; p}" CHANGELOG.md > distribution/whatsnew/whatsnew-en-US
+
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          packageName: com.tokendad.nesventorynew # REPLACE THIS with your app's package name (e.g., com.example.myapp)
+          packageName: com.tokendad.nesventorynew
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: internal # This pushes to "Internal Testing" so you can check it first
+          track: internal
+          whatsNewDirectory: distribution/whatsnew

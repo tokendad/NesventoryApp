@@ -1,7 +1,7 @@
-package com.example.nesventorynew
+package com.tokendad.nesventorynew
 
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
-
 import org.junit.Assert.*
 
 /**
@@ -9,6 +9,7 @@ import org.junit.Assert.*
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
+@HiltAndroidTest
 class ExampleUnitTest {
     @Test
     fun addition_isCorrect() {

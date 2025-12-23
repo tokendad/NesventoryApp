@@ -1,6 +1,7 @@
 package com.tokendad.nesventorynew.ui.locations
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -18,43 +19,32 @@ class LocationsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var allLocations = listOf<Location>()
-    var expandedIds by mutableStateOf(setOf<UUID>())
     var searchQuery by mutableStateOf("")
+    
+    // Drill-down state
+    var currentParentId by mutableStateOf<UUID?>(null)
+    private var navigationStack = mutableStateListOf<UUID?>()
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
-    val displayedLocations: List<Pair<Location, Int>>
+    val currentParent: Location?
+        get() = allLocations.find { it.id == currentParentId }
+
+    val displayedLocations: List<Location>
         get() {
             if (searchQuery.isNotBlank()) {
-                // Flat filter when searching
                 return allLocations.filter {
                     it.name.contains(searchQuery, ignoreCase = true) ||
                     (it.friendly_name?.contains(searchQuery, ignoreCase = true) == true)
-                }.map { it to 0 } // Depth 0 for flat search results
-            }
-
-            // Hierarchical tree
-            val childrenMap = allLocations.groupBy { it.parent_id }
-            val result = mutableListOf<Pair<Location, Int>>()
-
-            fun addNodes(parentId: UUID?, depth: Int) {
-                val children = childrenMap[parentId] ?: emptyList()
-                val sortedChildren = children.sortedWith(
-                    compareByDescending<Location> { it.is_primary_location }
-                        .thenBy { it.name }
-                )
-
-                sortedChildren.forEach { location ->
-                    result.add(location to depth)
-                    if (expandedIds.contains(location.id)) {
-                        addNodes(location.id, depth + 1)
-                    }
                 }
             }
 
-            addNodes(null, 0)
-            return result
+            return allLocations.filter { it.parent_id == currentParentId }
+                .sortedWith(
+                    compareByDescending<Location> { it.is_primary_location }
+                        .thenBy { it.name }
+                )
         }
 
     init {
@@ -79,15 +69,32 @@ class LocationsViewModel @Inject constructor(
         searchQuery = query
     }
 
-    fun toggleExpansion(locationId: UUID) {
-        expandedIds = if (expandedIds.contains(locationId)) {
-            expandedIds - locationId
-        } else {
-            expandedIds + locationId
+    fun navigateTo(parentId: UUID?) {
+        if (parentId != currentParentId) {
+            navigationStack.add(currentParentId)
+            currentParentId = parentId
         }
     }
+
+    fun navigateBack(): Boolean {
+        if (navigationStack.isNotEmpty()) {
+            currentParentId = navigationStack.removeAt(navigationStack.size - 1)
+            return true
+        }
+        return false
+    }
     
-    fun hasChildren(locationId: UUID): Boolean {
-        return allLocations.any { it.parent_id == locationId }
+    fun deleteLocation(locationId: UUID) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                api.deleteLocation(locationId)
+                fetchLocations()
+            } catch (e: Exception) {
+                errorMessage = "Failed to delete location: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
     }
 }

@@ -18,6 +18,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tokendad.nesventorynew.ui.additem.AddItemScreen
 import com.tokendad.nesventorynew.ui.addlocation.AddLocationScreen
+import com.tokendad.nesventorynew.ui.edititem.EditItemScreen
+import com.tokendad.nesventorynew.ui.editlocation.EditLocationScreen
 import com.tokendad.nesventorynew.ui.itemdetail.ItemDetailScreen
 import com.tokendad.nesventorynew.ui.locationdetail.LocationDetailScreen
 import com.tokendad.nesventorynew.ui.main.MainScreen
@@ -79,8 +81,14 @@ class MainActivity : ComponentActivity() {
                                 onAddItemClick = {
                                     navController.navigate(Routes.ADD_ITEM)
                                 },
+                                onEditItemClick = { itemId ->
+                                    navController.navigate(Routes.editItem(itemId.toString()))
+                                },
                                 onAddLocationClick = {
                                     navController.navigate(Routes.ADD_LOCATION)
+                                },
+                                onEditLocationClick = { locationId ->
+                                    navController.navigate(Routes.editLocation(locationId.toString()))
                                 },
                                 onExit = {
                                     finish()
@@ -122,11 +130,37 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // 8. Edit Item Screen
+                        composable(
+                            route = Routes.EDIT_ITEM,
+                            arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+                        ) {
+                            EditItemScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onItemUpdated = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
                         // 6. Add Location Screen
                         composable(Routes.ADD_LOCATION) {
                             AddLocationScreen(
                                 onBackClick = { navController.popBackStack() },
                                 onLocationCreated = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // 7. Edit Location Screen
+                        composable(
+                            route = Routes.EDIT_LOCATION,
+                            arguments = listOf(navArgument("locationId") { type = NavType.StringType })
+                        ) {
+                            EditLocationScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onLocationUpdated = {
                                     navController.popBackStack()
                                 }
                             )
@@ -156,13 +190,15 @@ class MainActivity : ComponentActivity() {
 object Routes {
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
-    const val ITEMS = "items"
-    const val LOCATIONS = "locations"
     const val ADD_ITEM = "add_item"
+    const val EDIT_ITEM = "edit_item/{itemId}"
     const val ADD_LOCATION = "add_location"
+    const val EDIT_LOCATION = "edit_location/{locationId}"
     const val ITEM_DETAILS = "item_details/{itemId}"
     const val LOCATION_DETAILS = "location_details/{locationId}"
 
     fun itemDetails(itemId: String) = "item_details/$itemId"
+    fun editItem(itemId: String) = "edit_item/$itemId"
     fun locationDetails(locationId: String) = "location_details/$locationId"
+    fun editLocation(locationId: String) = "edit_location/$locationId"
 }

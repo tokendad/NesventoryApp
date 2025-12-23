@@ -6,9 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -23,6 +24,7 @@ import java.util.UUID
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onItemClick: (UUID) -> Unit,
+    onEditItemClick: (UUID) -> Unit,
     onExit: () -> Unit = {}
 ) {
     Scaffold(
@@ -78,7 +80,12 @@ fun DashboardScreen(
                     }
 
                     items(displayItems) { item ->
-                        DashboardItemRow(item, onClick = { onItemClick(item.id) })
+                        DashboardItemRow(
+                            item = item, 
+                            onClick = { onItemClick(item.id) },
+                            onEdit = { onEditItemClick(item.id) },
+                            onDelete = { viewModel.deleteItem(item.id) }
+                        )
                     }
                     
                     if (displayItems.isEmpty()) {
@@ -93,7 +100,14 @@ fun DashboardScreen(
 }
 
 @Composable
-fun DashboardItemRow(item: Item, onClick: () -> Unit) {
+fun DashboardItemRow(
+    item: Item, 
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -133,9 +147,49 @@ fun DashboardItemRow(item: Item, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(item.name, style = MaterialTheme.typography.titleSmall)
-                item.estimated_value?.let { Text("$it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+                item.estimated_value?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+            }
+
+            // Ellipsis Menu
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("View Details") },
+                        onClick = {
+                            menuExpanded = false
+                            onClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Edit Item") },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete Item", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        }
+                    )
+                }
             }
         }
     }

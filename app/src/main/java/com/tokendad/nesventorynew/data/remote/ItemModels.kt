@@ -54,3 +54,42 @@ data class DetectedItem(
     val confidence: Double? = null,
     val estimation_date: String? = null
 )
+
+data class MaintenanceTask(
+    val id: UUID,
+    val item_id: UUID,
+    val title: String,
+    val description: String? = null,
+    val due_date: String,
+    val frequency: String? = null,
+    val color: String? = null,
+    val completed: Boolean = false,
+    val completed_date: String? = null,
+    val created_at: String,
+    val updated_at: String
+)
+
+data class MaintenanceTaskCreate(
+    val item_id: UUID,
+    val title: String,
+    val description: String? = null,
+    val due_date: String,
+    val frequency: String? = null,
+    val color: String? = null
+)
+
+data class MaintenanceTaskUpdate(
+    val title: String? = null,
+    val completed: Boolean? = null,
+    val completed_date: String? = null
+)
+
+data class Document(
+    val id: UUID,
+    val item_id: UUID,
+    val filename: String,
+    val path: String,
+    val mime_type: String,
+    val document_type: String? = null,
+    val created_at: String
+)

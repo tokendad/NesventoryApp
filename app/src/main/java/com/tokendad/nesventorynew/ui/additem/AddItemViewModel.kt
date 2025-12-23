@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventorynew.data.remote.DetectedItem
 import com.tokendad.nesventorynew.data.remote.ItemCreate
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
@@ -43,6 +44,13 @@ class AddItemViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    // AI Detection states
+    var detectedItems by mutableStateOf<List<DetectedItem>>(emptyList())
+    var currentDetectionIndex by mutableStateOf(0)
+    var showDetectionResults by mutableStateOf(false)
+
+    val currentDetectedItem get() = detectedItems.getOrNull(currentDetectionIndex)
+
     init {
         fetchLocations()
     }
@@ -51,9 +59,32 @@ class AddItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = api.getLocations()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Fail silently for dropdown, or maybe show error
             }
+        }
+    }
+
+    fun acceptDetection() {
+        currentDetectedItem?.let { item ->
+            name = item.name
+            description = item.description ?: ""
+            brand = item.brand ?: ""
+            estimatedValue = item.estimated_value?.toString() ?: ""
+        }
+        showDetectionResults = false
+        detectedItems = emptyList()
+        currentDetectionIndex = 0
+    }
+
+    fun rejectDetection() {
+        if (currentDetectionIndex < detectedItems.size - 1) {
+            currentDetectionIndex++
+        } else {
+            // No more items, go back to manual entry
+            showDetectionResults = false
+            detectedItems = emptyList()
+            currentDetectionIndex = 0
         }
     }
 
@@ -75,18 +106,13 @@ class AddItemViewModel @Inject constructor(
                     val body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile)
                     
                     val result = api.detectItems(body)
-                    val firstItem = result.items.firstOrNull()
                     
-                    if (firstItem != null) {
-                        // Update state on Main thread
-                        withContext(Dispatchers.Main) {
-                            name = firstItem.name
-                            description = firstItem.description ?: ""
-                            brand = firstItem.brand ?: ""
-                            estimatedValue = firstItem.estimated_value?.toString() ?: ""
-                        }
-                    } else {
-                        withContext(Dispatchers.Main) {
+                    withContext(Dispatchers.Main) {
+                        if (result.items.isNotEmpty()) {
+                            detectedItems = result.items
+                            currentDetectionIndex = 0
+                            showDetectionResults = true
+                        } else {
                             errorMessage = "No items detected in the image."
                         }
                     }
@@ -120,19 +146,15 @@ class AddItemViewModel @Inject constructor(
                     val body = MultipartBody.Part.createFormData("file", "camera_capture.jpg", requestFile)
                     
                     val result = api.detectItems(body)
-                    val firstItem = result.items.firstOrNull()
                     
-                    if (firstItem != null) {
-                        withContext(Dispatchers.Main) {
-                            name = firstItem.name
-                            description = firstItem.description ?: ""
-                            brand = firstItem.brand ?: ""
-                            estimatedValue = firstItem.estimated_value?.toString() ?: ""
-                        }
-                    }
-                } else {
                     withContext(Dispatchers.Main) {
-                        errorMessage = "No items detected in the image."
+                        if (result.items.isNotEmpty()) {
+                            detectedItems = result.items
+                            currentDetectionIndex = 0
+                            showDetectionResults = true
+                        } else {
+                            errorMessage = "No items detected in the image."
+                        }
                     }
                 }
             } catch (e: Exception) {

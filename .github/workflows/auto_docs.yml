@@ -1,0 +1,31 @@
+name: Auto Update Docs
+
+on:
+  push:
+    paths:
+      - 'VERSION'
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Changelog Date
+        run: |
+          VERSION=$(cat VERSION)
+          DATE=$(date +%Y-%m-%d)
+          # Replace the placeholder date or the current date for this version in CHANGELOG.md
+          sed -i "s/## \[$VERSION\] - .*/## \[$VERSION\] - $DATE/" CHANGELOG.md
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: update changelog date for v$(cat VERSION)" || echo "No changes to commit"
+          git push

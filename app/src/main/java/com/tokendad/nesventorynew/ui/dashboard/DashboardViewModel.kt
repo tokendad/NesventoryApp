@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -85,6 +86,20 @@ class DashboardViewModel @Inject constructor(
         searchQuery = query
     }
 
+    fun deleteItem(itemId: UUID) {
+        viewModelScope.launch {
+            isItemsLoading = true
+            try {
+                api.deleteItem(itemId)
+                loadDashboardData()
+            } catch (_: Exception) {
+                // error message or toast
+            } finally {
+                isItemsLoading = false
+            }
+        }
+    }
+
     fun onLocalUrlChange(url: String) {
         localUrl = url
         saveSettings()
@@ -126,7 +141,7 @@ class DashboardViewModel @Inject constructor(
                 // Assuming api is configured for remote by default or current context
                 api.getStatus()
                 withContext(Dispatchers.Main) { remoteStatus = true }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 withContext(Dispatchers.Main) { remoteStatus = false }
             }
 
@@ -138,7 +153,7 @@ class DashboardViewModel @Inject constructor(
                     val success = response.isSuccessful
                     response.close()
                     withContext(Dispatchers.Main) { localStatus = success }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     withContext(Dispatchers.Main) { localStatus = false }
                 }
             } else {

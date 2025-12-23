@@ -55,6 +55,38 @@ fun AddItemScreen(
             )
         }
     ) { padding ->
+        if (viewModel.showDetectionResults) {
+            val item = viewModel.currentDetectedItem
+            if (item != null) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.showDetectionResults = false },
+                    title = { Text("AI Result (${viewModel.currentDetectionIndex + 1}/${viewModel.detectedItems.size})") },
+                    text = {
+                        Column {
+                            Text("Name: ${item.name}", style = MaterialTheme.typography.bodyMedium)
+                            if (!item.brand.isNullOrBlank()) Text("Brand: ${item.brand}", style = MaterialTheme.typography.bodySmall)
+                            if (!item.description.isNullOrBlank()) Text("Description: ${item.description}", style = MaterialTheme.typography.bodySmall)
+                            if (item.estimated_value != null) Text("Value: $${item.estimated_value}", style = MaterialTheme.typography.bodySmall)
+                            if (item.confidence != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Confidence: ${(item.confidence * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = { viewModel.acceptDetection() }) {
+                            Text("Accept")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.rejectDetection() }) {
+                            Text(if (viewModel.currentDetectionIndex < viewModel.detectedItems.size - 1) "Next Result" else "Reject All")
+                        }
+                    }
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .padding(padding)

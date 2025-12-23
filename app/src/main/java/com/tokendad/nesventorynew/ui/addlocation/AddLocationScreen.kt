@@ -110,6 +110,14 @@ fun AddLocationScreen(
                 minLines = 2
             )
 
+            // Estimated Value
+            CompactTextField(
+                value = viewModel.estimatedPropertyValue,
+                onValueChange = { viewModel.estimatedPropertyValue = it },
+                label = "Estimated Property Value",
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // Flags
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -64,4 +64,18 @@ class ItemsViewModel @Inject constructor(
     fun onSearchQueryChange(query: String) {
         searchQuery = query
     }
+
+    fun deleteItem(itemId: UUID) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                api.deleteItem(itemId)
+                fetchData()
+            } catch (e: Exception) {
+                errorMessage = "Failed to delete item: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 }
