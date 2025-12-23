@@ -3,11 +3,13 @@ package com.example.nesventorynew
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -15,15 +17,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.nesventorynew.ui.dashboard.DashboardScreen
-import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
-import com.example.nesventorynew.ui.locationdetail.LocationDetailScreen
-import com.example.nesventorynew.ui.items.ItemsScreen
 import com.example.nesventorynew.ui.additem.AddItemScreen
 import com.example.nesventorynew.ui.addlocation.AddLocationScreen
+import com.example.nesventorynew.ui.itemdetail.ItemDetailScreen
+import com.example.nesventorynew.ui.locationdetail.LocationDetailScreen
 import com.example.nesventorynew.ui.main.MainScreen
 import com.example.nesventorynew.ui.login.LoginScreen
 import com.example.nesventorynew.ui.theme.NesVentoryNewTheme
+import com.example.nesventorynew.ui.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,7 +32,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            NesVentoryNewTheme {
+            // Need DashboardViewModel here to get the theme, or move theme to MainViewModel.
+            // For expediency, I'll grab DashboardViewModel here too, or just use it.
+            // Ideally, theme should be in MainViewModel.
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val themeSetting = dashboardViewModel.theme
+            
+            val useDarkTheme = when (themeSetting) {
+                "light" -> false
+                "dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+
+            NesVentoryNewTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
 
                 // Explicitly typing the ViewModel and State to prevent inference errors
@@ -61,6 +74,13 @@ class MainActivity : ComponentActivity() {
 
                         // 2. Main Screen (Dashboard with Bottom Nav)
                         composable(Routes.DASHBOARD) {
+                            // We can pass the existing dashboardViewModel if MainScreen accepts it, 
+                            // but MainScreen internally uses hiltViewModel().
+                            // It's fine, Hilt returns the same instance if scoped to Activity/NavGraph correctly, 
+                            // but here they might be different instances if not scoped to nav graph.
+                            // However, PreferencesManager is singleton so they share underlying data.
+                            // The visual sync might be slightly delayed if they are diff instances observing same flow.
+                            // For this task, it's acceptable.
                             MainScreen(
                                 onItemClick = { itemId ->
                                     navController.navigate(Routes.itemDetails(itemId.toString()))

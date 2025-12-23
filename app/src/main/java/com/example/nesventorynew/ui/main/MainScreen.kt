@@ -18,7 +18,7 @@ import com.example.nesventorynew.ui.dashboard.DashboardViewModel
 import com.example.nesventorynew.ui.items.ItemsScreen
 import com.example.nesventorynew.ui.locations.LocationsScreen
 import com.example.nesventorynew.ui.maintenance.MaintenanceScreen
-import com.example.nesventorynew.ui.status.StatusScreen
+import com.example.nesventorynew.ui.server.ServerScreen
 import java.util.UUID
 
 @Composable
@@ -63,8 +63,8 @@ fun MainScreen(
                 NavigationBarItem(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Status") },
-                    label = { Text("Status") }
+                    icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
+                    label = { Text("Server") }
                 )
             }
         }
@@ -84,12 +84,21 @@ fun MainScreen(
                     onAddLocationClick = onAddLocationClick
                 )
                 3 -> MaintenanceScreen()
-                4 -> StatusScreen(
-                    statusMessage = dashboardViewModel.statusMessage,
-                    itemStats = dashboardViewModel.itemStats,
-                    onRefresh = { dashboardViewModel.loadDashboardData() }
-                )
-            }
-        }
-    }
-}
+                                4 -> ServerScreen(
+                                    localUrl = dashboardViewModel.localUrl,
+                                    onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
+                                    localSsid = dashboardViewModel.localSsid,
+                                    onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
+                                    prioritizeLocal = dashboardViewModel.prioritizeLocal,
+                                    onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
+                                    remoteStatus = dashboardViewModel.remoteStatus,
+                                    localStatus = dashboardViewModel.localStatus,
+                                    theme = dashboardViewModel.theme,
+                                    onThemeChange = { dashboardViewModel.onThemeChange(it) },
+                                    onTestConnection = { dashboardViewModel.testConnection() }
+                                )
+                            }
+                        }
+                    }
+                }
+                

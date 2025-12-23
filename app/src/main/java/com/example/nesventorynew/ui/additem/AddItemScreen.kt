@@ -28,7 +28,6 @@ fun AddItemScreen(
 ) {
     val context = LocalContext.current
     
-    // Gallery Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -37,7 +36,6 @@ fun AddItemScreen(
         }
     }
 
-    // Camera Launcher (Thumbnail)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -49,7 +47,7 @@ fun AddItemScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add New Item") },
+                title = { Text("Add New Item", style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -62,182 +60,197 @@ fun AddItemScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Auto-fill Details", style = MaterialTheme.typography.titleMedium)
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Gallery Button
+            // Auto-fill Buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { 
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.Create, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Gallery")
+                    Icon(Icons.Default.Create, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Gallery", style = MaterialTheme.typography.bodySmall)
                 }
                 
-                // Camera Button
                 OutlinedButton(
                     onClick = { cameraLauncher.launch(null) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.Face, contentDescription = null) // Using Face as placeholder for Camera if CameraAlt not found
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Camera")
+                    Icon(Icons.Default.Face, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Camera", style = MaterialTheme.typography.bodySmall)
                 }
             }
             
             if (viewModel.isLoading) {
                  LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                 Text("Analyzing image...", style = MaterialTheme.typography.bodySmall)
+                 Text("Analyzing...", style = MaterialTheme.typography.labelSmall)
             }
 
-            // Name (Required)
-            OutlinedTextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.name = it },
-                label = { Text("Name *") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Brand & Retailer
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
+            // Name & Brand
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactTextField(
+                    value = viewModel.name,
+                    onValueChange = { viewModel.name = it },
+                    label = "Name *",
+                    modifier = Modifier.weight(1.2f)
+                )
+                CompactTextField(
                     value = viewModel.brand,
                     onValueChange = { viewModel.brand = it },
-                    label = { Text("Brand") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = viewModel.retailer,
-                    onValueChange = { viewModel.retailer = it },
-                    label = { Text("Retailer") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                    label = "Brand",
+                    modifier = Modifier.weight(0.8f)
                 )
             }
 
             // Model & Serial
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactTextField(
                     value = viewModel.modelNumber,
                     onValueChange = { viewModel.modelNumber = it },
-                    label = { Text("Model Num") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                    label = "Model",
+                    modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
+                CompactTextField(
                     value = viewModel.serialNumber,
                     onValueChange = { viewModel.serialNumber = it },
-                    label = { Text("Serial Num") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                    label = "Serial",
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // Price & Value
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = viewModel.purchasePrice,
-                    onValueChange = { viewModel.purchasePrice = it },
-                    label = { Text("Purch Price") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+            // Retailer & Location
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactTextField(
+                    value = viewModel.retailer,
+                    onValueChange = { viewModel.retailer = it },
+                    label = "Retailer",
+                    modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
-                    value = viewModel.estimatedValue,
-                    onValueChange = { viewModel.estimatedValue = it },
-                    label = { Text("Est Value") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
+                
+                // Location Selector
+                var locationExpanded by remember { mutableStateOf(false) }
+                val selectedLocationName = viewModel.availableLocations
+                    .find { it.id == viewModel.selectedLocationId }?.name ?: ""
 
-            // Purchase Date
-            OutlinedTextField(
-                value = viewModel.purchaseDate,
-                onValueChange = { viewModel.purchaseDate = it },
-                label = { Text("Purchase Date (YYYY-MM-DD)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Location Selector
-            var locationExpanded by remember { mutableStateOf(false) }
-            val selectedLocationName = viewModel.availableLocations
-                .find { it.id == viewModel.selectedLocationId }?.name ?: ""
-
-            Box {
-                OutlinedTextField(
-                    value = selectedLocationName,
-                    onValueChange = {},
-                    label = { Text("Location") },
-                    placeholder = { Text("Select Location") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { locationExpanded = !locationExpanded }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Location")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                DropdownMenu(
-                    expanded = locationExpanded,
-                    onDismissRequest = { locationExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f) // Adjust width as needed
-                ) {
-                    viewModel.availableLocations.forEach { loc ->
-                        DropdownMenuItem(
-                            text = { Text(loc.name) },
-                            onClick = {
-                                viewModel.selectedLocationId = loc.id
-                                locationExpanded = false
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = selectedLocationName,
+                        onValueChange = {},
+                        label = { Text("Location", style = MaterialTheme.typography.bodySmall) },
+                        readOnly = true,
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        trailingIcon = {
+                            IconButton(onClick = { locationExpanded = !locationExpanded }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             }
-                        )
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    )
+                    DropdownMenu(
+                        expanded = locationExpanded,
+                        onDismissRequest = { locationExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.5f)
+                    ) {
+                        viewModel.availableLocations.forEach { loc ->
+                            DropdownMenuItem(
+                                text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
+                                onClick = {
+                                    viewModel.selectedLocationId = loc.id
+                                    locationExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
-            
+
+            // Price, Value, Date
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactTextField(
+                    value = viewModel.purchasePrice,
+                    onValueChange = { viewModel.purchasePrice = it },
+                    label = "Price",
+                    modifier = Modifier.weight(0.8f)
+                )
+                CompactTextField(
+                    value = viewModel.estimatedValue,
+                    onValueChange = { viewModel.estimatedValue = it },
+                    label = "Value",
+                    modifier = Modifier.weight(0.8f)
+                )
+                CompactTextField(
+                    value = viewModel.purchaseDate,
+                    onValueChange = { viewModel.purchaseDate = it },
+                    label = "Date",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
             // Description
-            OutlinedTextField(
+            CompactTextField(
                 value = viewModel.description,
                 onValueChange = { viewModel.description = it },
-                label = { Text("Description") },
+                label = "Description",
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                singleLine = false,
+                minLines = 2
             )
 
             if (viewModel.errorMessage != null) {
                 Text(
                     text = viewModel.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
             Button(
                 onClick = { viewModel.createItem(onSuccess = onItemCreated) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !viewModel.isLoading
+                enabled = !viewModel.isLoading,
+                contentPadding = PaddingValues(8.dp)
             ) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(16.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Create Item")
+                    Text("Create Item", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
     }
+}
+
+@Composable
+fun CompactTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    minLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+        modifier = modifier.height(if (minLines > 1) 80.dp else 56.dp),
+        textStyle = MaterialTheme.typography.bodySmall,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = if (singleLine) 1 else 3
+    )
 }

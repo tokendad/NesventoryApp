@@ -19,7 +19,9 @@ data class ServerSettings(
     val apiToken: String = "",
     val remoteUrl: String = "",
     val localUrl: String = "",
-    val localSsid: String = ""
+    val localSsid: String = "",
+    val prioritizeLocal: Boolean = false,
+    val theme: String = "system"
 ) {
     fun isConfigured(): Boolean = remoteUrl.isNotBlank() || localUrl.isNotBlank()
 }
@@ -39,6 +41,8 @@ class PreferencesManager @Inject constructor(
         private val KEY_LOCAL_URL = stringPreferencesKey("local_url")
         private val KEY_LOCAL_SSID = stringPreferencesKey("local_ssid")
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
+        private val KEY_PRIORITIZE_LOCAL = androidx.datastore.preferences.core.booleanPreferencesKey("prioritize_local")
+        private val KEY_THEME = stringPreferencesKey("app_theme")
     }
 
     val serverSettings: Flow<ServerSettings> = context.dataStore.data.map { preferences ->
@@ -46,7 +50,9 @@ class PreferencesManager @Inject constructor(
             apiToken = preferences[KEY_API_TOKEN] ?: "",
             remoteUrl = preferences[KEY_REMOTE_URL] ?: "",
             localUrl = preferences[KEY_LOCAL_URL] ?: "",
-            localSsid = preferences[KEY_LOCAL_SSID] ?: ""
+            localSsid = preferences[KEY_LOCAL_SSID] ?: "",
+            prioritizeLocal = preferences[KEY_PRIORITIZE_LOCAL] ?: false,
+            theme = preferences[KEY_THEME] ?: "system"
         )
     }
 
@@ -64,6 +70,8 @@ class PreferencesManager @Inject constructor(
             preferences[KEY_REMOTE_URL] = settings.remoteUrl
             preferences[KEY_LOCAL_URL] = settings.localUrl
             preferences[KEY_LOCAL_SSID] = settings.localSsid
+            preferences[KEY_PRIORITIZE_LOCAL] = settings.prioritizeLocal
+            preferences[KEY_THEME] = settings.theme
         }
     }
 

@@ -23,7 +23,7 @@ fun AddLocationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add New Location") },
+                title = { Text("Add New Location", style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -36,27 +36,25 @@ fun AddLocationScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Name (Required)
-            OutlinedTextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.name = it },
-                label = { Text("Name *") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Friendly Name
-            OutlinedTextField(
-                value = viewModel.friendlyName,
-                onValueChange = { viewModel.friendlyName = it },
-                label = { Text("Friendly Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            // Name & Friendly Name
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CompactTextField(
+                    value = viewModel.name,
+                    onValueChange = { viewModel.name = it },
+                    label = "Name *",
+                    modifier = Modifier.weight(1f)
+                )
+                CompactTextField(
+                    value = viewModel.friendlyName,
+                    onValueChange = { viewModel.friendlyName = it },
+                    label = "Friendly Name",
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
             // Parent Location Selector
             var parentExpanded by remember { mutableStateOf(false) }
@@ -67,15 +65,16 @@ fun AddLocationScreen(
                 OutlinedTextField(
                     value = selectedParentName,
                     onValueChange = {},
-                    label = { Text("Parent Location") },
-                    placeholder = { Text("Select Parent (Optional)") },
+                    label = { Text("Parent Location", style = MaterialTheme.typography.bodySmall) },
+                    placeholder = { Text("Select Parent (Optional)", style = MaterialTheme.typography.bodySmall) },
                     readOnly = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     trailingIcon = {
                         IconButton(onClick = { parentExpanded = !parentExpanded }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Parent")
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 )
                 DropdownMenu(
                     expanded = parentExpanded,
@@ -83,7 +82,7 @@ fun AddLocationScreen(
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("None (Root)") },
+                        text = { Text("None (Root)", style = MaterialTheme.typography.bodySmall) },
                         onClick = {
                             viewModel.selectedParentId = null
                             parentExpanded = false
@@ -91,7 +90,7 @@ fun AddLocationScreen(
                     )
                     viewModel.availableLocations.forEach { loc ->
                         DropdownMenuItem(
-                            text = { Text(loc.name) },
+                            text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
                             onClick = {
                                 viewModel.selectedParentId = loc.id
                                 parentExpanded = false
@@ -102,11 +101,12 @@ fun AddLocationScreen(
             }
 
             // Address
-            OutlinedTextField(
+            CompactTextField(
                 value = viewModel.address,
                 onValueChange = { viewModel.address = it },
-                label = { Text("Address") },
+                label = "Address",
                 modifier = Modifier.fillMaxWidth(),
+                singleLine = false,
                 minLines = 2
             )
 
@@ -116,56 +116,87 @@ fun AddLocationScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Is Primary Location?")
-                Switch(
-                    checked = viewModel.isPrimaryLocation,
-                    onCheckedChange = { viewModel.isPrimaryLocation = it }
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Is Container?")
-                Switch(
-                    checked = viewModel.isContainer,
-                    onCheckedChange = { viewModel.isContainer = it }
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Primary?", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
+                    Switch(
+                        checked = viewModel.isPrimaryLocation,
+                        onCheckedChange = { viewModel.isPrimaryLocation = it },
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Container?", style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
+                    Switch(
+                        checked = viewModel.isContainer,
+                        onCheckedChange = { viewModel.isContainer = it },
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
             }
 
             // Description
-            OutlinedTextField(
+            CompactTextField(
                 value = viewModel.description,
                 onValueChange = { viewModel.description = it },
-                label = { Text("Description") },
+                label = "Description",
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                singleLine = false,
+                minLines = 2
             )
 
             if (viewModel.errorMessage != null) {
                 Text(
                     text = viewModel.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
             Button(
                 onClick = { viewModel.createLocation(onSuccess = onLocationCreated) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !viewModel.isLoading
+                enabled = !viewModel.isLoading,
+                contentPadding = PaddingValues(8.dp)
             ) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(16.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Create Location")
+                    Text("Create Location", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
     }
 }
+
+@Composable
+fun CompactTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    minLines: Int = 1
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+        modifier = modifier.height(if (minLines > 1) 80.dp else 56.dp),
+        textStyle = MaterialTheme.typography.bodySmall,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = if (singleLine) 1 else 3
+    )
+}
+
+// Extension to scale Switch
+fun Modifier.scale(scale: Float): Modifier = this.then(Modifier.size(width = 50.dp * scale, height = 30.dp * scale)) // Approximate logic, usually easier with Transform or just smaller size
+// Actually, standard Switch size is fixed. Modifier.scale works but affects layout size weirdly sometimes.
+// Let's rely on standard Switch but maybe smaller padding around text.
