@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-
-permissions:
-  contents: read
+  # pull_request_target is often used for release-drafter to have write permissions on forks
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   update_release_draft:
@@ -16,5 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

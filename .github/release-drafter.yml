@@ -1,18 +1,33 @@
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+name-template: 'v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+tag-prefix: 'v'
+include-commits: true
+exclude-contributors:
+  - 'dependabot[bot]'
+  - 'github-actions[bot]'
 categories:
   - title: '🚀 Features'
     labels:
-      - 'feature'
       - 'enhancement'
   - title: '🐛 Bug Fixes'
     labels:
-      - 'fix'
       - 'bug'
   - title: '🧰 Maintenance'
     labels:
-      - 'chore'
       - 'documentation'
+      - 'upstream-update'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'enhancement'
+  patch:
+    labels:
+      - 'bug'
+      - 'documentation'
+  default: patch
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 template: |
   ## What’s Changed
