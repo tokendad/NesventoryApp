@@ -31,6 +31,6 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          packageName: com.example.nesventorynew # REPLACE THIS with your app's package name (e.g., com.example.myapp)
+          packageName: com.tokendad.nesventory # REPLACE THIS with your app's package name (e.g., com.example.myapp)
           releaseFiles: app/build/outputs/bundle/release/*.aab
           track: internal # This pushes to "Internal Testing" so you can check it first
