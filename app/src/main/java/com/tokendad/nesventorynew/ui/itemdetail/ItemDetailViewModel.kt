@@ -22,6 +22,7 @@ class ItemDetailViewModel @Inject constructor(
     var item by mutableStateOf<Item?>(null)
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    var successMessage by mutableStateOf<String?>(null)
 
     init {
         val itemIdString: String? = savedStateHandle["itemId"]
@@ -32,6 +33,27 @@ class ItemDetailViewModel @Inject constructor(
              } catch (e: IllegalArgumentException) {
                  errorMessage = "Invalid Item ID format"
              }
+        }
+    }
+
+    fun printLabel() {
+        val currentItem = item ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val request = com.tokendad.nesventorynew.data.remote.PrintJobRequest(
+                    entity_id = currentItem.id,
+                    entity_type = "item"
+                )
+                api.printLabel(request)
+                successMessage = "Print job sent successfully!"
+            } catch (e: Exception) {
+                errorMessage = "Failed to send print job: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
         }
     }
 

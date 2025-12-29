@@ -65,7 +65,42 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Routes.DASHBOARD) {
                                         popUpTo(Routes.LOGIN) { inclusive = true }
                                     }
+                                },
+                                onServerSettingsClick = {
+                                    navController.navigate(Routes.SERVER_SETTINGS)
                                 }
+                            )
+                        }
+
+                        // Server Settings (Accessible from Login)
+                        composable(Routes.SERVER_SETTINGS) {
+                            com.tokendad.nesventorynew.ui.server.ServerScreen(
+                                remoteUrl = dashboardViewModel.remoteUrl,
+                                onRemoteUrlChange = { dashboardViewModel.onRemoteUrlChange(it) },
+                                localUrl = dashboardViewModel.localUrl,
+                                onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
+                                localSsid = dashboardViewModel.localSsid,
+                                onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
+                                availableSsids = dashboardViewModel.availableSsids,
+                                prioritizeLocal = dashboardViewModel.prioritizeLocal,
+                                onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
+                                remoteStatus = dashboardViewModel.remoteStatus,
+                                localStatus = dashboardViewModel.localStatus,
+                                theme = dashboardViewModel.theme,
+                                onThemeChange = { dashboardViewModel.onThemeChange(it) },
+                                onTestConnection = { dashboardViewModel.testConnection() },
+                                showPermissionRationale = dashboardViewModel.showPermissionRationale,
+                                onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
+                                onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
+                                onPrinterSettingsClick = { navController.navigate(Routes.PRINTER_SETTINGS) },
+                                onExit = { navController.popBackStack() }
+                            )
+                        }
+
+                        // Printer Settings
+                        composable(Routes.PRINTER_SETTINGS) {
+                            com.tokendad.nesventorynew.ui.printer.PrinterSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
 
@@ -90,8 +125,14 @@ class MainActivity : ComponentActivity() {
                                 onEditLocationClick = { locationId ->
                                     navController.navigate(Routes.editLocation(locationId.toString()))
                                 },
+                                onPrinterSettingsClick = {
+                                    navController.navigate(Routes.PRINTER_SETTINGS)
+                                },
                                 onExit = {
-                                    finish()
+                                    viewModel.logout()
+                                    navController.navigate(Routes.LOGIN) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -167,18 +208,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
-                // Initial redirect: If token exists, skip login
-                LaunchedEffect(uiState.isLoggedIn) {
-                    if (uiState.isLoggedIn) {
-                        val currentRoute = navController.currentBackStackEntry?.destination?.route
-                        if (currentRoute == Routes.LOGIN) {
-                            navController.navigate(Routes.DASHBOARD) {
-                                popUpTo(Routes.LOGIN) { inclusive = true }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -189,6 +218,8 @@ class MainActivity : ComponentActivity() {
  */
 object Routes {
     const val LOGIN = "login"
+    const val SERVER_SETTINGS = "server_settings"
+    const val PRINTER_SETTINGS = "printer_settings"
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val EDIT_ITEM = "edit_item/{itemId}"

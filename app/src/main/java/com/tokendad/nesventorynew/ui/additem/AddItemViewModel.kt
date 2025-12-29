@@ -43,6 +43,8 @@ class AddItemViewModel @Inject constructor(
     
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    
+    private var imageBytes: ByteArray? = null
 
     // AI Detection states
     var detectedItems by mutableStateOf<List<DetectedItem>>(emptyList())
@@ -102,6 +104,7 @@ class AddItemViewModel @Inject constructor(
                 inputStream?.close()
 
                 if (bytes != null) {
+                    imageBytes = bytes // Store bytes for later upload
                     val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull(), 0, bytes.size)
                     val body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile)
                     
@@ -142,6 +145,7 @@ class AddItemViewModel @Inject constructor(
                 val bytes = stream.toByteArray()
                 
                 if (bytes.isNotEmpty()) {
+                    imageBytes = bytes // Store bytes for later upload
                     val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
                     val body = MultipartBody.Part.createFormData("file", "camera_capture.jpg", requestFile)
                     
@@ -179,7 +183,7 @@ class AddItemViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                val newItem = ItemCreate(
+                val newItemRequest = ItemCreate(
                     name = name,
                     description = description.ifBlank { null },
                     brand = brand.ifBlank { null },
@@ -191,7 +195,21 @@ class AddItemViewModel @Inject constructor(
                     retailer = retailer.ifBlank { null },
                     location_id = selectedLocationId
                 )
-                api.createItem(newItem)
+                val createdItem = api.createItem(newItemRequest)
+                
+                // Upload photo if available
+                imageBytes?.let { bytes ->
+                    try {
+                        val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
+                        val body = MultipartBody.Part.createFormData("file", "item_photo.jpg", requestFile)
+                        api.uploadItemPhoto(createdItem.id, body, isPrimary = true)
+                    } catch (e: Exception) {
+                        // Log or handle photo upload failure, but don't fail the item creation
+                        // maybe show a toast? For now, we just proceed.
+                        e.printStackTrace()
+                    }
+                }
+                
                 onSuccess()
             } catch (e: Exception) {
                 errorMessage = "Failed to create item: ${e.localizedMessage}"

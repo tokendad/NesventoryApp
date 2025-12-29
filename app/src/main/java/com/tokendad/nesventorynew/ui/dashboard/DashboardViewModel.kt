@@ -1,5 +1,7 @@
 package com.tokendad.nesventorynew.ui.dashboard
 
+import android.content.Context
+import android.net.wifi.WifiManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,6 +12,7 @@ import com.example.nesventorynew.data.preferences.ServerSettings
 import com.tokendad.nesventorynew.data.remote.Item
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,7 +25,8 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val api: NesVentoryApi,
     private val preferencesManager: PreferencesManager,
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     var statusMessage by mutableStateOf("Loading system status...")
@@ -32,9 +36,14 @@ class DashboardViewModel @Inject constructor(
     var prioritizeLocal by mutableStateOf(false)
     var connectionStatus by mutableStateOf("Unknown")
     
+    // Server Settings
+    var remoteUrl by mutableStateOf("https://nesdemo.welshrd.com/")
+    var availableSsids by mutableStateOf<List<String>>(emptyList())
+    
     var theme by mutableStateOf("system")
     var remoteStatus by mutableStateOf<Boolean?>(null)
     var localStatus by mutableStateOf<Boolean?>(null)
+    var showPermissionRationale by mutableStateOf(false)
     
     var recentItems by mutableStateOf<List<Item>>(emptyList())
     var searchQuery by mutableStateOf("")
@@ -43,11 +52,57 @@ class DashboardViewModel @Inject constructor(
     init {
         loadSettings()
         loadDashboardData()
+        scanWifiNetworks()
+    }
+
+    fun dismissPermissionRationale() {
+        showPermissionRationale = false
+    }
+    
+    fun scanWifiNetworks() {
+        try {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wifiManager != null) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(
+                        context, 
+                        android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    val results = wifiManager.scanResults
+                    availableSsids = results
+                        .mapNotNull { it.SSID }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+                    showPermissionRationale = false
+                } else {
+                    // Only show rationale if we really wanted to scan but couldn't
+                    // For init, maybe we don't want to force it, but let's leave it controllable by UI
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    
+    fun requestSsidScan() {
+         if (androidx.core.content.ContextCompat.checkSelfPermission(
+                context, 
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            showPermissionRationale = true
+        } else {
+            scanWifiNetworks()
+        }
     }
 
     private fun loadSettings() {
         viewModelScope.launch {
             preferencesManager.serverSettings.collect { settings ->
+                if (settings.remoteUrl.isNotBlank()) {
+                    remoteUrl = settings.remoteUrl
+                }
                 localUrl = settings.localUrl
                 localSsid = settings.localSsid
                 prioritizeLocal = settings.prioritizeLocal
@@ -99,6 +154,11 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+    
+    fun onRemoteUrlChange(url: String) {
+        remoteUrl = url
+        saveSettings()
+    }
 
     fun onLocalUrlChange(url: String) {
         localUrl = url
@@ -124,7 +184,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.saveServerSettings(
                 ServerSettings(
-                    remoteUrl = "https://nesdemo.welshrd.com/", // Default
+                    remoteUrl = remoteUrl,
                     localUrl = localUrl,
                     localSsid = localSsid,
                     prioritizeLocal = prioritizeLocal,

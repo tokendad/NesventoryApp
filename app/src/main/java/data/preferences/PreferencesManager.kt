@@ -31,6 +31,12 @@ data class UserSession(
     val isLoggedIn: Boolean = false
 )
 
+data class SavedCredentials(
+    val username: String = "",
+    val password: String = "",
+    val isRemembered: Boolean = false
+)
+
 @Singleton
 class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -43,6 +49,11 @@ class PreferencesManager @Inject constructor(
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
         private val KEY_PRIORITIZE_LOCAL = androidx.datastore.preferences.core.booleanPreferencesKey("prioritize_local")
         private val KEY_THEME = stringPreferencesKey("app_theme")
+        
+        // Credentials
+        private val KEY_USERNAME = stringPreferencesKey("username")
+        private val KEY_PASSWORD = stringPreferencesKey("password")
+        private val KEY_REMEMBER_CREDENTIALS = androidx.datastore.preferences.core.booleanPreferencesKey("remember_credentials")
     }
 
     val serverSettings: Flow<ServerSettings> = context.dataStore.data.map { preferences ->
@@ -64,6 +75,14 @@ class PreferencesManager @Inject constructor(
         )
     }
 
+    val savedCredentials: Flow<SavedCredentials> = context.dataStore.data.map { preferences ->
+        SavedCredentials(
+            username = preferences[KEY_USERNAME] ?: "",
+            password = preferences[KEY_PASSWORD] ?: "",
+            isRemembered = preferences[KEY_REMEMBER_CREDENTIALS] ?: false
+        )
+    }
+
     suspend fun saveServerSettings(settings: ServerSettings) {
         context.dataStore.edit { preferences ->
             preferences[KEY_API_TOKEN] = settings.apiToken
@@ -72,6 +91,20 @@ class PreferencesManager @Inject constructor(
             preferences[KEY_LOCAL_SSID] = settings.localSsid
             preferences[KEY_PRIORITIZE_LOCAL] = settings.prioritizeLocal
             preferences[KEY_THEME] = settings.theme
+        }
+    }
+
+    suspend fun saveCredentials(username: String, password: String, remember: Boolean) {
+        context.dataStore.edit { preferences ->
+            if (remember) {
+                preferences[KEY_USERNAME] = username
+                preferences[KEY_PASSWORD] = password
+                preferences[KEY_REMEMBER_CREDENTIALS] = true
+            } else {
+                preferences.remove(KEY_USERNAME)
+                preferences.remove(KEY_PASSWORD)
+                preferences[KEY_REMEMBER_CREDENTIALS] = false
+            }
         }
     }
 

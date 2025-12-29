@@ -43,6 +43,10 @@ class EditItemViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
+    // Enrichment Review State
+    var isReviewingEnrichment by mutableStateOf(false)
+    private var originalValues = mapOf<String, String>()
+
     init {
         val idString: String? = savedStateHandle["itemId"]
         if (idString != null) {
@@ -50,6 +54,29 @@ class EditItemViewModel @Inject constructor(
             fetchItem(itemId!!)
         }
         fetchLocations()
+    }
+
+    // ... (existing fetchItem, fetchMaintenanceTasks, fetchLocations, updateItem)
+
+    fun isFieldModified(fieldName: String, currentValue: String): Boolean {
+        return isReviewingEnrichment && originalValues[fieldName] != currentValue
+    }
+
+    fun acceptEnrichment() {
+        isReviewingEnrichment = false
+        originalValues = emptyMap()
+    }
+
+    fun discardEnrichment() {
+        if (isReviewingEnrichment) {
+            description = originalValues["description"] ?: description
+            brand = originalValues["brand"] ?: brand
+            modelNumber = originalValues["modelNumber"] ?: modelNumber
+            serialNumber = originalValues["serialNumber"] ?: serialNumber
+            estimatedValue = originalValues["estimatedValue"] ?: estimatedValue
+            isReviewingEnrichment = false
+            originalValues = emptyMap()
+        }
     }
 
     private fun fetchItem(id: UUID) {
@@ -137,13 +164,29 @@ class EditItemViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                val enrichedItem = api.enrichItem(id)
-                // Update local state with enriched data
-                name = enrichedItem.name
-                description = enrichedItem.description ?: description
-                brand = enrichedItem.brand ?: brand
-                modelNumber = enrichedItem.model_number ?: modelNumber
-                estimatedValue = enrichedItem.estimated_value ?: estimatedValue
+                // Save current state before enrichment
+                originalValues = mapOf(
+                    "description" to description,
+                    "brand" to brand,
+                    "modelNumber" to modelNumber,
+                    "serialNumber" to serialNumber,
+                    "estimatedValue" to estimatedValue
+                )
+
+                val result = api.enrichItem(id)
+                val enriched = result.enriched_data.firstOrNull()
+                if (enriched != null) {
+                    // Update local state with enriched data
+                    description = enriched.description ?: description
+                    brand = enriched.brand ?: brand
+                    modelNumber = enriched.model_number ?: modelNumber
+                    serialNumber = enriched.serial_number ?: serialNumber
+                    estimatedValue = enriched.estimated_value ?: estimatedValue
+                    
+                    isReviewingEnrichment = true
+                } else {
+                    errorMessage = "No enriched data found: ${result.message}"
+                }
             } catch (e: Exception) {
                 errorMessage = "Failed to enrich data: ${e.localizedMessage}"
             } finally {

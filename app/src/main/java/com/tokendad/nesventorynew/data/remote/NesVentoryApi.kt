@@ -65,6 +65,40 @@ interface NesVentoryApi {
     suspend fun detectItems(@Part file: MultipartBody.Part): DetectionResult
 
     /**
+     * Check AI Status
+     */
+    @GET("api/ai/status")
+    suspend fun getAIStatus(): AIStatusResponse
+
+    /**
+     * Parse Data Tag from Image
+     */
+    @Multipart
+    @POST("api/ai/parse-data-tag")
+    suspend fun parseDataTag(
+        @Part file: MultipartBody.Part,
+        @Part("use_plugin") usePlugin: Boolean = true
+    ): DataTagInfo
+
+    /**
+     * Scan Barcode from Image
+     */
+    @Multipart
+    @POST("api/ai/scan-barcode")
+    suspend fun scanBarcode(
+        @Part file: MultipartBody.Part,
+        @Part("use_plugin") usePlugin: Boolean = true
+    ): BarcodeScanResult
+
+    /**
+     * Lookup Barcode Information
+     */
+    @POST("api/ai/barcode-lookup")
+    suspend fun lookupBarcode(
+        @Body request: BarcodeLookupRequest
+    ): BarcodeLookupResult
+
+    /**
      * Get Single Item Details
      */
     @GET("api/items/{id}")
@@ -85,8 +119,8 @@ interface NesVentoryApi {
     /**
      * Enrich Item details via AI
      */
-    @POST("api/ai/enrich-item/{id}")
-    suspend fun enrichItem(@Path("id") id: UUID): Item
+    @POST("api/items/{id}/enrich")
+    suspend fun enrichItem(@Path("id") id: UUID): ItemEnrichmentResult
 
     /**
      * Maintenance Tasks
@@ -108,6 +142,21 @@ interface NesVentoryApi {
 
     @DELETE("api/maintenance/{task_id}")
     suspend fun deleteMaintenanceTask(@Path("task_id") taskId: UUID)
+
+    /**
+     * Printer Management
+     */
+    @GET("api/printer/config")
+    suspend fun getPrinterConfig(): PrinterConfig
+
+    @POST("api/printer/config")
+    suspend fun updatePrinterConfig(@Body config: PrinterConfig): PrinterConfig
+
+    @POST("api/printer/print")
+    suspend fun printLabel(@Body request: PrintJobRequest): Map<String, Any>
+
+    @GET("api/printer/status")
+    suspend fun getPrinterStatus(): PrinterStatus
 
     /**
      * Media Management

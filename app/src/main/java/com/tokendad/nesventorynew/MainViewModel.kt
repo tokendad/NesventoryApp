@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+import kotlinx.coroutines.launch
+
 // Make sure this is OUTSIDE the class
 data class MainUiState(val isLoggedIn: Boolean = false)
 
@@ -28,4 +30,10 @@ class MainViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = MainUiState()
         )
+
+    fun logout() {
+        viewModelScope.launch {
+            preferencesManager.clearAccessToken()
+        }
+    }
 }

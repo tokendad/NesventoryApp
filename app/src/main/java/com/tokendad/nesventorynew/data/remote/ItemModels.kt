@@ -93,3 +93,63 @@ data class Document(
     val document_type: String? = null,
     val created_at: String
 )
+
+// --- AI / New Feature Models ---
+
+data class AIStatusResponse(
+    val enabled: Boolean,
+    val model: String? = null,
+    val plugins_enabled: Boolean = false,
+    val plugin_count: Int = 0
+)
+
+data class DataTagInfo(
+    val manufacturer: String? = null,
+    val brand: String? = null,
+    val model_number: String? = null,
+    val serial_number: String? = null,
+    val production_date: String? = null,
+    val estimated_value: Double? = null,
+    val estimation_date: String? = null,
+    val additional_info: Map<String, Any>? = null,
+    val raw_response: String? = null
+)
+
+data class BarcodeLookupRequest(
+    val upc: String
+)
+
+data class BarcodeLookupResult(
+    val found: Boolean,
+    val name: String? = null,
+    val description: String? = null,
+    val brand: String? = null,
+    val model_number: String? = null,
+    val estimated_value: Double? = null,
+    val estimation_date: String? = null,
+    val category: String? = null,
+    val raw_response: String? = null
+)
+
+data class BarcodeScanResult(
+    val found: Boolean,
+    val upc: String? = null,
+    val raw_response: String? = null
+)
+
+data class EnrichedItemData(
+    val description: String? = null,
+    val brand: String? = null,
+    val model_number: String? = null,
+    val serial_number: String? = null,
+    val estimated_value: String? = null,
+    val estimated_value_ai_date: String? = null,
+    val confidence: Double? = null,
+    val source: String
+)
+
+data class ItemEnrichmentResult(
+    val item_id: UUID,
+    val enriched_data: List<EnrichedItemData>,
+    val message: String
+)

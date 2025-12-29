@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,27 @@ fun ItemDetailScreen(
     val item = viewModel.item
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
+    val successMessage = viewModel.successMessage
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            snackbarHostState.showSnackbar(
+                message = errorMessage,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+    
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            snackbarHostState.showSnackbar(
+                message = successMessage,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -51,6 +72,7 @@ fun ItemDetailScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = item?.name ?: "Item Details") },
@@ -61,6 +83,9 @@ fun ItemDetailScreen(
                 },
                 actions = {
                     if (item != null) {
+                        IconButton(onClick = { viewModel.printLabel() }) {
+                            Icon(Icons.Default.Print, contentDescription = "Print Label")
+                        }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete Item")
                         }
@@ -74,9 +99,9 @@ fun ItemDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (isLoading) {
+            if (isLoading && item == null) { // Only show full screen loader on initial load
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (errorMessage != null) {
+            } else if (errorMessage != null && item == null) {
                 Text(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.error,

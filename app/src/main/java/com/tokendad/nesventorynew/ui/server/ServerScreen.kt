@@ -8,19 +8,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerScreen(
+    remoteUrl: String,
+    onRemoteUrlChange: (String) -> Unit,
     localUrl: String,
     onLocalUrlChange: (String) -> Unit,
     localSsid: String,
     onLocalSsidChange: (String) -> Unit,
+    availableSsids: List<String>,
     prioritizeLocal: Boolean,
     onPrioritizeLocalChange: (Boolean) -> Unit,
     remoteStatus: Boolean?,
@@ -28,8 +36,42 @@ fun ServerScreen(
     theme: String,
     onThemeChange: (String) -> Unit,
     onTestConnection: () -> Unit,
+    showPermissionRationale: Boolean,
+    onDismissPermissionRationale: () -> Unit,
+    onRequestSsidScan: () -> Unit,
+    onPrinterSettingsClick: () -> Unit,
     onExit: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    
+    LaunchedEffect(Unit) {
+        onRequestSsidScan()
+    }
+
+    if (showPermissionRationale) {
+        AlertDialog(
+            onDismissRequest = onDismissPermissionRationale,
+            title = { Text("Permission Required") },
+            text = { Text("Location permission is required to scan for available Wi-Fi networks (SSIDs). Please grant this permission in App Settings.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDismissPermissionRationale()
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissPermissionRationale) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,10 +102,10 @@ fun ServerScreen(
                     
                     // Remote URL
                     OutlinedTextField(
-                        value = "https://nesdemo.welshrd.com/",
-                        onValueChange = { },
+                        value = remoteUrl,
+                        onValueChange = onRemoteUrlChange,
                         label = { Text("Remote URL", style = MaterialTheme.typography.bodySmall) },
-                        enabled = false,
+                        enabled = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
@@ -102,6 +144,22 @@ fun ServerScreen(
                 }
             }
             
+             // Printer Settings
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Hardware", style = MaterialTheme.typography.labelLarge)
+                    Button(
+                        onClick = onPrinterSettingsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Configure Printer")
+                    }
+                }
+            }
+
             // Local Network Settings
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -110,13 +168,44 @@ fun ServerScreen(
                 ) {
                     Text("Local Network", style = MaterialTheme.typography.labelLarge)
                     
-                    OutlinedTextField(
-                        value = localSsid,
-                        onValueChange = onLocalSsidChange,
-                        label = { Text("Local SSID Name", style = MaterialTheme.typography.bodySmall) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
+                    var expanded by remember { mutableStateOf(false) }
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = localSsid,
+                            onValueChange = onLocalSsidChange,
+                            label = { Text("Local SSID Name", style = MaterialTheme.typography.bodySmall) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            textStyle = MaterialTheme.typography.bodySmall
+                        )
+                        
+                        if (availableSsids.isNotEmpty()) {
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                availableSsids.forEach { ssid ->
+                                    DropdownMenuItem(
+                                        text = { Text(ssid, style = MaterialTheme.typography.bodySmall) },
+                                        onClick = {
+                                            onLocalSsidChange(ssid)
+                                            expanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
+                    }
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

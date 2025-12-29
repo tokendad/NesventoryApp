@@ -18,17 +18,33 @@ class LoginViewModel @Inject constructor(
 ) : ViewModel() {
 
     // UI State for the Login screen
+    var username by mutableStateOf("")
+    var password by mutableStateOf("")
+    var rememberCredentials by mutableStateOf(false)
+    
     var isLoading by mutableStateOf(false)
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    init {
+        viewModelScope.launch {
+            preferencesManager.savedCredentials.collect { credentials ->
+                if (credentials.isRemembered) {
+                    username = credentials.username
+                    password = credentials.password
+                    rememberCredentials = true
+                }
+            }
+        }
+    }
+
     /**
      * Attempts to log in using Form-URL-Encoded data as required
      * by the FastAPI OAuth2 Password flow.
      */
-    fun login(username: String, password: String, onLoginSuccess: () -> Unit) {
+    fun login(onLoginSuccess: () -> Unit) {
         // Basic validation before network call
         if (username.isBlank() || password.isBlank()) {
             errorMessage = "Please enter both username and password"
@@ -48,6 +64,9 @@ class LoginViewModel @Inject constructor(
 
                 // Save the token to DataStore for persistent session management
                 preferencesManager.saveAccessToken(response.access_token)
+
+                // Save or clear credentials based on user preference
+                preferencesManager.saveCredentials(username, password, rememberCredentials)
 
                 // Trigger navigation to Dashboard
                 onLoginSuccess()

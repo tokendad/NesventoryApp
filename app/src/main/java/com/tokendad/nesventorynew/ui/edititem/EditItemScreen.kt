@@ -77,6 +77,8 @@ fun EditItemScreen(
 
 @Composable
 fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
+    val highlightColor = Color(0xFFFF0000)
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -96,7 +98,8 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
                 value = viewModel.brand,
                 onValueChange = { viewModel.brand = it },
                 label = "Brand",
-                modifier = Modifier.weight(0.8f)
+                modifier = Modifier.weight(0.8f),
+                textColor = if (viewModel.isFieldModified("brand", viewModel.brand)) highlightColor else Color.Unspecified
             )
         }
 
@@ -106,13 +109,15 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
                 value = viewModel.modelNumber,
                 onValueChange = { viewModel.modelNumber = it },
                 label = "Model",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textColor = if (viewModel.isFieldModified("modelNumber", viewModel.modelNumber)) highlightColor else Color.Unspecified
             )
             CompactTextField(
                 value = viewModel.serialNumber,
                 onValueChange = { viewModel.serialNumber = it },
                 label = "Serial",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textColor = if (viewModel.isFieldModified("serialNumber", viewModel.serialNumber)) highlightColor else Color.Unspecified
             )
         }
 
@@ -174,7 +179,8 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
                 value = viewModel.estimatedValue,
                 onValueChange = { viewModel.estimatedValue = it },
                 label = "Value",
-                modifier = Modifier.weight(0.8f)
+                modifier = Modifier.weight(0.8f),
+                textColor = if (viewModel.isFieldModified("estimatedValue", viewModel.estimatedValue)) highlightColor else Color.Unspecified
             )
             CompactTextField(
                 value = viewModel.purchaseDate,
@@ -191,7 +197,8 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
             label = "Description",
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
-            minLines = 2
+            minLines = 2,
+            textColor = if (viewModel.isFieldModified("description", viewModel.description)) highlightColor else Color.Unspecified
         )
 
         if (viewModel.errorMessage != null) {
@@ -202,20 +209,55 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
             )
         }
 
-        Button(
-            onClick = { viewModel.updateItem(onSuccess = onItemUpdated) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !viewModel.isLoading,
-            contentPadding = PaddingValues(8.dp)
-        ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Update Item", style = MaterialTheme.typography.bodyMedium)
+        if (viewModel.isReviewingEnrichment) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "AI Enrichment Preview",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Review the highlighted changes above.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { viewModel.discardEnrichment() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Discard Changes")
+                        }
+                        Button(
+                            onClick = { viewModel.acceptEnrichment() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Accept Changes")
+                        }
+                    }
+                }
+            }
+        } else {
+            Button(
+                onClick = { viewModel.updateItem(onSuccess = onItemUpdated) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !viewModel.isLoading,
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Update Item", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }

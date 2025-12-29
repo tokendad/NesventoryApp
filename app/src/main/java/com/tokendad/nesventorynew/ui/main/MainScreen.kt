@@ -29,6 +29,7 @@ fun MainScreen(
     onEditItemClick: (UUID) -> Unit,
     onAddLocationClick: () -> Unit,
     onEditLocationClick: (UUID) -> Unit,
+    onPrinterSettingsClick: () -> Unit,
     onExit: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -94,10 +95,13 @@ fun MainScreen(
                     onExit = onExit
                 )
                 4 -> ServerScreen(
+                    remoteUrl = dashboardViewModel.remoteUrl,
+                    onRemoteUrlChange = { dashboardViewModel.onRemoteUrlChange(it) },
                     localUrl = dashboardViewModel.localUrl,
                     onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
                     localSsid = dashboardViewModel.localSsid,
                     onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
+                    availableSsids = dashboardViewModel.availableSsids,
                     prioritizeLocal = dashboardViewModel.prioritizeLocal,
                     onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
                     remoteStatus = dashboardViewModel.remoteStatus,
@@ -105,6 +109,10 @@ fun MainScreen(
                     theme = dashboardViewModel.theme,
                     onThemeChange = { dashboardViewModel.onThemeChange(it) },
                     onTestConnection = { dashboardViewModel.testConnection() },
+                    showPermissionRationale = dashboardViewModel.showPermissionRationale,
+                    onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
+                    onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
+                    onPrinterSettingsClick = onPrinterSettingsClick,
                     onExit = onExit
                 )
             }

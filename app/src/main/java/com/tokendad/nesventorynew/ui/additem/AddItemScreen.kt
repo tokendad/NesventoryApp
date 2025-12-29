@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -272,7 +273,8 @@ fun CompactTextField(
     label: String,
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
-    minLines: Int = 1
+    minLines: Int = 1,
+    textColor: Color = Color.Unspecified
 ) {
     OutlinedTextField(
         value = value,
@@ -282,6 +284,10 @@ fun CompactTextField(
         textStyle = MaterialTheme.typography.bodySmall,
         singleLine = singleLine,
         minLines = minLines,
-        maxLines = if (singleLine) 1 else 3
+        maxLines = if (singleLine) 1 else 3,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = if (textColor != Color.Unspecified) textColor else MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = if (textColor != Color.Unspecified) textColor else MaterialTheme.colorScheme.onSurface
+        )
     )
 }
