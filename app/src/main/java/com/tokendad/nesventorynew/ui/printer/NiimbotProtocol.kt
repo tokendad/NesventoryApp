@@ -63,6 +63,15 @@ object NiimbotProtocol {
     }
 
     private fun createPrintDataD110MV4(bitmap: Bitmap, density: Int): List<ByteArray> {
+        // VERIFIED VIA USB (2026-01-01):
+        // Protocol V4/V5 (Niimbot D11_H / D110M)
+        // - Width: 96px (Standard Density, 203 DPI)
+        // - Start Print: 9-byte Payload
+        // - Set Dimension: 13-byte Payload
+        // - Row Data: 0x85 with Split Counts [RowH, RowL, C1, C2, C3, Rep]
+        // - Empty Row: 0x84 [RowH, RowL, Rep] works perfectly.
+        // - C1, C2, C3 are Pixel Counts for each 32-pixel (4-byte) chunk.
+        
         val packets = mutableListOf<ByteArray>()
         val width = 96
         val height = bitmap.height
