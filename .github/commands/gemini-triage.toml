@@ -29,7 +29,7 @@ You are an issue triage assistant. Analyze the current GitHub issue and identify
 
 **Output File Path**:
 ```
-{{GITHUB_ENV}}
+$GITHUB_ENV
 ```
 
 ## Steps
