@@ -154,10 +154,28 @@ object NiimbotProtocol {
                 }.array()
                 packets.add(createPacket(CMD_PRINT_EMPTY_ROW, rowPayload))
             } else {
-                // Header: [RowH, RowL] + Data (Standard 0x85)
-                val rowPayload = ByteBuffer.allocate(2 + bytesPerRow).apply {
+                // Header: [RowH, RowL, C1, C2, C3, Repeats]
+                // C1..C3 are counts of non-zero BYTES in each 4-byte (32px) chunk.
+                // Our loop above counts 'pixels', which is wrong for this header type if it expects bytes.
+                // Re-calculating byte counts:
+                var b1 = 0; var b2 = 0; var b3 = 0
+                val chunkSize = bytesPerRow / 3 // 4 bytes
+                
+                for (i in 0 until bytesPerRow) {
+                    if (pixelData[i] != 0.toByte()) {
+                        if (i < chunkSize) b1++
+                        else if (i < chunkSize * 2) b2++
+                        else b3++
+                    }
+                }
+
+                val rowPayload = ByteBuffer.allocate(6 + bytesPerRow).apply {
                     order(ByteOrder.BIG_ENDIAN)
                     putShort(y.toShort())
+                    put(b1.toByte())
+                    put(b2.toByte())
+                    put(b3.toByte())
+                    put(1) // Repeats
                     put(pixelData)
                 }.array()
                 packets.add(createPacket(CMD_PRINT_BITMAP_ROW, rowPayload))
