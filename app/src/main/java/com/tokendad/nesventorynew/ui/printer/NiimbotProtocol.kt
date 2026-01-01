@@ -103,10 +103,13 @@ object NiimbotProtocol {
             putShort(0) // Cut Height
             put(0) // Cut Type
             put(0) // Pad
-            put(0) // Send All
+            put(1) // Send All (Updated to 1)
             putShort(0) // Part Height
         }.array()
         packets.add(createPacket(CMD_SET_DIMENSION, dimPayload))
+
+        // 3a. Start Page (0x03) - Required for motor trigger on some V4/V5 fw
+        packets.add(createPacket(CMD_START_PAGE_PRINT, byteArrayOf(0x01)))
 
         // 4. Image Data (Split Counts)
         val chunkSize = bytesPerRow / 3 // 4 bytes
