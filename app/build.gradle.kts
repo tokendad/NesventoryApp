@@ -122,4 +122,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+
+    // Zxing
+    implementation(libs.zxing.core)
 }

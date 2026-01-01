@@ -14,82 +14,12 @@ import javax.inject.Inject
 @HiltViewModel
 class PrinterViewModel @Inject constructor(
     private val api: NesVentoryApi,
-    private val bluetoothManager: BluetoothPrinterManager
+    private val bluetoothManager: BluetoothPrinterManager,
+    private val labelGenerator: LabelBitmapGenerator
 ) : ViewModel() {
 
     var config by mutableStateOf(PrinterConfig())
-        private set
-        
-    var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
-    var successMessage by mutableStateOf<String?>(null)
-
-    val supportedModels = listOf("D11", "D110", "D11_H", "D110M_V4", "B1", "B18", "B21")
-    val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
-
-    val scannedDevices = bluetoothManager.scannedDevices
-    val connectionState = bluetoothManager.connectionState
-
-    init {
-        loadConfig()
-    }
-
-    private fun loadConfig() {
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                config = api.getPrinterConfig()
-            } catch (e: Exception) {
-                errorMessage = "Failed to load printer config: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    fun onModelChange(model: String) {
-        config = config.copy(model = model)
-    }
-
-    fun onInterfaceChange(interfaceType: String) {
-        config = config.copy(interface_type = interfaceType)
-    }
-
-    fun onAddressChange(address: String) {
-        config = config.copy(address = address)
-    }
-    
-    fun onDensityChange(density: Int) {
-        config = config.copy(density = density)
-    }
-
-    fun saveConfig() {
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-            successMessage = null
-            try {
-                config = api.updatePrinterConfig(config)
-                successMessage = "Printer configuration saved successfully!"
-            } catch (e: Exception) {
-                errorMessage = "Failed to save config: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    fun startScan() {
-        bluetoothManager.startScan()
-    }
-
-    fun connect(device: android.bluetooth.BluetoothDevice) {
-        bluetoothManager.connect(device)
-    }
-    
-    fun disconnect() {
-        bluetoothManager.disconnect()
-    }
+    // ... (rest of class)
 
     fun printTest() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -110,7 +40,16 @@ class PrinterViewModel @Inject constructor(
                 kotlinx.coroutines.delay(1000) // Wait for ack
 
                 // 2. Generate Bitmap
-                val bitmap = createTestBitmap(model.width, model.width) // Square test
+                // Width = Model width. Height = Arbitrary (e.g. 100-150 for 40-50mm label)
+                val height = 150 
+                val bitmap = labelGenerator.generateLabel(
+                    width = model.width,
+                    height = height,
+                    title = "Test Label",
+                    subtitle = "1234-5678-ABCD",
+                    qrContent = "https://nesventory.com/test",
+                    iconType = "box"
+                )
                 
                 // 3. Protocol Data
                 val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
@@ -145,35 +84,5 @@ class PrinterViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun createTestBitmap(width: Int, height: Int): android.graphics.Bitmap {
-        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
-        canvas.drawColor(android.graphics.Color.WHITE)
-        
-        val paint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            style = android.graphics.Paint.Style.STROKE
-            strokeWidth = 4f
-        }
-        // Border
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        
-        // Text
-        paint.style = android.graphics.Paint.Style.FILL
-        paint.textSize = if(width < 100) 24f else 36f
-        paint.isAntiAlias = true
-        paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        // Center text
-        val text = "TEST"
-        val bounds = android.graphics.Rect()
-        paint.getTextBounds(text, 0, text.length, bounds)
-        val x = (width - bounds.width()) / 2f
-        val y = (height + bounds.height()) / 2f
-        
-        canvas.drawText(text, x, y, paint)
-        
-        return bitmap
     }
 }
