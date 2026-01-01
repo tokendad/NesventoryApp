@@ -44,6 +44,10 @@ class LabelBitmapGenerator @Inject constructor(
             color = Color.BLACK
             isAntiAlias = false // Disable AA for thermal printer sharpness
         }
+        
+        // DEBUG: Draw giant X
+        canvas.drawLine(0f, 0f, drawWidth.toFloat(), drawHeight.toFloat(), paint)
+        canvas.drawLine(0f, drawHeight.toFloat(), drawWidth.toFloat(), 0f, paint)
 
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
         // Reduce QR size slightly to avoid edge cutoff (12mm is tight)
