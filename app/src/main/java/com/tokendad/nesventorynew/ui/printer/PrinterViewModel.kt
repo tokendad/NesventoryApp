@@ -118,10 +118,18 @@ class PrinterViewModel @Inject constructor(
                 packets.forEachIndexed { index, packet -> 
                     val sent = bluetoothManager.sendData(packet)
                     if (!sent) throw Exception("Failed to send packet $index")
-                    kotlinx.coroutines.delay(50) // Reduced delay slightly
+                    kotlinx.coroutines.delay(20) // Fast packet sending
                 }
                 
-                // 5. Success
+                // 5. Wait and Finalize (Specific for V4/V5)
+                if (model == PrinterModel.D110M_V4) {
+                    android.util.Log.d("PrinterViewModel", "Waiting for print to finish (V4)...")
+                    kotlinx.coroutines.delay(5000) // Wait 5 seconds for print to complete
+                    val endPacket = NiimbotProtocol.createPrintEndPacket()
+                    bluetoothManager.sendData(endPacket)
+                }
+                
+                // 6. Success
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     android.util.Log.d("PrinterViewModel", "Test print sent successfully")
                     successMessage = "Test print sent! (${model.name})"

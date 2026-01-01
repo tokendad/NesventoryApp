@@ -51,6 +51,10 @@ object NiimbotProtocol {
         return createPacket(CMD_SET_DENSITY, byteArrayOf(density.toByte()))
     }
 
+    fun createPrintEndPacket(): ByteArray {
+        return createPacket(CMD_PRINT_END, byteArrayOf(0x01))
+    }
+
     /**
      * Converts a bitmap to Niimbot print commands based on the printer model.
      */
@@ -167,7 +171,8 @@ object NiimbotProtocol {
 
         // 5. End Sequence
         packets.add(createPacket(CMD_END_PAGE_PRINT, byteArrayOf(0x01)))
-        packets.add(createPacket(CMD_PRINT_END, byteArrayOf(0x01)))
+        // NOTE: CMD_PRINT_END is omitted here. It MUST be sent after the print is physically complete.
+        // The caller (ViewModel) is responsible for waiting and sending CMD_PRINT_END (0xF3).
 
         return packets
     }
