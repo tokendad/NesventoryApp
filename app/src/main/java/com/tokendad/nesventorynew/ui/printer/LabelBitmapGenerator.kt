@@ -98,7 +98,6 @@ class LabelBitmapGenerator @Inject constructor(
             android.util.Log.d("LabelBitmapGenerator", "Sub Lines: $subLines")
             
             for (line in subLines) {
-            for (line in subLines) {
                 if (currentY + paint.textSize > drawHeight) break
                 canvas.drawText(line, textX, currentY + paint.textSize, paint)
                 currentY += paint.textSize + 2f
@@ -108,8 +107,8 @@ class LabelBitmapGenerator @Inject constructor(
             if (iconType != null) {
                 val iconSize = if (isSmallLabel) 16f else 24f
                 // Place icon at bottom right of text area
-                val iconX = drawWidth - iconSize - padding
-                val iconY = drawHeight - iconSize - padding
+                val iconX = drawWidth - iconSize - safePadding
+                val iconY = drawHeight - iconSize - safePadding
                 
                 // Only draw if not overlapping text vertically (simple check)
                 // or just draw it anyway as overlay/watermark style if tight
