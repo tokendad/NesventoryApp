@@ -60,6 +60,7 @@ class ItemDetailViewModel @Inject constructor(
             try {
                 // 1. Get Config
                 val config = api.getPrinterConfig()
+                android.util.Log.d("ItemDetailViewModel", "Fetched Config Model: ${config.model}")
                 val model = when (config.model) {
                     "D11_H" -> PrinterModel.D11_H
                     "D110M_V4" -> PrinterModel.D110M_V4
