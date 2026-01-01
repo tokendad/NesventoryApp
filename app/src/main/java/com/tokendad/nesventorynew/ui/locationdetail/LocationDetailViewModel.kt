@@ -59,6 +59,7 @@ class LocationDetailViewModel @Inject constructor(
             successMessage = null
             try {
                 val config = api.getPrinterConfig()
+                android.util.Log.d("LocationDetailViewModel", "Fetched Config Model: ${config.model}")
                 val model = when (config.model) {
                     "D11_H" -> PrinterModel.D11_H
                     "D110M_V4" -> PrinterModel.D110M_V4
