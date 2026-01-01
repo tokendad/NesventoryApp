@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,18 @@ fun LocationDetailScreen(
     val location = viewModel.location
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
+    val successMessage = viewModel.successMessage
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            snackbarHostState.showSnackbar(
+                message = successMessage,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -51,6 +63,7 @@ fun LocationDetailScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = location?.name ?: "Location Details") },
@@ -61,6 +74,9 @@ fun LocationDetailScreen(
                 },
                 actions = {
                     if (location != null) {
+                        IconButton(onClick = { viewModel.printLabel() }) {
+                            Icon(Icons.Default.Print, contentDescription = "Print Label")
+                        }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete Location")
                         }

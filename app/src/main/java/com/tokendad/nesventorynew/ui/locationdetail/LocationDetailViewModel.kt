@@ -22,6 +22,7 @@ class LocationDetailViewModel @Inject constructor(
     var location by mutableStateOf<Location?>(null)
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    var successMessage by mutableStateOf<String?>(null)
 
     init {
         val locationIdString: String? = savedStateHandle["locationId"]
@@ -32,6 +33,27 @@ class LocationDetailViewModel @Inject constructor(
              } catch (e: IllegalArgumentException) {
                  errorMessage = "Invalid Location ID format"
              }
+        }
+    }
+
+    fun printLabel() {
+        val currentLocation = location ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val request = com.tokendad.nesventorynew.data.remote.PrintJobRequest(
+                    entity_id = currentLocation.id,
+                    entity_type = "location"
+                )
+                api.printLabel(request)
+                successMessage = "Print job sent successfully!"
+            } catch (e: Exception) {
+                errorMessage = "Failed to send print job: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
         }
     }
 

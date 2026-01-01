@@ -2,7 +2,7 @@ package com.tokendad.nesventorynew
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

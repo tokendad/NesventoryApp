@@ -1,6 +1,6 @@
-package com.example.nesventorynew.di
+package com.tokendad.nesventorynew.di
 
-import com.example.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.Module
 import dagger.Provides
@@ -52,14 +52,36 @@ object NetworkModule {
                 }
 
                 val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
+                val oldBaseUrl = BASE_URL.toHttpUrlOrNull()
                 
-                if (newBaseUrl != null) {
-                    val newUrl = request.url.newBuilder()
-                        .scheme(newBaseUrl.scheme)
-                        .host(newBaseUrl.host)
-                        .port(newBaseUrl.port)
-                        .build()
-                    request = request.newBuilder().url(newUrl).build()
+                if (newBaseUrl != null && oldBaseUrl != null) {
+                    val originalUrl = request.url
+                    // Check if request matches the default BASE_URL structure (host and scheme)
+                    if (originalUrl.host == oldBaseUrl.host && originalUrl.scheme == oldBaseUrl.scheme) {
+                         // Extract path relative to root (since BASE_URL is root)
+                         // originalUrl.encodedPath typically starts with "/" (e.g. "/api/printer/config")
+                         val path = originalUrl.encodedPath
+                         val relativePath = if (path.startsWith("/")) path.substring(1) else path
+                         
+                         // Build new URL: start with newBaseUrl (which includes its own path)
+                         // and append the relative path from the request.
+                         val newUrl = newBaseUrl.newBuilder()
+                             .addEncodedPathSegments(relativePath)
+                             .query(originalUrl.query)
+                             .fragment(originalUrl.fragment)
+                             .build()
+                             
+                         request = request.newBuilder().url(newUrl).build()
+                    } else {
+                        // Fallback for requests that don't match BASE_URL (if any)
+                        // Just swap scheme/host/port
+                        val newUrl = request.url.newBuilder()
+                            .scheme(newBaseUrl.scheme)
+                            .host(newBaseUrl.host)
+                            .port(newBaseUrl.port)
+                            .build()
+                        request = request.newBuilder().url(newUrl).build()
+                    }
                 }
 
                 chain.proceed(request)

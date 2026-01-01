@@ -113,7 +113,7 @@ interface NesVentoryApi {
     /**
      * Update an Item
      */
-    @POST("api/items/{id}")
+    @PUT("api/items/{id}")
     suspend fun updateItem(@Path("id") id: UUID, @Body item: ItemCreate): Item
 
     /**
@@ -149,10 +149,10 @@ interface NesVentoryApi {
     @GET("api/printer/config")
     suspend fun getPrinterConfig(): PrinterConfig
 
-    @POST("api/printer/config")
+    @PUT("api/printer/config")
     suspend fun updatePrinterConfig(@Body config: PrinterConfig): PrinterConfig
 
-    @POST("api/printer/print")
+    @POST("api/printer/print-label")
     suspend fun printLabel(@Body request: PrintJobRequest): Map<String, Any>
 
     @GET("api/printer/status")
@@ -218,6 +218,6 @@ interface NesVentoryApi {
     /**
      * Update a Location
      */
-    @POST("api/locations/{id}")
+    @PUT("api/locations/{id}")
     suspend fun updateLocation(@Path("id") id: UUID, @Body location: LocationCreate): Location
 }

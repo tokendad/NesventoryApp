@@ -13,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PrinterViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val api: NesVentoryApi,
+    private val bluetoothManager: BluetoothPrinterManager
 ) : ViewModel() {
 
     var config by mutableStateOf(PrinterConfig())
@@ -23,8 +24,11 @@ class PrinterViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
 
-    val supportedModels = listOf("D11", "D110", "B1", "B18", "B21")
+    val supportedModels = listOf("D11", "D110", "D11_H", "D110M_V4", "B1", "B18", "B21")
     val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
+
+    val scannedDevices = bluetoothManager.scannedDevices
+    val connectionState = bluetoothManager.connectionState
 
     init {
         loadConfig()
@@ -73,5 +77,91 @@ class PrinterViewModel @Inject constructor(
                 isLoading = false
             }
         }
+    }
+
+    fun startScan() {
+        bluetoothManager.startScan()
+    }
+
+    fun connect(device: android.bluetooth.BluetoothDevice) {
+        bluetoothManager.connect(device)
+    }
+    
+    fun disconnect() {
+        bluetoothManager.disconnect()
+    }
+
+    fun printTest() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            android.util.Log.d("PrinterViewModel", "Starting test print...")
+            try {
+                // Determine model
+                val model = when (config.model) {
+                    "D11_H" -> PrinterModel.D11_H
+                    "D110M_V4" -> PrinterModel.D110M_V4
+                    else -> PrinterModel.D110 // Default to D110/Standard
+                }
+                
+                // 1. Connect (Packet)
+                val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
+                if (!connectSuccess) throw Exception("Failed to send connect packet")
+                
+                kotlinx.coroutines.delay(1000) // Wait for ack
+
+                // 2. Generate Bitmap
+                val bitmap = createTestBitmap(model.width, model.width) // Square test
+                
+                // 3. Protocol Data
+                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
+                
+                // 4. Send
+                packets.forEachIndexed { index, packet -> 
+                    val sent = bluetoothManager.sendData(packet)
+                    if (!sent) throw Exception("Failed to send packet $index")
+                    kotlinx.coroutines.delay(50) // Reduced delay slightly
+                }
+                
+                // 5. Success
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.util.Log.d("PrinterViewModel", "Test print sent successfully")
+                    successMessage = "Test print sent! (${model.name})"
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PrinterViewModel", "Print failed", e)
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    errorMessage = "Print failed: ${e.localizedMessage}"
+                }
+            }
+        }
+    }
+
+    private fun createTestBitmap(width: Int, height: Int): android.graphics.Bitmap {
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(android.graphics.Color.WHITE)
+        
+        val paint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 4f
+        }
+        // Border
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        
+        // Text
+        paint.style = android.graphics.Paint.Style.FILL
+        paint.textSize = if(width < 100) 24f else 36f
+        paint.isAntiAlias = true
+        paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        // Center text
+        val text = "TEST"
+        val bounds = android.graphics.Rect()
+        paint.getTextBounds(text, 0, text.length, bounds)
+        val x = (width - bounds.width()) / 2f
+        val y = (height + bounds.height()) / 2f
+        
+        canvas.drawText(text, x, y, paint)
+        
+        return bitmap
     }
 }

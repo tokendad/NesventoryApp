@@ -1,4 +1,4 @@
-package com.example.nesventorynew.data.preferences
+package com.tokendad.nesventorynew.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore

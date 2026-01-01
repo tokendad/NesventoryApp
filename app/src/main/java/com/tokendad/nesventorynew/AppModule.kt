@@ -1,7 +1,7 @@
-package com.example.nesventorynew.di
+package com.tokendad.nesventorynew.di
 
 import android.content.Context
-import com.example.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
