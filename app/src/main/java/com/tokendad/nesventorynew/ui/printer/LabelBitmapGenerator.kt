@@ -31,38 +31,64 @@ class LabelBitmapGenerator @Inject constructor(
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE) // Clear background
 
-        // Configuration (Scalable based on width)
+        // Configuration
         val isSmallLabel = width < 150
         val padding = if (isSmallLabel) 4f else 8f
-        val qrSize = height - (padding * 2).toInt() // QR takes full height minus padding
-        
-        // 1. Draw QR Code (Right aligned)
-        val qrBitmap = createQrCode(qrContent, qrSize)
-        if (qrBitmap != null) {
-            val qrX = width - qrSize - padding
-            val qrY = padding
-            canvas.drawBitmap(qrBitmap, qrX, qrY, null)
-        }
-
-        // 2. Text Area (Left side)
-        val textWidth = width - qrSize - (padding * 3)
-        val textX = padding
-        var currentY = padding
-
         val paint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
         }
 
+        // Determine Layout (Landscape vs Portrait)
+        // For D110 (width=96), we usually have a long strip (height > width).
+        val isPortrait = height > width
+
+        val qrSize: Int
+        val qrX: Float
+        val qrY: Float
+        val textWidth: Float
+        val textX: Float
+        var currentY: Float
+
+        if (isPortrait) {
+            // Stacked: Text Top, QR Bottom
+            qrSize = width - (padding * 2).toInt()
+            qrX = padding
+            qrY = height - qrSize - padding
+            
+            textWidth = width - (padding * 2)
+            textX = padding
+            currentY = padding
+        } else {
+            // Side-by-Side: Text Left, QR Right
+            qrSize = height - (padding * 2).toInt()
+            qrX = width - qrSize - padding
+            qrY = padding
+            
+            textWidth = width - qrSize - (padding * 3)
+            textX = padding
+            currentY = padding
+        }
+        
+        // Safety check for layout
+        if (textWidth <= 0) {
+             // Fallback to minimal layout to prevent crash
+             return bitmap 
+        }
+
+        // 1. Text Area
         // Title (Bold, Large)
         paint.typeface = Typeface.DEFAULT_BOLD
         paint.textSize = if (isSmallLabel) 20f else 28f
         val titleLines = wrapText(title, paint, textWidth)
         for (line in titleLines) {
-            currentY += paint.textSize
-            if (currentY > height) break
-            canvas.drawText(line, textX, currentY, paint)
-            currentY += 4f // Line spacing
+            // Stop if we encroach on QR area in portrait mode
+            if (isPortrait && currentY + paint.textSize > qrY) break
+            // Stop if we encroach on bottom in landscape
+            if (!isPortrait && currentY + paint.textSize > height) break
+            
+            canvas.drawText(line, textX, currentY + paint.textSize, paint)
+            currentY += paint.textSize + 4f
         }
 
         // Subtitle (Normal, Small)
@@ -71,15 +97,23 @@ class LabelBitmapGenerator @Inject constructor(
         paint.textSize = if (isSmallLabel) 14f else 18f
         val subLines = wrapText(subtitle, paint, textWidth)
         for (line in subLines) {
-            currentY += paint.textSize
-            if (currentY > height - padding) break
-            canvas.drawText(line, textX, currentY, paint)
-            currentY += 2f
+            if (isPortrait && currentY + paint.textSize > qrY) break
+            if (!isPortrait && currentY + paint.textSize > height) break
+            
+            canvas.drawText(line, textX, currentY + paint.textSize, paint)
+            currentY += paint.textSize + 2f
+        }
+        
+        // 2. Draw QR Code
+        val qrBitmap = createQrCode(qrContent, qrSize)
+        if (qrBitmap != null) {
+            canvas.drawBitmap(qrBitmap, qrX, qrY, null)
         }
         
         // Icon (Optional - draw in bottom left if space)
-        if (iconType != null && currentY < height - 20) {
-             drawIcon(canvas, iconType, textX, height - 24f, 20f, paint)
+        // Only draw if not overlapping QR
+        if (iconType != null) {
+             // ... Icon logic needs to be smarter or just omitted for narrow labels for now
         }
 
         return bitmap
