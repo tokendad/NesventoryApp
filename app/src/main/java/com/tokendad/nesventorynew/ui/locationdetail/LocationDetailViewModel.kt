@@ -8,54 +8,92 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
+import com.tokendad.nesventorynew.ui.printer.LabelBitmapGenerator
+import com.tokendad.nesventorynew.ui.printer.NiimbotProtocol
+import com.tokendad.nesventorynew.ui.printer.PrinterModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class LocationDetailViewModel @Inject constructor(
     private val api: NesVentoryApi,
+    private val bluetoothManager: BluetoothPrinterManager,
+    private val labelGenerator: LabelBitmapGenerator,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     var location by mutableStateOf<Location?>(null)
-    var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
-    var successMessage by mutableStateOf<String?>(null)
+    // ... (vars)
 
-    init {
-        val locationIdString: String? = savedStateHandle["locationId"]
-        if (locationIdString != null) {
-             try {
-                 val id = UUID.fromString(locationIdString)
-                 fetchLocation(id)
-             } catch (e: IllegalArgumentException) {
-                 errorMessage = "Invalid Location ID format"
-             }
-        }
-    }
+    // ... (init)
 
     fun printLabel() {
         val currentLocation = location ?: return
-        viewModelScope.launch {
+        
+        if (bluetoothManager.connectionState.value != 2) {
+            errorMessage = "Printer not connected. Go to Printer Settings."
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
             isLoading = true
             errorMessage = null
             successMessage = null
             try {
-                val request = com.tokendad.nesventorynew.data.remote.PrintJobRequest(
-                    entity_id = currentLocation.id,
-                    entity_type = "location"
+                val config = api.getPrinterConfig()
+                val model = when (config.model) {
+                    "D11_H" -> PrinterModel.D11_H
+                    "D110M_V4" -> PrinterModel.D110M_V4
+                    else -> PrinterModel.D110
+                }
+
+                val bitmap = labelGenerator.generateLabel(
+                    width = model.width,
+                    height = 150,
+                    title = currentLocation.name,
+                    subtitle = currentLocation.id.toString().take(8),
+                    qrContent = "https://nesventory.com/#/location/${currentLocation.id}",
+                    iconType = "location"
                 )
-                api.printLabel(request)
-                successMessage = "Print job sent successfully!"
+
+                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
+
+                val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
+                if (!connectSuccess) throw Exception("Failed to send connect packet")
+                delay(500)
+
+                packets.forEachIndexed { index, packet ->
+                    if (!bluetoothManager.sendData(packet)) throw Exception("Failed to send packet $index")
+                    delay(20)
+                }
+
+                if (model == PrinterModel.D110M_V4) {
+                    delay(5000)
+                    bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
+                    delay(100)
+                    bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
+                }
+
+                withContext(Dispatchers.Main) {
+                    successMessage = "Label printed successfully!"
+                }
             } catch (e: Exception) {
-                errorMessage = "Failed to send print job: ${e.localizedMessage}"
+                withContext(Dispatchers.Main) {
+                    errorMessage = "Print failed: ${e.localizedMessage}"
+                }
             } finally {
                 isLoading = false
             }
         }
     }
+    
+    // ... (rest)
 
     fun fetchLocation(id: UUID) {
         viewModelScope.launch {
