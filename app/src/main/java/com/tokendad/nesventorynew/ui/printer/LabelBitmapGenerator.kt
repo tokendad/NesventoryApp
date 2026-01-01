@@ -58,6 +58,14 @@ class LabelBitmapGenerator @Inject constructor(
         val textX = qrX + qrSize + gap
         val textWidth = drawWidth - textX - safePadding
         var currentY = safePadding
+        
+        // Debug: Draw text area border
+        val borderPaint = Paint().apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+            color = Color.BLACK
+        }
+        canvas.drawRect(textX, padding, drawWidth - safePadding, drawHeight - padding, borderPaint)
 
         // 1. Draw QR Code
         val qrBitmap = createQrCode(qrContent, qrSize)
@@ -71,8 +79,13 @@ class LabelBitmapGenerator @Inject constructor(
             paint.typeface = Typeface.DEFAULT_BOLD
             paint.textSize = 40f
             val titleLines = wrapText(title, paint, textWidth)
+            android.util.Log.d("LabelBitmapGenerator", "Title Lines: $titleLines")
+            
             for (line in titleLines) {
-                if (currentY + paint.textSize > drawHeight) break
+                if (currentY + paint.textSize > drawHeight) {
+                    android.util.Log.d("LabelBitmapGenerator", "Text clipped at Y=$currentY")
+                    break
+                }
                 canvas.drawText(line, textX, currentY + paint.textSize - 4f, paint)
                 currentY += paint.textSize + 2f
             }
@@ -82,6 +95,9 @@ class LabelBitmapGenerator @Inject constructor(
             paint.typeface = Typeface.MONOSPACE
             paint.textSize = 24f
             val subLines = wrapText(subtitle, paint, textWidth)
+            android.util.Log.d("LabelBitmapGenerator", "Sub Lines: $subLines")
+            
+            for (line in subLines) {
             for (line in subLines) {
                 if (currentY + paint.textSize > drawHeight) break
                 canvas.drawText(line, textX, currentY + paint.textSize, paint)
