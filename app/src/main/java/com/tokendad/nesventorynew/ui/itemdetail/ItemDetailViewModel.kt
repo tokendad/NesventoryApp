@@ -111,8 +111,6 @@ class ItemDetailViewModel @Inject constructor(
         }
     }
     
-    // ... (rest of functions)
-
     fun fetchItem(id: UUID) {
         viewModelScope.launch {
             isLoading = true

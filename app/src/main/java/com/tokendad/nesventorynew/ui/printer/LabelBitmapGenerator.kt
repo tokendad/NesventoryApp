@@ -110,10 +110,16 @@ class LabelBitmapGenerator @Inject constructor(
             canvas.drawBitmap(qrBitmap, qrX, qrY, null)
         }
         
-        // Icon (Optional - draw in bottom left if space)
-        // Only draw if not overlapping QR
+        // 3. Icon (Optional)
         if (iconType != null) {
-             // ... Icon logic needs to be smarter or just omitted for narrow labels for now
+            val iconSize = if (isSmallLabel) 16f else 24f
+            // Place icon at the bottom of the text area
+            val iconX = padding
+            val iconY = if (isPortrait) qrY - iconSize - 4f else height - iconSize - padding
+            
+            if (iconY > currentY) { // Only draw if we haven't already filled the space with text
+                drawIcon(canvas, iconType, iconX, iconY, iconSize, paint)
+            }
         }
 
         return bitmap
@@ -179,6 +185,21 @@ class LabelBitmapGenerator @Inject constructor(
             "location" -> {
                 canvas.drawCircle(x + size/2, y + size/2, size/2, paint)
                 canvas.drawPoint(x + size/2, y + size/2, paint)
+            }
+            "christmas" -> {
+                // Simple Tree
+                canvas.drawLine(x + size/2, y, x, y + size, paint)
+                canvas.drawLine(x + size/2, y, x + size, y + size, paint)
+                canvas.drawLine(x, y + size, x + size, y + size, paint)
+            }
+            "halloween" -> {
+                // Simple Pumpkin (Circle with stem)
+                canvas.drawCircle(x + size/2, y + size/2 + 2, size/2 - 2, paint)
+                canvas.drawLine(x + size/2, y, x + size/2, y + 4, paint)
+            }
+            "easter" -> {
+                // Simple Egg (Oval)
+                canvas.drawOval(x + 2, y, x + size - 2, y + size, paint)
             }
         }
         paint.style = prevStyle

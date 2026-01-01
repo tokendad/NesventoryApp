@@ -105,8 +105,6 @@ class LocationDetailViewModel @Inject constructor(
         }
     }
     
-    // ... (rest)
-
     fun fetchLocation(id: UUID) {
         viewModelScope.launch {
             isLoading = true
