@@ -39,18 +39,21 @@ class LabelBitmapGenerator @Inject constructor(
         canvas.drawColor(Color.WHITE)
 
         val isSmallLabel = drawHeight < 150
-        val padding = if (isSmallLabel) 4f else 8f
+        val padding = if (isSmallLabel) 2f else 4f // Reduced outer padding to maximize space
         val paint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
         }
 
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
-        val qrSize = drawHeight - (padding * 2).toInt()
-        val qrX = padding
-        val qrY = padding
+        // Maximize QR size to the height of the strip (e.g. 96px)
+        val qrSize = drawHeight 
+        val qrX = 0f
+        val qrY = 0f
         
-        val textX = qrX + qrSize + padding
+        // Add significant gap between QR and Text (e.g. 16 pixels)
+        val gap = if (isSmallLabel) 12f else 20f
+        val textX = qrSize + gap
         val textWidth = drawWidth - textX - padding
         var currentY = padding
 
@@ -62,20 +65,20 @@ class LabelBitmapGenerator @Inject constructor(
 
         // 2. Text Area
         if (textWidth > 0) {
-            // Title
+            // Title - Increased significantly (32f for small, 48f for large)
             paint.typeface = Typeface.DEFAULT_BOLD
-            paint.textSize = if (isSmallLabel) 20f else 28f
+            paint.textSize = if (isSmallLabel) 32f else 48f
             val titleLines = wrapText(title, paint, textWidth)
             for (line in titleLines) {
                 if (currentY + paint.textSize > drawHeight) break
-                canvas.drawText(line, textX, currentY + paint.textSize, paint)
-                currentY += paint.textSize + 4f
+                canvas.drawText(line, textX, currentY + paint.textSize - 4f, paint)
+                currentY += paint.textSize + 2f
             }
 
-            // Subtitle
-            currentY += 4f
+            // Subtitle - Increased (20f for small, 28f for large)
+            currentY += 2f
             paint.typeface = Typeface.MONOSPACE
-            paint.textSize = if (isSmallLabel) 14f else 18f
+            paint.textSize = if (isSmallLabel) 20f else 28f
             val subLines = wrapText(subtitle, paint, textWidth)
             for (line in subLines) {
                 if (currentY + paint.textSize > drawHeight) break
