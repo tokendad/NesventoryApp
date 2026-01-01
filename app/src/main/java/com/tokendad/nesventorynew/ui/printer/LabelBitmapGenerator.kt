@@ -40,15 +40,6 @@ class LabelBitmapGenerator @Inject constructor(
 
         val isSmallLabel = drawHeight < 150
         val padding = if (isSmallLabel) 2f else 4f // Reduced outer padding to maximize space
-        val paint = Paint().apply {
-            color = Color.BLACK
-            isAntiAlias = false // Disable AA for thermal printer sharpness
-        }
-        
-        // DEBUG: Draw giant X
-        canvas.drawLine(0f, 0f, drawWidth.toFloat(), drawHeight.toFloat(), paint)
-        canvas.drawLine(0f, drawHeight.toFloat(), drawWidth.toFloat(), 0f, paint)
-
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
         // Reduce QR size slightly to avoid edge cutoff (12mm is tight)
         // 136px is theoretical max. Let's use 120px (8px padding per side).
@@ -62,17 +53,6 @@ class LabelBitmapGenerator @Inject constructor(
         val textX = qrX + qrSize + gap
         val textWidth = drawWidth - textX - safePadding
         var currentY = safePadding
-        
-        // Debug: Draw text area border and diagonal
-        val borderPaint = Paint().apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-            color = Color.BLACK
-            isAntiAlias = false
-        }
-        val debugRect = Rect(textX.toInt(), padding.toInt(), (drawWidth - safePadding).toInt(), (drawHeight - padding).toInt())
-        canvas.drawRect(debugRect, borderPaint)
-        canvas.drawLine(debugRect.left.toFloat(), debugRect.top.toFloat(), debugRect.right.toFloat(), debugRect.bottom.toFloat(), borderPaint)
 
         // 1. Draw QR Code
         val qrBitmap = createQrCode(qrContent, qrSize)
@@ -86,13 +66,9 @@ class LabelBitmapGenerator @Inject constructor(
             paint.typeface = Typeface.DEFAULT_BOLD
             paint.textSize = 40f
             val titleLines = wrapText(title, paint, textWidth)
-            android.util.Log.d("LabelBitmapGenerator", "Title Lines: $titleLines")
             
             for (line in titleLines) {
-                if (currentY + paint.textSize > drawHeight) {
-                    android.util.Log.d("LabelBitmapGenerator", "Text clipped at Y=$currentY")
-                    break
-                }
+                if (currentY + paint.textSize > drawHeight) break
                 canvas.drawText(line, textX, currentY + paint.textSize - 4f, paint)
                 currentY += paint.textSize + 2f
             }
@@ -102,7 +78,6 @@ class LabelBitmapGenerator @Inject constructor(
             paint.typeface = Typeface.MONOSPACE
             paint.textSize = 24f
             val subLines = wrapText(subtitle, paint, textWidth)
-            android.util.Log.d("LabelBitmapGenerator", "Sub Lines: $subLines")
             
             for (line in subLines) {
                 if (currentY + paint.textSize > drawHeight) break

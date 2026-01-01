@@ -68,7 +68,7 @@ class LocationDetailViewModel @Inject constructor(
 
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
-                    height = 150,
+                    height = 472,
                     title = currentLocation.name,
                     subtitle = currentLocation.id.toString().take(8),
                     qrContent = "https://nesventory.com/#/location/${currentLocation.id}",

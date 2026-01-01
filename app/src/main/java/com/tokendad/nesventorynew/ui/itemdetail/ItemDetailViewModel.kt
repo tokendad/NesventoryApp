@@ -68,10 +68,10 @@ class ItemDetailViewModel @Inject constructor(
                 }
 
                 // 2. Generate Bitmap
-                // Width based on model. Height 150-200.
+                // Width based on model. Height 472px (40mm @ 300dpi).
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
-                    height = 150,
+                    height = 472,
                     title = currentItem.name,
                     subtitle = currentItem.id.toString().take(8), // Short ID
                     qrContent = "https://nesventory.com/#/item/${currentItem.id}",
