@@ -42,7 +42,7 @@ class LabelBitmapGenerator @Inject constructor(
         val padding = if (isSmallLabel) 2f else 4f // Reduced outer padding to maximize space
         val paint = Paint().apply {
             color = Color.BLACK
-            isAntiAlias = true
+            isAntiAlias = false // Disable AA for thermal printer sharpness
         }
 
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
@@ -59,13 +59,16 @@ class LabelBitmapGenerator @Inject constructor(
         val textWidth = drawWidth - textX - safePadding
         var currentY = safePadding
         
-        // Debug: Draw text area border
+        // Debug: Draw text area border and diagonal
         val borderPaint = Paint().apply {
             style = Paint.Style.STROKE
             strokeWidth = 2f
             color = Color.BLACK
+            isAntiAlias = false
         }
-        canvas.drawRect(textX, padding, drawWidth - safePadding, drawHeight - padding, borderPaint)
+        val debugRect = Rect(textX.toInt(), padding.toInt(), (drawWidth - safePadding).toInt(), (drawHeight - padding).toInt())
+        canvas.drawRect(debugRect, borderPaint)
+        canvas.drawLine(debugRect.left.toFloat(), debugRect.top.toFloat(), debugRect.right.toFloat(), debugRect.bottom.toFloat(), borderPaint)
 
         // 1. Draw QR Code
         val qrBitmap = createQrCode(qrContent, qrSize)
