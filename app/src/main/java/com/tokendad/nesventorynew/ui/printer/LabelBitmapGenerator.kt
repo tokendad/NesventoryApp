@@ -46,16 +46,18 @@ class LabelBitmapGenerator @Inject constructor(
         }
 
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
-        // Maximize QR size to the height of the strip (e.g. 96px)
-        val qrSize = drawHeight 
-        val qrX = 0f
-        val qrY = 0f
+        // Reduce QR size slightly to avoid edge cutoff (12mm is tight)
+        // 136px is theoretical max. Let's use 120px (8px padding per side).
+        val safePadding = 8f
+        val qrSize = (drawHeight - (safePadding * 2)).toInt()
+        val qrX = safePadding
+        val qrY = safePadding
         
-        // Add significant gap between QR and Text (e.g. 16 pixels)
-        val gap = if (isSmallLabel) 12f else 20f
-        val textX = qrSize + gap
-        val textWidth = drawWidth - textX - padding
-        var currentY = padding
+        // Add gap between QR and Text
+        val gap = 16f
+        val textX = qrX + qrSize + gap
+        val textWidth = drawWidth - textX - safePadding
+        var currentY = safePadding
 
         // 1. Draw QR Code
         val qrBitmap = createQrCode(qrContent, qrSize)
