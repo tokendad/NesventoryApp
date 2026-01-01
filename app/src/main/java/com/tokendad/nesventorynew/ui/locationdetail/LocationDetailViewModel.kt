@@ -29,9 +29,21 @@ class LocationDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     var location by mutableStateOf<Location?>(null)
-    // ... (vars)
+    var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+    var successMessage by mutableStateOf<String?>(null)
 
-    // ... (init)
+    init {
+        val locationIdString: String? = savedStateHandle["locationId"]
+        if (locationIdString != null) {
+             try {
+                 val id = UUID.fromString(locationIdString)
+                 fetchLocation(id)
+             } catch (e: IllegalArgumentException) {
+                 errorMessage = "Invalid Location ID format"
+             }
+        }
+    }
 
     fun printLabel() {
         val currentLocation = location ?: return

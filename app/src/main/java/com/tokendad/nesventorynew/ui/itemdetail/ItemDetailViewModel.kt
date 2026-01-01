@@ -29,9 +29,21 @@ class ItemDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     var item by mutableStateOf<Item?>(null)
-    // ... (rest of vars)
+    var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+    var successMessage by mutableStateOf<String?>(null)
 
-    // ... (init)
+    init {
+        val itemIdString: String? = savedStateHandle["itemId"]
+        if (itemIdString != null) {
+             try {
+                 val id = UUID.fromString(itemIdString)
+                 fetchItem(id)
+             } catch (e: IllegalArgumentException) {
+                 errorMessage = "Invalid Item ID format"
+             }
+        }
+    }
 
     fun printLabel() {
         val currentItem = item ?: return

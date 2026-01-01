@@ -47,7 +47,9 @@ class BluetoothPrinterManager @Inject constructor(
     private val SERVICE_UUID = UUID.fromString("0000fee7-0000-1000-8000-00805f9b34fb")
     private val WRITE_UUID = UUID.fromString("0000fee8-0000-1000-8000-00805f9b34fb") // Often used for write
     
-    private val TAG = "BluetoothPrinterManager"
+    companion object {
+        private const val TAG = "BluetoothPrinterManager"
+    }
     
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())

@@ -19,7 +19,78 @@ class PrinterViewModel @Inject constructor(
 ) : ViewModel() {
 
     var config by mutableStateOf(PrinterConfig())
-    // ... (rest of class)
+        private set
+        
+    var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+    var successMessage by mutableStateOf<String?>(null)
+
+    val supportedModels = listOf("D11", "D110", "D11_H", "D110M_V4", "B1", "B18", "B21")
+    val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
+
+    val scannedDevices = bluetoothManager.scannedDevices
+    val connectionState = bluetoothManager.connectionState
+
+    init {
+        loadConfig()
+    }
+
+    private fun loadConfig() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                config = api.getPrinterConfig()
+            } catch (e: Exception) {
+                errorMessage = "Failed to load printer config: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun onModelChange(model: String) {
+        config = config.copy(model = model)
+    }
+
+    fun onInterfaceChange(interfaceType: String) {
+        config = config.copy(interface_type = interfaceType)
+    }
+
+    fun onAddressChange(address: String) {
+        config = config.copy(address = address)
+    }
+    
+    fun onDensityChange(density: Int) {
+        config = config.copy(density = density)
+    }
+
+    fun saveConfig() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                config = api.updatePrinterConfig(config)
+                successMessage = "Printer configuration saved successfully!"
+            } catch (e: Exception) {
+                errorMessage = "Failed to save config: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun startScan() {
+        bluetoothManager.startScan()
+    }
+
+    fun connect(device: android.bluetooth.BluetoothDevice) {
+        bluetoothManager.connect(device)
+    }
+    
+    fun disconnect() {
+        bluetoothManager.disconnect()
+    }
 
     fun printTest() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
