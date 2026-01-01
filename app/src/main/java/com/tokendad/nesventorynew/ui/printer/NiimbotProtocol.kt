@@ -71,9 +71,9 @@ object NiimbotProtocol {
         // - Width: 96px (Standard Density, 203 DPI)
         // - Start Print: 9-byte Payload
         // - Set Dimension: 13-byte Payload
-        // - Row Data: 0x85 with Split Counts [RowH, RowL, C1, C2, C3, Rep]
+        // - Row Data: 0x85 with Split Counts [RowH, RowL, B1, B2, B3, Rep]
         // - Empty Row: 0x84 [RowH, RowL, Rep] works perfectly.
-        // - C1, C2, C3 are Pixel Counts for each 32-pixel (4-byte) chunk.
+        // - B1, B2, B3 are counts of non-zero BYTES in each 4-byte (32px) chunk.
         
         val packets = mutableListOf<ByteArray>()
         val width = 96
@@ -114,39 +114,37 @@ object NiimbotProtocol {
         // 3a. Print Status (0xA5) - Required for D110M_V4 flow instead of StartPage
         packets.add(createPacket(CMD_PRINT_STATUS, byteArrayOf(0x01)))
 
-        // 4. Image Data (Standard 0x85)
+        // 4. Image Data
         val chunkSize = bytesPerRow / 3 // 4 bytes
         
         for (y in 0 until height) {
             val pixelData = ByteArray(bytesPerRow)
-            var c1 = 0
-            var c2 = 0
-            var c3 = 0
             
-            // Center the image
+            // Render Row
             val xOffset = (width - bitmap.width) / 2
-            
             for (x in 0 until width) {
                 val sourceX = x - xOffset
                 if (sourceX in 0 until bitmap.width && y < bitmap.height) {
                     val pixel = bitmap.getPixel(sourceX, y)
-                    // Check for black
                     if (Color.alpha(pixel) > 128 && (Color.red(pixel) < 128 || Color.green(pixel) < 128 || Color.blue(pixel) < 128)) {
-                        // Set bit
                         val byteIndex = x / 8
                         val bitIndex = 7 - (x % 8)
                         pixelData[byteIndex] = (pixelData[byteIndex].toInt() or (1 shl bitIndex)).toByte()
-                        
-                        // Increment Chunk Count
-                        if (byteIndex < chunkSize) c1++
-                        else if (byteIndex < chunkSize * 2) c2++
-                        else c3++
                     }
                 }
             }
             
-            val totalBlack = c1 + c2 + c3
-            if (totalBlack == 0) {
+            // Calculate Byte Counts (B1..B3)
+            var b1 = 0; var b2 = 0; var b3 = 0
+            for (i in 0 until bytesPerRow) {
+                if (pixelData[i] != 0.toByte()) {
+                    if (i < chunkSize) b1++
+                    else if (i < chunkSize * 2) b2++
+                    else b3++
+                }
+            }
+            
+            if (b1 + b2 + b3 == 0) {
                  val rowPayload = ByteBuffer.allocate(3).apply {
                     order(ByteOrder.BIG_ENDIAN)
                     putShort(y.toShort())
@@ -154,21 +152,7 @@ object NiimbotProtocol {
                 }.array()
                 packets.add(createPacket(CMD_PRINT_EMPTY_ROW, rowPayload))
             } else {
-                // Header: [RowH, RowL, C1, C2, C3, Repeats]
-                // C1..C3 are counts of non-zero BYTES in each 4-byte (32px) chunk.
-                // Our loop above counts 'pixels', which is wrong for this header type if it expects bytes.
-                // Re-calculating byte counts:
-                var b1 = 0; var b2 = 0; var b3 = 0
-                val chunkSize = bytesPerRow / 3 // 4 bytes
-                
-                for (i in 0 until bytesPerRow) {
-                    if (pixelData[i] != 0.toByte()) {
-                        if (i < chunkSize) b1++
-                        else if (i < chunkSize * 2) b2++
-                        else b3++
-                    }
-                }
-
+                // Header: [RowH, RowL, B1, B2, B3, Repeats]
                 val rowPayload = ByteBuffer.allocate(6 + bytesPerRow).apply {
                     order(ByteOrder.BIG_ENDIAN)
                     putShort(y.toShort())
