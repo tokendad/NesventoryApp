@@ -25,104 +25,88 @@ class LabelBitmapGenerator @Inject constructor(
         title: String,
         subtitle: String,
         qrContent: String,
-        iconType: String? = null // "box", "location", "item"
+        iconType: String? = null
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        // Determine layout orientation
+        // If height > width (e.g. 12mm x 40mm strip), we must draw horizontally and rotate.
+        val needRotation = height > width
+        
+        val drawWidth = if (needRotation) height else width
+        val drawHeight = if (needRotation) width else height
+        
+        val bitmap = Bitmap.createBitmap(drawWidth, drawHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(Color.WHITE) // Clear background
+        canvas.drawColor(Color.WHITE)
 
-        // Configuration
-        val isSmallLabel = width < 150
+        val isSmallLabel = drawHeight < 150
         val padding = if (isSmallLabel) 4f else 8f
         val paint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
         }
 
-        // Determine Layout (Landscape vs Portrait)
-        // For D110 (width=96), we usually have a long strip (height > width).
-        val isPortrait = height > width
-
-        val qrSize: Int
-        val qrX: Float
-        val qrY: Float
-        val textWidth: Float
-        val textX: Float
-        var currentY: Float
-
-        if (isPortrait) {
-            // Stacked: Text Top, QR Bottom
-            qrSize = width - (padding * 2).toInt()
-            qrX = padding
-            qrY = height - qrSize - padding
-            
-            textWidth = width - (padding * 2)
-            textX = padding
-            currentY = padding
-        } else {
-            // Side-by-Side: Text Left, QR Right
-            qrSize = height - (padding * 2).toInt()
-            qrX = width - qrSize - padding
-            qrY = padding
-            
-            textWidth = width - qrSize - (padding * 3)
-            textX = padding
-            currentY = padding
-        }
+        // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
+        val qrSize = drawHeight - (padding * 2).toInt()
+        val qrX = padding
+        val qrY = padding
         
-        // Safety check for layout
-        if (textWidth <= 0) {
-             // Fallback to minimal layout to prevent crash
-             return bitmap 
-        }
+        val textX = qrX + qrSize + padding
+        val textWidth = drawWidth - textX - padding
+        var currentY = padding
 
-        // 1. Text Area
-        // Title (Bold, Large)
-        paint.typeface = Typeface.DEFAULT_BOLD
-        paint.textSize = if (isSmallLabel) 20f else 28f
-        val titleLines = wrapText(title, paint, textWidth)
-        for (line in titleLines) {
-            // Stop if we encroach on QR area in portrait mode
-            if (isPortrait && currentY + paint.textSize > qrY) break
-            // Stop if we encroach on bottom in landscape
-            if (!isPortrait && currentY + paint.textSize > height) break
-            
-            canvas.drawText(line, textX, currentY + paint.textSize, paint)
-            currentY += paint.textSize + 4f
-        }
-
-        // Subtitle (Normal, Small)
-        currentY += 4f
-        paint.typeface = Typeface.MONOSPACE
-        paint.textSize = if (isSmallLabel) 14f else 18f
-        val subLines = wrapText(subtitle, paint, textWidth)
-        for (line in subLines) {
-            if (isPortrait && currentY + paint.textSize > qrY) break
-            if (!isPortrait && currentY + paint.textSize > height) break
-            
-            canvas.drawText(line, textX, currentY + paint.textSize, paint)
-            currentY += paint.textSize + 2f
-        }
-        
-        // 2. Draw QR Code
+        // 1. Draw QR Code
         val qrBitmap = createQrCode(qrContent, qrSize)
         if (qrBitmap != null) {
             canvas.drawBitmap(qrBitmap, qrX, qrY, null)
         }
-        
-        // 3. Icon (Optional)
-        if (iconType != null) {
-            val iconSize = if (isSmallLabel) 16f else 24f
-            // Place icon at the bottom of the text area
-            val iconX = padding
-            val iconY = if (isPortrait) qrY - iconSize - 4f else height - iconSize - padding
+
+        // 2. Text Area
+        if (textWidth > 0) {
+            // Title
+            paint.typeface = Typeface.DEFAULT_BOLD
+            paint.textSize = if (isSmallLabel) 20f else 28f
+            val titleLines = wrapText(title, paint, textWidth)
+            for (line in titleLines) {
+                if (currentY + paint.textSize > drawHeight) break
+                canvas.drawText(line, textX, currentY + paint.textSize, paint)
+                currentY += paint.textSize + 4f
+            }
+
+            // Subtitle
+            currentY += 4f
+            paint.typeface = Typeface.MONOSPACE
+            paint.textSize = if (isSmallLabel) 14f else 18f
+            val subLines = wrapText(subtitle, paint, textWidth)
+            for (line in subLines) {
+                if (currentY + paint.textSize > drawHeight) break
+                canvas.drawText(line, textX, currentY + paint.textSize, paint)
+                currentY += paint.textSize + 2f
+            }
             
-            if (iconY > currentY) { // Only draw if we haven't already filled the space with text
+            // 3. Icon
+            if (iconType != null) {
+                val iconSize = if (isSmallLabel) 16f else 24f
+                // Place icon at bottom right of text area
+                val iconX = drawWidth - iconSize - padding
+                val iconY = drawHeight - iconSize - padding
+                
+                // Only draw if not overlapping text vertically (simple check)
+                // or just draw it anyway as overlay/watermark style if tight
                 drawIcon(canvas, iconType, iconX, iconY, iconSize, paint)
             }
         }
 
-        return bitmap
+        return if (needRotation) {
+            rotateBitmap(bitmap, 90f)
+        } else {
+            bitmap
+        }
+    }
+
+    private fun rotateBitmap(source: Bitmap, degrees: Float): Bitmap {
+        val matrix = android.graphics.Matrix()
+        matrix.postRotate(degrees)
+        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
     }
 
     private fun createQrCode(content: String, size: Int): Bitmap? {
