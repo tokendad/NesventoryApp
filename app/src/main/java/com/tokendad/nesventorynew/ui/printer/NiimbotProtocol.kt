@@ -32,6 +32,7 @@ object NiimbotProtocol {
     private const val CMD_PRINT_END = 0xF3
     private const val CMD_SET_QUANTITY = 0x15
     private const val CMD_PRINT_STATUS = 0xA5
+    private const val CMD_HEARTBEAT = 0xDC
 
     fun createConnectPacket(): ByteArray {
         val packet = createPacket(CMD_CONNECT, byteArrayOf(0x01))
