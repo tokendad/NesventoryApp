@@ -40,6 +40,11 @@ class LabelBitmapGenerator @Inject constructor(
 
         val isSmallLabel = drawHeight < 150
         val padding = if (isSmallLabel) 2f else 4f // Reduced outer padding to maximize space
+        val paint = Paint().apply {
+            color = Color.BLACK
+            isAntiAlias = false // Disable AA for thermal printer sharpness
+        }
+
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
         // Reduce QR size slightly to avoid edge cutoff (12mm is tight)
         // 136px is theoretical max. Let's use 120px (8px padding per side).
