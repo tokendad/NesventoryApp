@@ -155,14 +155,10 @@ object NiimbotProtocol {
                 }.array()
                 packets.add(createPacket(CMD_PRINT_EMPTY_ROW, rowPayload))
             } else {
-                // Header: [RowH, RowL, C1, C2, C3, Repeats]
-                val rowPayload = ByteBuffer.allocate(6 + bytesPerRow).apply {
+                // Header: [RowH, RowL] + Data (Standard 0x85)
+                val rowPayload = ByteBuffer.allocate(2 + bytesPerRow).apply {
                     order(ByteOrder.BIG_ENDIAN)
                     putShort(y.toShort())
-                    put(c1.toByte())
-                    put(c2.toByte())
-                    put(c3.toByte())
-                    put(1) // Repeats
                     put(pixelData)
                 }.array()
                 packets.add(createPacket(CMD_PRINT_BITMAP_ROW, rowPayload))
