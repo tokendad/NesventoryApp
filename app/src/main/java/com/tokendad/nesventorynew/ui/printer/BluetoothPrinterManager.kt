@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeout
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,11 +47,10 @@ class BluetoothPrinterManager @Inject constructor(
     private val SERVICE_UUID = UUID.fromString("0000fee7-0000-1000-8000-00805f9b34fb")
     private val WRITE_UUID = UUID.fromString("0000fee8-0000-1000-8000-00805f9b34fb") // Often used for write
     
-    private val TAG = "BluetoothPrinterManager"
-    
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
     private val writeMutex = Mutex()
+    private val writeChannel = Channel<Int>(Channel.CONFLATED)
 
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -121,7 +122,9 @@ class BluetoothPrinterManager @Inject constructor(
         return writeMutex.withLock {
             Log.d(TAG, "Sending ${data.size} bytes...")
             
-            // Use WRITE_TYPE_DEFAULT for acknowledged writes (slower but safer)
+            // Clear any old status
+            while (writeChannel.tryReceive().isSuccess) {}
+
             char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             
             val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
@@ -132,18 +135,34 @@ class BluetoothPrinterManager @Inject constructor(
             }
             
             if (!success) {
-                Log.e(TAG, "Failed to write characteristic")
+                Log.e(TAG, "Failed to initiate write operation")
+                return@withLock false
             }
-            // Add a small delay to allow the stack to clear, even with the lock, 
-            // as the callback happens asynchronously. Ideally we should wait for onCharacteristicWrite.
-            // But a simple delay with Mutex helps significantly.
-            kotlinx.coroutines.delay(50) 
-            
-            success
+
+            // Wait for callback
+            try {
+                withTimeout(1000) { // 1 second timeout for write confirmation
+                    val status = writeChannel.receive()
+                    if (status != BluetoothGatt.GATT_SUCCESS) {
+                        Log.e(TAG, "Write failed with status: $status")
+                        false
+                    } else {
+                        true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Write timed out or failed: ${e.message}")
+                false
+            }
         }
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicWrite(gatt, characteristic, status)
+            writeChannel.trySend(status)
+        }
+
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             Log.d(TAG, "Connection state changed: $newState (Status: $status)")
