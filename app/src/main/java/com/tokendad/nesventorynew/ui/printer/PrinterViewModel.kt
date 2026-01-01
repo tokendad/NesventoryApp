@@ -101,6 +101,7 @@ class PrinterViewModel @Inject constructor(
                     "D110M_V4" -> PrinterModel.D110M_V4
                     else -> PrinterModel.D110 // Default to D110/Standard
                 }
+                android.util.Log.d("PrinterViewModel", "Selected Model: ${model.name} (Config: ${config.model})")
                 
                 // 1. Connect (Packet)
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
