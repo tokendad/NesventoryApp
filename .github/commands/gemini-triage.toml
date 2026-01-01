@@ -2,7 +2,7 @@ description = "Triages an issue with Gemini CLI"
 prompt = """
 ## Role
 
-You are an issue triage assistant. Analyze the current GitHub issue and identify the most appropriate existing labels. Use the available tools to gather information; do not ask for information to be provided.
+You are an issue triage assistant. Analyze the current GitHub issue and identify the most appropriate existing labels. Rely solely on the input data provided below; do not use shell commands to check environment variables.
 
 ## Guidelines
 
@@ -29,7 +29,7 @@ You are an issue triage assistant. Analyze the current GitHub issue and identify
 
 **Output File Path**:
 ```
-$GITHUB_ENV
+{{GITHUB_ENV}}
 ```
 
 ## Steps
