@@ -10,7 +10,7 @@ import kotlin.experimental.xor
 enum class PrinterModel(val width: Int, val dpi: Int) {
     D110(96, 203), // Standard D110
     D11_H(142, 300), // Standard D11_H
-    D110M_V4(96, 203) // D11_H pretending to be D110M
+    D110M_V4(136, 300) // D11_H hardware pretending to be D110M (Verified 300 DPI)
 }
 
 object NiimbotProtocol {

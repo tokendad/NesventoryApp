@@ -65,9 +65,9 @@ class LabelBitmapGenerator @Inject constructor(
 
         // 2. Text Area
         if (textWidth > 0) {
-            // Title - Increased significantly (32f for small, 48f for large)
+            // Title - Fixed size 40f as requested
             paint.typeface = Typeface.DEFAULT_BOLD
-            paint.textSize = if (isSmallLabel) 32f else 48f
+            paint.textSize = 40f
             val titleLines = wrapText(title, paint, textWidth)
             for (line in titleLines) {
                 if (currentY + paint.textSize > drawHeight) break
@@ -75,10 +75,10 @@ class LabelBitmapGenerator @Inject constructor(
                 currentY += paint.textSize + 2f
             }
 
-            // Subtitle - Increased (20f for small, 28f for large)
+            // Subtitle - Slightly smaller than title
             currentY += 2f
             paint.typeface = Typeface.MONOSPACE
-            paint.textSize = if (isSmallLabel) 20f else 28f
+            paint.textSize = 24f
             val subLines = wrapText(subtitle, paint, textWidth)
             for (line in subLines) {
                 if (currentY + paint.textSize > drawHeight) break

@@ -113,7 +113,8 @@ class PrinterViewModel @Inject constructor(
 
                 // 2. Generate Bitmap
                 android.util.Log.d("PrinterViewModel", "Generating Label Bitmap...")
-                val height = 150 
+                // 40mm @ 300dpi = ~472px length
+                val height = 472 
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
                     height = height,
