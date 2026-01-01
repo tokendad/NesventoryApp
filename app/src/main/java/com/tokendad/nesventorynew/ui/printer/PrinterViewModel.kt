@@ -127,6 +127,9 @@ class PrinterViewModel @Inject constructor(
                     kotlinx.coroutines.delay(5000) // Wait 5 seconds for print to complete
                     val endPacket = NiimbotProtocol.createPrintEndPacket()
                     bluetoothManager.sendData(endPacket)
+                    kotlinx.coroutines.delay(100)
+                    val heartbeatPacket = NiimbotProtocol.createHeartbeatPacket()
+                    bluetoothManager.sendData(heartbeatPacket)
                 }
                 
                 // 6. Success

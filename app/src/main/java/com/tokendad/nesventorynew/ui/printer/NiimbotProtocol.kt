@@ -31,8 +31,7 @@ object NiimbotProtocol {
     private const val CMD_END_PAGE_PRINT = 0xE3
     private const val CMD_PRINT_END = 0xF3
     private const val CMD_SET_QUANTITY = 0x15
-    private const val CMD_HEARTBEAT = 0xDC
-    private const val CMD_STATUS = 0xA0
+    private const val CMD_PRINT_STATUS = 0xA5
 
     fun createConnectPacket(): ByteArray {
         val packet = createPacket(CMD_CONNECT, byteArrayOf(0x01))
@@ -112,10 +111,10 @@ object NiimbotProtocol {
         }.array()
         packets.add(createPacket(CMD_SET_DIMENSION, dimPayload))
 
-        // 3a. Start Page (0x03) - Required for motor trigger on some V4/V5 fw
-        packets.add(createPacket(CMD_START_PAGE_PRINT, byteArrayOf(0x01)))
+        // 3a. Print Status (0xA5) - Required for D110M_V4 flow instead of StartPage
+        packets.add(createPacket(CMD_PRINT_STATUS, byteArrayOf(0x01)))
 
-        // 4. Image Data (Split Counts)
+        // 4. Image Data (Standard 0x85)
         val chunkSize = bytesPerRow / 3 // 4 bytes
         
         for (y in 0 until height) {
