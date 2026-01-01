@@ -18,6 +18,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.delay
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,6 +49,7 @@ class BluetoothPrinterManager @Inject constructor(
     
     private var isScanning = false
     private val handler = Handler(Looper.getMainLooper())
+    private val writeMutex = Mutex()
 
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -103,7 +107,7 @@ class BluetoothPrinterManager @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
-    fun sendData(data: ByteArray): Boolean {
+    suspend fun sendData(data: ByteArray): Boolean {
         if (bluetoothGatt == null) {
             Log.e(TAG, "sendData: BluetoothGatt is null")
             return false
@@ -114,22 +118,29 @@ class BluetoothPrinterManager @Inject constructor(
              return false
         }
         
-        Log.d(TAG, "Sending ${data.size} bytes...")
-        
-        // Use WRITE_TYPE_DEFAULT for acknowledged writes (slower but safer)
-        char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        
-        val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
-            bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == BluetoothGatt.GATT_SUCCESS
-        } else {
-            char.value = data
-            bluetoothGatt?.writeCharacteristic(char) == true
+        return writeMutex.withLock {
+            Log.d(TAG, "Sending ${data.size} bytes...")
+            
+            // Use WRITE_TYPE_DEFAULT for acknowledged writes (slower but safer)
+            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            
+            val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == BluetoothGatt.GATT_SUCCESS
+            } else {
+                char.value = data
+                bluetoothGatt?.writeCharacteristic(char) == true
+            }
+            
+            if (!success) {
+                Log.e(TAG, "Failed to write characteristic")
+            }
+            // Add a small delay to allow the stack to clear, even with the lock, 
+            // as the callback happens asynchronously. Ideally we should wait for onCharacteristicWrite.
+            // But a simple delay with Mutex helps significantly.
+            kotlinx.coroutines.delay(50) 
+            
+            success
         }
-        
-        if (!success) {
-            Log.e(TAG, "Failed to write characteristic")
-        }
-        return success
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
