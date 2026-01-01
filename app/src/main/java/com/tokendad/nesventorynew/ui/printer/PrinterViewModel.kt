@@ -108,10 +108,11 @@ class PrinterViewModel @Inject constructor(
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
                 if (!connectSuccess) throw Exception("Failed to send connect packet")
                 
+                android.util.Log.d("PrinterViewModel", "Connect sent. Waiting 1s...")
                 kotlinx.coroutines.delay(1000) // Wait for ack
 
                 // 2. Generate Bitmap
-                // Width = Model width. Height = Arbitrary (e.g. 100-150 for 40-50mm label)
+                android.util.Log.d("PrinterViewModel", "Generating Label Bitmap...")
                 val height = 150 
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
@@ -121,9 +122,11 @@ class PrinterViewModel @Inject constructor(
                     qrContent = "https://nesventory.com/test",
                     iconType = "box"
                 )
+                android.util.Log.d("PrinterViewModel", "Bitmap Generated (${bitmap.width}x${bitmap.height}). Generating Packets...")
                 
                 // 3. Protocol Data
                 val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
+                android.util.Log.d("PrinterViewModel", "Packets Generated: ${packets.size}. Sending...")
                 
                 // 4. Send
                 packets.forEachIndexed { index, packet -> 
