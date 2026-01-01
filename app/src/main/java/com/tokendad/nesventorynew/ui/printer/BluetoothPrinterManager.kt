@@ -129,10 +129,11 @@ class BluetoothPrinterManager @Inject constructor(
             // Clear any old status
             while (writeChannel.tryReceive().isSuccess) {}
 
-            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            // Use WRITE_TYPE_NO_RESPONSE for faster throughput and to avoid hangs if device doesn't ACK
+            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
             
             val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
-                bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == BluetoothGatt.GATT_SUCCESS
+                bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) == BluetoothGatt.GATT_SUCCESS
             } else {
                 char.value = data
                 bluetoothGatt?.writeCharacteristic(char) == true
@@ -154,7 +155,7 @@ class BluetoothPrinterManager @Inject constructor(
                         true
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.e(TAG, "Write timed out or failed: ${e.message}")
                 false
             }
