@@ -1,8 +1,7 @@
 name: Deploy to Play Store
 
 on:
-  push:
-    branches: [ "main" ] # Runs every time you push to main. You can change this to 'tags' later.
+  workflow_dispatch:
 
 jobs:
   distribute:

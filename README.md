@@ -50,7 +50,7 @@ To build the release App Bundle:
 ## Workflows
 
 The project uses GitHub Actions for CI/CD:
-- **Deploy to Play Store**: Automatically builds and uploads the app to the Internal Testing track on push to `main`.
+- **Deploy to Play Store**: Manually triggered workflow to build and upload the app to the Internal Testing track.
 - **Release Management**: (Coming soon) Automated versioning and release notes.
 
 ## License
