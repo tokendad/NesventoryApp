@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import com.tokendad.nesventorynew.data.remote.PrinterConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,6 +22,9 @@ class PrinterViewModel @Inject constructor(
     var config by mutableStateOf(PrinterConfig())
         private set
         
+    var rfidInfo by mutableStateOf<NiimbotProtocol.RfidInfo?>(null)
+        private set
+
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
@@ -33,6 +37,35 @@ class PrinterViewModel @Inject constructor(
 
     init {
         loadConfig()
+        observeBluetoothData()
+    }
+
+    private fun observeBluetoothData() {
+        viewModelScope.launch {
+            bluetoothManager.receivedData.collect { packet ->
+                val rfid = NiimbotProtocol.parseRfidResponse(packet)
+                if (rfid != null) {
+                    rfidInfo = rfid
+                    android.util.Log.d("PrinterViewModel", "RFID Info Parsed: $rfid")
+                }
+            }
+        }
+    }
+    
+    fun checkPaper() {
+        viewModelScope.launch {
+            try {
+                val packet = NiimbotProtocol.createGetRfidPacket()
+                val sent = bluetoothManager.sendData(packet)
+                if (sent) {
+                    android.util.Log.d("PrinterViewModel", "RFID Request Sent")
+                } else {
+                    errorMessage = "Failed to send RFID request"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error checking paper: ${e.message}"
+            }
+        }
     }
 
     private fun loadConfig() {

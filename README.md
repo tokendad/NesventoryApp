@@ -7,7 +7,23 @@ An Android application for managing your NesVentory with AI-powered item detecti
 - **Inventory Management**: Keep track of your items, their locations, brands, and values.
 - **AI Item Detection**: Use your camera or gallery to automatically identify items and populate details.
 - **Location Tracking**: Organize your items by physical locations.
+- **Printer Support**: Native support for Niimbot Bluetooth printers (D11, D110, D11_H) with RFID tag reading.
 - **Play Store Integrated**: Automated deployment workflows for internal testing.
+
+## Printer Support
+
+NesVentory now supports printing item labels directly to Niimbot portable thermal printers.
+
+### Supported Models
+- **Niimbot D110**: Standard 96px print head (203 DPI).
+- **Niimbot D11_H**: High-resolution 300 DPI model (Protocol V5).
+- **Niimbot D11**: Legacy support via D110 protocol.
+
+### Features
+- **Bluetooth Connectivity**: Auto-discovery and connection management.
+- **RFID Tag Reading**: Automatically detects paper type, serial number, and remaining capacity from the printer's RFID tag.
+- **Smart Protocol**: Dynamically switches between V4 (D110) and V5 (D11_H) print protocols for optimal quality.
+- **Custom Labels**: Prints Item ID, Name, QR Code, and Icon.
 
 ## Getting Started
 

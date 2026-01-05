@@ -18,6 +18,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.delay
@@ -39,6 +42,9 @@ class BluetoothPrinterManager @Inject constructor(
 
     private val _connectionState = MutableStateFlow(BluetoothProfile.STATE_DISCONNECTED)
     val connectionState: StateFlow<Int> = _connectionState.asStateFlow()
+
+    private val _receivedData = MutableSharedFlow<ByteArray>(replay = 0)
+    val receivedData: SharedFlow<ByteArray> = _receivedData.asSharedFlow()
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var writeCharacteristic: BluetoothGattCharacteristic? = null
@@ -265,6 +271,8 @@ class BluetoothPrinterManager @Inject constructor(
             val value = characteristic.value ?: return
             val hex = value.joinToString("") { "%02x".format(it) }
             Log.d(TAG, "Received: $hex")
+            writeChannel.trySend(BluetoothGatt.GATT_SUCCESS) // Some printers Ack via notify?
+            _receivedData.tryEmit(value)
         }
     }
 }

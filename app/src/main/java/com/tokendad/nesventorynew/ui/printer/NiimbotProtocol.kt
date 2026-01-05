@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.experimental.xor
+import kotlin.text.Charsets
 
 enum class PrinterModel(val width: Int, val dpi: Int) {
     D110(96, 203), // Standard D110
@@ -33,6 +34,16 @@ object NiimbotProtocol {
     private const val CMD_SET_QUANTITY = 0x15
     private const val CMD_PRINT_STATUS = 0xA5
     private const val CMD_HEARTBEAT = 0xDC
+    private const val CMD_GET_RFID = 0x1A
+
+    data class RfidInfo(
+        val uuid: String,
+        val barcode: String,
+        val serialNumber: String,
+        val totalPaper: Int,
+        val usedPaper: Int,
+        val type: Int
+    )
 
     fun createConnectPacket(): ByteArray {
         val packet = createPacket(CMD_CONNECT, byteArrayOf(0x01))
@@ -41,6 +52,72 @@ object NiimbotProtocol {
         out[0] = 0x03
         packet.copyInto(out, 1)
         return out
+    }
+
+    fun createGetRfidPacket(): ByteArray {
+        // 0x01 = PrinterInfoType.Rfid (from niimbluelib)
+        return createPacket(CMD_GET_RFID, byteArrayOf(0x01))
+    }
+
+    fun parseRfidResponse(packet: ByteArray): RfidInfo? {
+        // Basic Packet Validation
+        if (packet.size < 5 || packet[0] != HEAD.toByte() || packet[1] != HEAD.toByte()) return null
+        
+        // Find Command and Data Length
+        // Header: 55 55 Type Len Data... Check AA AA
+        val type = packet[2].toInt() and 0xFF
+        val len = packet[3].toInt() and 0xFF
+        
+        // 0x1B is the response to 0x1A
+        if (type != 0x1B && type != CMD_GET_RFID) return null 
+        
+        if (packet.size < 4 + len) return null
+        val data = packet.copyOfRange(4, 4 + len)
+        
+        // Best-effort parsing based on niimbluelib/reverse engineering
+        // The data payload likely contains the raw RFID tag memory blocks (4 bytes each).
+        // Block 7-8: UUID (8 bytes) -> Offset 28
+        // Block 9-12: Serial (16 bytes ASCII) -> Offset 36
+        // Block 15-16: Barcode (8 bytes?) -> Offset 60
+        
+        try {
+            var uuid = ""
+            var serial = ""
+            var barcode = ""
+            
+            // 1. UUID (Offset 28, 8 bytes)
+            if (data.size >= 36) { // Need at least up to byte 35
+                uuid = data.copyOfRange(28, 36).joinToString("") { "%02X".format(it) }
+            }
+            
+            // 2. Serial Number (Offset 36, 16 bytes)
+            if (data.size >= 52) {
+                val serialBytes = data.copyOfRange(36, 52)
+                serial = serialBytes.filter { it in 32..126 }.toByteArray().toString(Charsets.US_ASCII).trim()
+            }
+            
+            // 3. Barcode (Offset 60, 8 bytes or more?)
+            if (data.size >= 68) {
+                 val barcodeBytes = data.copyOfRange(60, 68) // Assuming 2 blocks
+                 barcode = barcodeBytes.filter { it in 0x30.toByte()..0x39.toByte() }.toByteArray().toString(Charsets.US_ASCII)
+            }
+            
+            // Fallback if structured parsing failed to find anything useful
+            if (serial.isEmpty()) {
+                 serial = data.filter { it in 32..126 }.toByteArray().toString(Charsets.US_ASCII).trim()
+            }
+            
+            return RfidInfo(
+                uuid = uuid,
+                barcode = barcode, 
+                serialNumber = serial,
+                totalPaper = 0, // specific offsets needed
+                usedPaper = 0,  
+                type = 1
+            )
+        } catch (e: Exception) {
+            return null
+        }
     }
 
     fun createHeartbeatPacket(): ByteArray {

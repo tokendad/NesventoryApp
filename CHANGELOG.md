@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-05
+
+### Added
+- **Niimbot Printer Support**: Full integration with Niimbot D110 and D11_H Bluetooth printers.
+- **RFID Tag Reading**: Ability to read paper type, serial number, and barcode from printer consumables.
+- **Smart Print Protocol**: Automatic switching between Standard (203 DPI) and High Density (300 DPI) print modes.
+- **Bluetooth Manager**: Robust device discovery and connection handling with auto-reconnect.
+- **Label Generator**: Dynamic generation of item labels with QR codes and icons.
+
+### Changed
+- Updated printer settings UI to show connected device status and RFID info.
+- Improved error handling for Bluetooth write operations.
+
 ## [1.1.0] - 2025-12-23
 
 ### Added
