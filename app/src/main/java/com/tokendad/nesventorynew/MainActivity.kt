@@ -50,6 +50,26 @@ class MainActivity : ComponentActivity() {
                 val uiStateState = viewModel.uiState.collectAsState(initial = MainUiState())
                 val uiState = uiStateState.value
 
+                // Handle Deep Link
+                LaunchedEffect(Unit) {
+                    val data = intent?.data
+                    if (data != null && data.scheme == "nesventory" && data.host == "auth") {
+                        val token = data.getQueryParameter("token")
+                        if (!token.isNullOrBlank()) {
+                            viewModel.handleOidcToken(token)
+                        }
+                    }
+                }
+
+                // Auth State Observer
+                LaunchedEffect(uiState.isLoggedIn) {
+                    if (uiState.isLoggedIn) {
+                        navController.navigate(Routes.DASHBOARD) {
+                            popUpTo(Routes.LOGIN) { inclusive = true }
+                        }
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -86,9 +106,12 @@ class MainActivity : ComponentActivity() {
                                 onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
                                 remoteStatus = dashboardViewModel.remoteStatus,
                                 localStatus = dashboardViewModel.localStatus,
+                                aiStatus = dashboardViewModel.aiStatus,
+                                aiStatusMessage = dashboardViewModel.aiStatusMessage,
                                 theme = dashboardViewModel.theme,
                                 onThemeChange = { dashboardViewModel.onThemeChange(it) },
-                                onTestConnection = { dashboardViewModel.testConnection() },
+                                onTestConnection = { dashboardViewModel.testAndSaveConnection() },
+                                onTestAIConnection = { dashboardViewModel.testAIConnection() },
                                 showPermissionRationale = dashboardViewModel.showPermissionRationale,
                                 onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
                                 onRequestSsidScan = { dashboardViewModel.requestSsidScan() },

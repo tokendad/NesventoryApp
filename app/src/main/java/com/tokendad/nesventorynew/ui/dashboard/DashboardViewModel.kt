@@ -196,43 +196,54 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun testConnection() {
-        viewModelScope.launch(Dispatchers.IO) {
-            // Test Remote
-            if (remoteUrl.isBlank()) {
-                withContext(Dispatchers.Main) { remoteStatus = null }
-            } else {
-                try {
-                    // We manually build the request to test the specific URL in the text field,
-                    // bypassing the Interceptor (since we are not using the placeholder host)
-                    // and avoiding reliance on the potentially stale DataStore value.
-                    val targetUrl = if (remoteUrl.endsWith("/")) remoteUrl else "$remoteUrl/"
-                    val request = Request.Builder().url("${targetUrl}api/status").build()
-                    val response = okHttpClient.newCall(request).execute()
-                    val success = response.isSuccessful
-                    response.close()
-                    withContext(Dispatchers.Main) { remoteStatus = success }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    withContext(Dispatchers.Main) { remoteStatus = false }
-                }
-            }
+    fun testAndSaveConnection() {
+        viewModelScope.launch {
+            // 1. Save Settings First
+            preferencesManager.saveServerSettings(
+                ServerSettings(
+                    remoteUrl = remoteUrl,
+                    localUrl = localUrl,
+                    localSsid = localSsid,
+                    prioritizeLocal = prioritizeLocal,
+                    theme = theme
+                )
+            )
 
-            // Test Local
-            if (localUrl.isNotBlank()) {
-                try {
-                    val targetUrl = if (localUrl.endsWith("/")) localUrl else "$localUrl/"
-                    val request = Request.Builder().url("${targetUrl}api/status").build()
-                    val response = okHttpClient.newCall(request).execute()
-                    val success = response.isSuccessful
-                    response.close()
-                    withContext(Dispatchers.Main) { localStatus = success }
-                } catch (_: Exception) {
-                    withContext(Dispatchers.Main) { localStatus = false }
+            // 2. Run Connection Tests
+            withContext(Dispatchers.IO) {
+                // Test Remote
+                if (remoteUrl.isBlank()) {
+                    withContext(Dispatchers.Main) { remoteStatus = null }
+                } else {
+                    try {
+                        val targetUrl = if (remoteUrl.endsWith("/")) remoteUrl else "$remoteUrl/"
+                        val request = Request.Builder().url("${targetUrl}api/status").build()
+                        val response = okHttpClient.newCall(request).execute()
+                        val success = response.isSuccessful
+                        response.close()
+                        withContext(Dispatchers.Main) { remoteStatus = success }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) { remoteStatus = false }
+                    }
                 }
-            }
-            else {
-                withContext(Dispatchers.Main) { localStatus = null }
+
+                // Test Local
+                if (localUrl.isNotBlank()) {
+                    try {
+                        val targetUrl = if (localUrl.endsWith("/")) localUrl else "$localUrl/"
+                        val request = Request.Builder().url("${targetUrl}api/status").build()
+                        val response = okHttpClient.newCall(request).execute()
+                        val success = response.isSuccessful
+                        response.close()
+                        withContext(Dispatchers.Main) { localStatus = success }
+                    } catch (_: Exception) {
+                        withContext(Dispatchers.Main) { localStatus = false }
+                    }
+                }
+                else {
+                    withContext(Dispatchers.Main) { localStatus = null }
+                }
             }
         }
     }

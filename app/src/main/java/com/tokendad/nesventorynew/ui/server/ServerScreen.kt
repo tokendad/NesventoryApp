@@ -33,9 +33,12 @@ fun ServerScreen(
     onPrioritizeLocalChange: (Boolean) -> Unit,
     remoteStatus: Boolean?,
     localStatus: Boolean?,
+    aiStatus: Boolean?,
+    aiStatusMessage: String?,
     theme: String,
     onThemeChange: (String) -> Unit,
     onTestConnection: () -> Unit,
+    onTestAIConnection: () -> Unit,
     showPermissionRationale: Boolean,
     onDismissPermissionRationale: () -> Unit,
     onRequestSsidScan: () -> Unit,
@@ -139,7 +142,38 @@ fun ServerScreen(
                         modifier = Modifier.align(Alignment.End).height(36.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
                     ) {
-                        Text("Test Connections", style = MaterialTheme.typography.bodySmall)
+                        Text("Test & Save Connection", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            // AI Provider Settings
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("AI Provider", style = MaterialTheme.typography.labelLarge)
+                    
+                    if (!aiStatusMessage.isNullOrBlank()) {
+                        Text(
+                            text = aiStatusMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (aiStatus == true) Color.Green else MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    Button(
+                        onClick = onTestAIConnection,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = if (aiStatus != null) 2.dp else 0.dp,
+                                color = if (aiStatus == true) Color.Green else if (aiStatus == false) Color.Red else Color.Transparent,
+                                shape = RoundedCornerShape(20.dp) // Match button shape usually
+                            )
+                    ) {
+                        Text("Test AI Connection")
                     }
                 }
             }
