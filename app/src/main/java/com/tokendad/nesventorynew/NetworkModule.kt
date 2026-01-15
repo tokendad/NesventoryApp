@@ -43,40 +43,24 @@ object NetworkModule {
             .addInterceptor(Interceptor { chain ->
                 var request = chain.request()
                 
-                // Fetch current settings
-                val settings = runBlocking { preferencesManager.serverSettings.first() }
-                val targetUrlStr = if (settings.remoteUrl.isNotBlank()) {
-                     if (settings.remoteUrl.endsWith("/")) settings.remoteUrl else "${settings.remoteUrl}/"
-                } else {
-                    BASE_URL
-                }
-
-                val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
-                val oldBaseUrl = BASE_URL.toHttpUrlOrNull()
+                // Only intercept and rewrite if the request is targeting the placeholder BASE_URL
+                val currentHost = request.url.host
+                val placeholderHost = "nesdemo.welshrd.com"
                 
-                if (newBaseUrl != null && oldBaseUrl != null) {
-                    val originalUrl = request.url
-                    // Check if request matches the default BASE_URL structure (host and scheme)
-                    if (originalUrl.host == oldBaseUrl.host && originalUrl.scheme == oldBaseUrl.scheme) {
-                         // Extract path relative to root (since BASE_URL is root)
-                         // originalUrl.encodedPath typically starts with "/" (e.g. "/api/printer/config")
-                         val path = originalUrl.encodedPath
-                         val relativePath = if (path.startsWith("/")) path.substring(1) else path
-                         
-                         // Build new URL: start with newBaseUrl (which includes its own path)
-                         // and append the relative path from the request.
-                         val newUrl = newBaseUrl.newBuilder()
-                             .addEncodedPathSegments(relativePath)
-                             .query(originalUrl.query)
-                             .fragment(originalUrl.fragment)
-                             .build()
-                             
-                         request = request.newBuilder().url(newUrl).build()
+                if (currentHost == placeholderHost) {
+                    // Fetch current settings
+                    val settings = runBlocking { preferencesManager.serverSettings.first() }
+                    val targetUrlStr = if (settings.remoteUrl.isNotBlank()) {
+                         if (settings.remoteUrl.endsWith("/")) settings.remoteUrl else "${settings.remoteUrl}/"
                     } else {
-                        // Fallback for requests that don't match BASE_URL (if any)
-                        // Just swap scheme/host/port
+                        BASE_URL
+                    }
+
+                    val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
+                    
+                    if (newBaseUrl != null) {
                         val newUrl = request.url.newBuilder()
-                            .scheme(newBaseUrl.scheme)
+                            .scheme(newBaseUrl.scheme ?: "http")
                             .host(newBaseUrl.host)
                             .port(newBaseUrl.port)
                             .build()
@@ -86,7 +70,7 @@ object NetworkModule {
 
                 chain.proceed(request)
             })
-            // Auth Interceptor
+            // Auth Header Interceptor
             .addInterceptor(Interceptor { chain ->
                 val originalRequest = chain.request()
                 val requestBuilder = originalRequest.newBuilder()
@@ -98,6 +82,19 @@ object NetworkModule {
                 }
 
                 chain.proceed(requestBuilder.build())
+            })
+            // 401 Unauthorized Interceptor
+            .addInterceptor(Interceptor { chain ->
+                val response = chain.proceed(chain.request())
+                
+                if (response.code == 401) {
+                    // Clear session on 401
+                    runBlocking {
+                        preferencesManager.clearAccessToken()
+                    }
+                }
+                
+                response
             })
             .build()
     }

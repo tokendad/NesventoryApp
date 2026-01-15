@@ -43,6 +43,8 @@ class DashboardViewModel @Inject constructor(
     var theme by mutableStateOf("system")
     var remoteStatus by mutableStateOf<Boolean?>(null)
     var localStatus by mutableStateOf<Boolean?>(null)
+    var aiStatus by mutableStateOf<Boolean?>(null)
+    var aiStatusMessage by mutableStateOf<String?>(null)
     var showPermissionRationale by mutableStateOf(false)
     
     var recentItems by mutableStateOf<List<Item>>(emptyList())
@@ -54,7 +56,7 @@ class DashboardViewModel @Inject constructor(
         loadDashboardData()
         scanWifiNetworks()
     }
-
+    
     fun dismissPermissionRationale() {
         showPermissionRationale = false
     }
@@ -193,22 +195,34 @@ class DashboardViewModel @Inject constructor(
             )
         }
     }
-    
+
     fun testConnection() {
         viewModelScope.launch(Dispatchers.IO) {
             // Test Remote
-            try {
-                // Assuming api is configured for remote by default or current context
-                api.getStatus()
-                withContext(Dispatchers.Main) { remoteStatus = true }
-            } catch (_: Exception) {
-                withContext(Dispatchers.Main) { remoteStatus = false }
+            if (remoteUrl.isBlank()) {
+                withContext(Dispatchers.Main) { remoteStatus = null }
+            } else {
+                try {
+                    // We manually build the request to test the specific URL in the text field,
+                    // bypassing the Interceptor (since we are not using the placeholder host)
+                    // and avoiding reliance on the potentially stale DataStore value.
+                    val targetUrl = if (remoteUrl.endsWith("/")) remoteUrl else "$remoteUrl/"
+                    val request = Request.Builder().url("${targetUrl}api/status").build()
+                    val response = okHttpClient.newCall(request).execute()
+                    val success = response.isSuccessful
+                    response.close()
+                    withContext(Dispatchers.Main) { remoteStatus = success }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    withContext(Dispatchers.Main) { remoteStatus = false }
+                }
             }
 
             // Test Local
             if (localUrl.isNotBlank()) {
                 try {
-                    val request = Request.Builder().url("$localUrl/api/status").build()
+                    val targetUrl = if (localUrl.endsWith("/")) localUrl else "$localUrl/"
+                    val request = Request.Builder().url("${targetUrl}api/status").build()
                     val response = okHttpClient.newCall(request).execute()
                     val success = response.isSuccessful
                     response.close()
@@ -216,8 +230,22 @@ class DashboardViewModel @Inject constructor(
                 } catch (_: Exception) {
                     withContext(Dispatchers.Main) { localStatus = false }
                 }
-            } else {
+            }
+            else {
                 withContext(Dispatchers.Main) { localStatus = null }
+            }
+        }
+    }
+
+    fun testAIConnection() {
+        viewModelScope.launch {
+            try {
+                val status = api.getAIStatus()
+                aiStatus = status.enabled
+                aiStatusMessage = if (status.enabled) "Connected: ${status.model ?: "Unknown Model"}" else "AI Service Disabled"
+            } catch (e: Exception) {
+                aiStatus = false
+                aiStatusMessage = "Connection Failed: ${e.localizedMessage}"
             }
         }
     }
