@@ -20,9 +20,12 @@ import kotlinx.coroutines.delay
 import java.util.UUID
 import javax.inject.Inject
 
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
+
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
     private val api: NesVentoryApi,
+    private val preferencesManager: PreferencesManager,
     private val bluetoothManager: BluetoothPrinterManager,
     private val labelGenerator: LabelBitmapGenerator,
     savedStateHandle: SavedStateHandle
@@ -32,6 +35,10 @@ class ItemDetailViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
+    
+    // Default to known base, update from prefs
+    var serverUrl by mutableStateOf("https://nesdemo.welshrd.com")
+    private var printMethod by mutableStateOf("local")
 
     init {
         val itemIdString: String? = savedStateHandle["itemId"]
@@ -43,9 +50,51 @@ class ItemDetailViewModel @Inject constructor(
                  errorMessage = "Invalid Item ID format"
              }
         }
+        loadSettings()
+    }
+    
+    private fun loadSettings() {
+        viewModelScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                if (settings.remoteUrl.isNotBlank()) {
+                    serverUrl = settings.remoteUrl.trimEnd('/')
+                }
+                printMethod = settings.printMethod
+            }
+        }
     }
 
     fun printLabel() {
+        if (printMethod == "server") {
+            printLabelOnServer()
+        } else {
+            printLabelLocally()
+        }
+    }
+
+    private fun printLabelOnServer() {
+        val currentItem = item ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val request = com.tokendad.nesventorynew.data.remote.PrintJobRequest(
+                    entity_id = currentItem.id,
+                    entity_type = "item",
+                    quantity = 1
+                )
+                api.printLabel(request)
+                successMessage = "Print job sent to server!"
+            } catch (e: Exception) {
+                errorMessage = "Server print failed: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    private fun printLabelLocally() {
         val currentItem = item ?: return
         
         if (bluetoothManager.connectionState.value != 2) { // 2 = Connected
@@ -60,12 +109,8 @@ class ItemDetailViewModel @Inject constructor(
             try {
                 // 1. Get Config
                 val config = api.getPrinterConfig()
-                android.util.Log.d("ItemDetailViewModel", "Fetched Config Model: ${config.model}")
-                val model = when (config.model) {
-                    "D11_H" -> PrinterModel.D11_H
-                    "D110M_V4" -> PrinterModel.D110M_V4
-                    else -> PrinterModel.D110
-                }
+                val model = PrinterModel.D110M_V4
+                android.util.Log.d("ItemDetailViewModel", "Using Model: ${model.name}")
 
                 // 2. Generate Bitmap
                 // Width based on model. Height 472px (40mm @ 300dpi).
@@ -91,13 +136,11 @@ class ItemDetailViewModel @Inject constructor(
                     delay(20)
                 }
 
-                // 5. Finalize (V4)
-                if (model == PrinterModel.D110M_V4) {
-                    delay(5000)
-                    bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
-                    delay(100)
-                    bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
-                }
+                // 5. Wait and Finalize
+                delay(5000)
+                bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
+                delay(100)
+                bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
 
                 withContext(Dispatchers.Main) {
                     successMessage = "Label printed successfully!"

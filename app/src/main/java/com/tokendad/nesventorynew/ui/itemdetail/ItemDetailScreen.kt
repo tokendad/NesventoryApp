@@ -108,14 +108,14 @@ fun ItemDetailScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else if (item != null) {
-                ItemDetailContent(item)
+                ItemDetailContent(item, viewModel.serverUrl)
             }
         }
     }
 }
 
 @Composable
-fun ItemDetailContent(item: Item) {
+fun ItemDetailContent(item: Item, serverUrl: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -129,10 +129,7 @@ fun ItemDetailContent(item: Item) {
             val imageUrl = if (photo.path.startsWith("http")) {
                 photo.path
             } else {
-                 // Assuming relative path from base URL. 
-                 // Note: Hardcoding base URL here is not ideal, but quick for now.
-                 // Ideally, we should get it from a config or helper.
-                 "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                 "$serverUrl/${photo.path.removePrefix("/")}"
             }
             
             AsyncImage(

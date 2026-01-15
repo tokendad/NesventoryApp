@@ -6,9 +6,7 @@ NesVentory integrates natively with Niimbot Bluetooth thermal printers to allow 
 ## Supported Hardware
 | Model | Protocol | DPI | Width | Notes |
 |-------|----------|-----|-------|-------|
-| **D110** | V4 | 203 | 96px | Standard model. Uses packet `0x83`/`0x85`. |
-| **D11_H** | V5 | 300 | 142px | High-res model. Requires Dimension command *before* PrintStart. |
-| **D11** | V4 | 203 | 96px | Treated as D110. |
+| **D11-H** | D110M_V4 | 300 | 96px | Uses V4-style packet format (`0x85` for rows). |
 
 ## Protocol Implementation
 
@@ -21,9 +19,7 @@ NesVentory integrates natively with Niimbot Bluetooth thermal printers to allow 
 - **Get RFID (`0x1A`)**: Requests consumable info.
 
 ### Image Printing
-Images are converted to 1-bit monochrome bitmaps.
-- **D110**: Sent as 12-byte rows (96 pixels).
-- **D11_H**: Sent as 18-byte rows (142 pixels) with specific "population count" headers for density control.
+Images are converted to 1-bit monochrome bitmaps and sent as 12-byte rows (96 pixels) with byte count headers for each 32px chunk.
 
 ### RFID Reading
 The application requests tag info using `0x1A`. The printer responds with `0x1B`, which contains the raw memory dump of the tag.

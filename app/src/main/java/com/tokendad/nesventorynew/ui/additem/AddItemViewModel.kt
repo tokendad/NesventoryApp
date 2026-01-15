@@ -39,6 +39,10 @@ class AddItemViewModel @Inject constructor(
     var retailer by mutableStateOf("")
     var selectedLocationId by mutableStateOf<UUID?>(null)
     
+    // Barcode Lookup
+    var barcodeInput by mutableStateOf("")
+    var showBarcodeDialog by mutableStateOf(false)
+
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     
     var isLoading by mutableStateOf(false)
@@ -50,6 +54,7 @@ class AddItemViewModel @Inject constructor(
     var detectedItems by mutableStateOf<List<DetectedItem>>(emptyList())
     var currentDetectionIndex by mutableStateOf(0)
     var showDetectionResults by mutableStateOf(false)
+    var showRetryOption by mutableStateOf(false)
 
     val currentDetectedItem get() = detectedItems.getOrNull(currentDetectionIndex)
 
@@ -66,13 +71,41 @@ class AddItemViewModel @Inject constructor(
             }
         }
     }
+    
+    fun lookupBarcode() {
+        if (barcodeInput.isBlank()) return
+        
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            showBarcodeDialog = false
+            try {
+                val request = com.tokendad.nesventorynew.data.remote.BarcodeLookupRequest(barcodeInput)
+                val result = api.lookupBarcode(request)
+                
+                if (result.found) {
+                    name = result.name ?: name
+                    description = result.description ?: description
+                    brand = result.brand ?: brand
+                    modelNumber = result.model_number ?: modelNumber
+                    estimatedValue = result.estimated_value?.toString() ?: estimatedValue
+                } else {
+                    errorMessage = "Barcode not found."
+                }
+            } catch (e: Exception) {
+                errorMessage = "Barcode lookup failed: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     fun acceptDetection() {
         currentDetectedItem?.let { item ->
             name = item.name
-            description = item.description ?: ""
-            brand = item.brand ?: ""
-            estimatedValue = item.estimated_value?.toString() ?: ""
+            description = item.description ?: description
+            brand = item.brand ?: brand
+            estimatedValue = item.estimated_value?.toString() ?: estimatedValue
         }
         showDetectionResults = false
         detectedItems = emptyList()
@@ -90,33 +123,30 @@ class AddItemViewModel @Inject constructor(
         }
     }
 
-    fun analyzeImage(contentResolver: ContentResolver, uri: Uri) {
+    private fun performAnalysis(bytes: ByteArray, usePlugins: Boolean = true) {
         viewModelScope.launch(Dispatchers.IO) {
-            // Update loading state on Main thread
             withContext(Dispatchers.Main) {
                 isLoading = true
                 errorMessage = null
+                showRetryOption = false
             }
             
             try {
-                val inputStream = contentResolver.openInputStream(uri)
-                val bytes = inputStream?.readBytes()
-                inputStream?.close()
-
-                if (bytes != null) {
-                    imageBytes = bytes // Store bytes for later upload
-                    val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull(), 0, bytes.size)
-                    val body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile)
-                    
-                    val result = api.detectItems(body)
-                    
-                    withContext(Dispatchers.Main) {
-                        if (result.items.isNotEmpty()) {
-                            detectedItems = result.items
-                            currentDetectionIndex = 0
-                            showDetectionResults = true
-                        } else {
-                            errorMessage = "No items detected in the image."
+                val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
+                val body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile)
+                
+                val result = api.detectItems(body, usePlugins)
+                
+                withContext(Dispatchers.Main) {
+                    if (result.items.isNotEmpty()) {
+                        detectedItems = result.items
+                        currentDetectionIndex = 0
+                        showDetectionResults = true
+                        showRetryOption = false
+                    } else {
+                        errorMessage = "No items detected in the image."
+                        if (usePlugins) {
+                            showRetryOption = true
                         }
                     }
                 }
@@ -132,11 +162,56 @@ class AddItemViewModel @Inject constructor(
         }
     }
 
+    fun retryWithStandardAi() {
+        imageBytes?.let {
+            performAnalysis(it, usePlugins = false)
+        }
+    }
+
+    fun analyzeImage(contentResolver: ContentResolver, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val inputStream = contentResolver.openInputStream(uri)
+                val bytes = inputStream?.readBytes()
+                inputStream?.close()
+
+                if (bytes != null) {
+                    imageBytes = bytes
+                    performAnalysis(bytes)
+                }
+            } catch (e: Exception) {
+                 withContext(Dispatchers.Main) {
+                    errorMessage = "Failed to read image: ${e.localizedMessage}"
+                 }
+            }
+        }
+    }
+
     fun analyzeBitmap(bitmap: Bitmap) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val stream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                val bytes = stream.toByteArray()
+                
+                if (bytes.isNotEmpty()) {
+                    imageBytes = bytes
+                    performAnalysis(bytes)
+                }
+            } catch (e: Exception) {
+                 withContext(Dispatchers.Main) {
+                    errorMessage = "Failed to process bitmap: ${e.localizedMessage}"
+                 }
+            }
+        }
+    }
+
+    fun scanBarcodeFromImage(bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 isLoading = true
                 errorMessage = null
+                showBarcodeDialog = false // Close dialog if open
             }
             
             try {
@@ -145,25 +220,24 @@ class AddItemViewModel @Inject constructor(
                 val bytes = stream.toByteArray()
                 
                 if (bytes.isNotEmpty()) {
-                    imageBytes = bytes // Store bytes for later upload
                     val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
-                    val body = MultipartBody.Part.createFormData("file", "camera_capture.jpg", requestFile)
+                    val body = MultipartBody.Part.createFormData("file", "barcode_scan.jpg", requestFile)
                     
-                    val result = api.detectItems(body)
+                    val scanResult = api.scanBarcode(body)
                     
                     withContext(Dispatchers.Main) {
-                        if (result.items.isNotEmpty()) {
-                            detectedItems = result.items
-                            currentDetectionIndex = 0
-                            showDetectionResults = true
+                        if (scanResult.found && !scanResult.upc.isNullOrBlank()) {
+                            barcodeInput = scanResult.upc
+                            // Auto-lookup after scan
+                            lookupBarcode()
                         } else {
-                            errorMessage = "No items detected in the image."
+                            errorMessage = "No barcode found in image."
                         }
                     }
                 }
             } catch (e: Exception) {
                  withContext(Dispatchers.Main) {
-                    errorMessage = "Failed to analyze camera image: ${e.localizedMessage}"
+                    errorMessage = "Failed to scan barcode: ${e.localizedMessage}"
                  }
             } finally {
                  withContext(Dispatchers.Main) {

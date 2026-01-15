@@ -22,3 +22,13 @@ data class PrinterStatus(
     val connected: Boolean,
     val message: String? = null
 )
+
+data class PrinterModelInfo(
+    val value: String,
+    val label: String,
+    val max_width: Int
+)
+
+data class PrinterModelsResponse(
+    val models: List<PrinterModelInfo>
+)

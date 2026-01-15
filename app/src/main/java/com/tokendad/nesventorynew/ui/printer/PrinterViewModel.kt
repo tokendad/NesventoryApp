@@ -5,40 +5,99 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import com.tokendad.nesventorynew.data.remote.PrinterConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PrinterViewModel @Inject constructor(
+
     private val api: NesVentoryApi,
+
+    private val preferencesManager: PreferencesManager,
+
     private val bluetoothManager: BluetoothPrinterManager,
+
     private val labelGenerator: LabelBitmapGenerator
+
 ) : ViewModel() {
 
+
+
     var config by mutableStateOf(PrinterConfig())
+
         private set
+
         
-    var rfidInfo by mutableStateOf<NiimbotProtocol.RfidInfo?>(null)
+
+    var printMethod by mutableStateOf("local") // "local" or "server"
+
+
+
+    var serverPrinterModels by mutableStateOf<List<com.tokendad.nesventorynew.data.remote.PrinterModelInfo>>(emptyList())
+
         private set
+
+
+
+    var rfidInfo by mutableStateOf<NiimbotProtocol.RfidInfo?>(null)
+
+        private set
+
+
 
     var isLoading by mutableStateOf(false)
+
     var errorMessage by mutableStateOf<String?>(null)
+
     var successMessage by mutableStateOf<String?>(null)
 
-    val supportedModels = listOf("D11", "D110", "D11_H", "D110M_V4", "B1", "B18", "B21")
+
+
+    val supportedModels = listOf("D110M_V4")
+
     val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
 
+
+
     val scannedDevices = bluetoothManager.scannedDevices
+
     val connectionState = bluetoothManager.connectionState
 
+
+
     init {
+
+        loadSettings()
+
         loadConfig()
+
         observeBluetoothData()
+
     }
+
+
+
+    private fun loadSettings() {
+
+        viewModelScope.launch {
+
+            preferencesManager.serverSettings.collect { settings ->
+
+                printMethod = settings.printMethod
+
+            }
+
+        }
+
+    }
+
+
 
     private fun observeBluetoothData() {
         viewModelScope.launch {
@@ -73,6 +132,8 @@ class PrinterViewModel @Inject constructor(
             isLoading = true
             try {
                 config = api.getPrinterConfig()
+                val modelsResponse = api.getPrinterModels()
+                serverPrinterModels = modelsResponse.models
             } catch (e: Exception) {
                 errorMessage = "Failed to load printer config: ${e.localizedMessage}"
             } finally {
@@ -104,6 +165,11 @@ class PrinterViewModel @Inject constructor(
             successMessage = null
             try {
                 config = api.updatePrinterConfig(config)
+                
+                // Save printMethod to preferences
+                val currentSettings = preferencesManager.serverSettings.first()
+                preferencesManager.saveServerSettings(currentSettings.copy(printMethod = printMethod))
+
                 successMessage = "Printer configuration saved successfully!"
             } catch (e: Exception) {
                 errorMessage = "Failed to save config: ${e.localizedMessage}"
@@ -126,16 +192,42 @@ class PrinterViewModel @Inject constructor(
     }
 
     fun printTest() {
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            android.util.Log.d("PrinterViewModel", "Starting test print...")
+        if (printMethod == "server") {
+            testServerPrint()
+        } else {
+            testLocalPrint()
+        }
+    }
+
+    private fun testServerPrint() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
             try {
-                // Determine model
-                val model = when (config.model) {
-                    "D11_H" -> PrinterModel.D11_H
-                    "D110M_V4" -> PrinterModel.D110M_V4
-                    else -> PrinterModel.D110 // Default to D110/Standard
+                // Since there's no direct 'test print' endpoint, we verify connection first
+                api.updatePrinterConfig(config) // Ensure server has latest config
+                // Then try to get status as a 'test'
+                val status = api.getPrinterStatus()
+                if (status.connected) {
+                    successMessage = "Server-side printer connected! ${status.message ?: ""}"
+                } else {
+                    errorMessage = "Server-side printer connection failed: ${status.message ?: "Unknown error"}"
                 }
-                android.util.Log.d("PrinterViewModel", "Selected Model: ${model.name} (Config: ${config.model})")
+            } catch (e: Exception) {
+                errorMessage = "Server test failed: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    private fun testLocalPrint() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            android.util.Log.d("PrinterViewModel", "Starting local test print...")
+            try {
+                val model = PrinterModel.D110M_V4
+                android.util.Log.d("PrinterViewModel", "Using Model: ${model.name}")
                 
                 // 1. Connect (Packet)
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
@@ -169,21 +261,19 @@ class PrinterViewModel @Inject constructor(
                     kotlinx.coroutines.delay(20) // Fast packet sending
                 }
                 
-                // 5. Wait and Finalize (Specific for V4/V5)
-                if (model == PrinterModel.D110M_V4) {
-                    android.util.Log.d("PrinterViewModel", "Waiting for print to finish (V4)...")
-                    kotlinx.coroutines.delay(5000) // Wait 5 seconds for print to complete
-                    val endPacket = NiimbotProtocol.createPrintEndPacket()
-                    bluetoothManager.sendData(endPacket)
-                    kotlinx.coroutines.delay(100)
-                    val heartbeatPacket = NiimbotProtocol.createHeartbeatPacket()
-                    bluetoothManager.sendData(heartbeatPacket)
-                }
-                
+                // 5. Wait and Finalize
+                android.util.Log.d("PrinterViewModel", "Waiting for print to finish...")
+                kotlinx.coroutines.delay(5000) // Wait 5 seconds for print to complete
+                val endPacket = NiimbotProtocol.createPrintEndPacket()
+                bluetoothManager.sendData(endPacket)
+                kotlinx.coroutines.delay(100)
+                val heartbeatPacket = NiimbotProtocol.createHeartbeatPacket()
+                bluetoothManager.sendData(heartbeatPacket)
+
                 // 6. Success
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     android.util.Log.d("PrinterViewModel", "Test print sent successfully")
-                    successMessage = "Test print sent! (${model.name})"
+                    successMessage = "Test print sent!"
                 }
             } catch (e: Exception) {
                 android.util.Log.e("PrinterViewModel", "Print failed", e)

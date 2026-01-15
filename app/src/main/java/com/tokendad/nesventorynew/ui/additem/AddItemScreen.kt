@@ -11,6 +11,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -42,6 +44,50 @@ fun AddItemScreen(
         if (bitmap != null) {
             viewModel.analyzeBitmap(bitmap)
         }
+    }
+
+    val barcodeCameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            viewModel.scanBarcodeFromImage(bitmap)
+        }
+    }
+
+    if (viewModel.showBarcodeDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.showBarcodeDialog = false },
+            title = { Text("Barcode Lookup") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = viewModel.barcodeInput,
+                        onValueChange = { viewModel.barcodeInput = it },
+                        label = { Text("UPC / EAN") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = { barcodeCameraLauncher.launch(null) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Face, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Scan with Camera")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.lookupBarcode() }) {
+                    Text("Lookup")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.showBarcodeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -120,6 +166,16 @@ fun AddItemScreen(
                     Icon(Icons.Default.Face, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Camera", style = MaterialTheme.typography.bodySmall)
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.showBarcodeDialog = true },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Barcode", style = MaterialTheme.typography.bodySmall)
                 }
             }
             
@@ -244,6 +300,18 @@ fun AddItemScreen(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            
+            if (viewModel.showRetryOption) {
+                Button(
+                    onClick = { viewModel.retryWithStandardAi() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Icon(androidx.compose.material.icons.Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Retry with Standard AI", style = MaterialTheme.typography.bodyMedium)
+                }
             }
 
             Button(

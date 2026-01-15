@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +84,24 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("Login")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val scope = rememberCoroutineScope()
+
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            val url = viewModel.getSsoUrl()
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                            context.startActivity(intent)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("Login with SSO")
                 }
             }
 

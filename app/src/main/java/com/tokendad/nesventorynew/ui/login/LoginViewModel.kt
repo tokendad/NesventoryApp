@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -78,5 +79,12 @@ class LoginViewModel @Inject constructor(
                 isLoading = false
             }
         }
+    }
+
+    suspend fun getSsoUrl(): String {
+        val settings = preferencesManager.serverSettings.first()
+        val baseUrl = if (settings.remoteUrl.isNotBlank()) settings.remoteUrl else "https://nesdemo.welshrd.com/"
+        val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
+        return "$cleanBase/api/auth/oidc/login"
     }
 }

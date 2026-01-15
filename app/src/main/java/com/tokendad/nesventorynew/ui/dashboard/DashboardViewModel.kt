@@ -251,9 +251,9 @@ class DashboardViewModel @Inject constructor(
     fun testAIConnection() {
         viewModelScope.launch {
             try {
-                val status = api.getAIStatus()
-                aiStatus = status.enabled
-                aiStatusMessage = if (status.enabled) "Connected: ${status.model ?: "Unknown Model"}" else "AI Service Disabled"
+                val response = api.testAIConnection()
+                aiStatus = response.overall_success
+                aiStatusMessage = response.summary
             } catch (e: Exception) {
                 aiStatus = false
                 aiStatusMessage = "Connection Failed: ${e.localizedMessage}"

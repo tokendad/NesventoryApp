@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
@@ -23,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LocationDetailViewModel @Inject constructor(
     private val api: NesVentoryApi,
+    private val preferencesManager: PreferencesManager,
     private val bluetoothManager: BluetoothPrinterManager,
     private val labelGenerator: LabelBitmapGenerator,
     savedStateHandle: SavedStateHandle
@@ -32,6 +34,8 @@ class LocationDetailViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
+    
+    private var printMethod by mutableStateOf("local")
 
     init {
         val locationIdString: String? = savedStateHandle["locationId"]
@@ -43,9 +47,48 @@ class LocationDetailViewModel @Inject constructor(
                  errorMessage = "Invalid Location ID format"
              }
         }
+        loadSettings()
+    }
+    
+    private fun loadSettings() {
+        viewModelScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                printMethod = settings.printMethod
+            }
+        }
     }
 
     fun printLabel() {
+        if (printMethod == "server") {
+            printLabelOnServer()
+        } else {
+            printLabelLocally()
+        }
+    }
+
+    private fun printLabelOnServer() {
+        val currentLocation = location ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val request = com.tokendad.nesventorynew.data.remote.PrintJobRequest(
+                    entity_id = currentLocation.id,
+                    entity_type = "location",
+                    quantity = 1
+                )
+                api.printLabel(request)
+                successMessage = "Print job sent to server!"
+            } catch (e: Exception) {
+                errorMessage = "Server print failed: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    private fun printLabelLocally() {
         val currentLocation = location ?: return
         
         if (bluetoothManager.connectionState.value != 2) {
@@ -59,12 +102,8 @@ class LocationDetailViewModel @Inject constructor(
             successMessage = null
             try {
                 val config = api.getPrinterConfig()
-                android.util.Log.d("LocationDetailViewModel", "Fetched Config Model: ${config.model}")
-                val model = when (config.model) {
-                    "D11_H" -> PrinterModel.D11_H
-                    "D110M_V4" -> PrinterModel.D110M_V4
-                    else -> PrinterModel.D110
-                }
+                val model = PrinterModel.D110M_V4
+                android.util.Log.d("LocationDetailViewModel", "Using Model: ${model.name}")
 
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
@@ -86,12 +125,11 @@ class LocationDetailViewModel @Inject constructor(
                     delay(20)
                 }
 
-                if (model == PrinterModel.D110M_V4) {
-                    delay(5000)
-                    bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
-                    delay(100)
-                    bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
-                }
+                // Wait and Finalize
+                delay(5000)
+                bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
+                delay(100)
+                bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
 
                 withContext(Dispatchers.Main) {
                     successMessage = "Label printed successfully!"

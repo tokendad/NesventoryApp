@@ -50,9 +50,19 @@ object NetworkModule {
                     // Fetch current settings
                     val settings = runBlocking { preferencesManager.serverSettings.first() }
                     
-                    if (settings.remoteUrl.isNotBlank()) {
-                         val targetUrlStr = if (settings.remoteUrl.endsWith("/")) settings.remoteUrl else "${settings.remoteUrl}/"
-                         val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
+                    // Determine Target URL
+                    // Prioritize Remote URL, then fallback to Local URL
+                    val targetUrlStr = if (settings.remoteUrl.isNotBlank()) {
+                        settings.remoteUrl
+                    } else if (settings.localUrl.isNotBlank()) {
+                        settings.localUrl
+                    } else {
+                        null
+                    }
+                    
+                    if (targetUrlStr != null) {
+                         val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
+                         val newBaseUrl = safeTarget.toHttpUrlOrNull()
                          
                          if (newBaseUrl != null) {
                              // Reconstruct URL preserving custom base path and original API path

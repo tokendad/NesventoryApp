@@ -43,6 +43,7 @@ data class ItemCreate(
 
 data class DetectionResult(
     val items: List<DetectedItem>,
+    val source: String? = null,
     val raw_response: String? = null
 )
 
@@ -97,10 +98,9 @@ data class Document(
 // --- AI / New Feature Models ---
 
 data class AIStatusResponse(
-    val enabled: Boolean,
-    val model: String? = null,
-    val plugins_enabled: Boolean = false,
-    val plugin_count: Int = 0
+    val gemini_configured: Boolean,
+    val openai_configured: Boolean,
+    val plugins_configured: Int
 )
 
 data class DataTagInfo(
@@ -152,4 +152,22 @@ data class ItemEnrichmentResult(
     val item_id: UUID,
     val enriched_data: List<EnrichedItemData>,
     val message: String
+)
+
+data class AITestConnectionResult(
+    val provider_id: String,
+    val provider_name: String,
+    val success: Boolean,
+    val message: String,
+    val priority: Int,
+    val is_plugin: Boolean
+)
+
+data class AITestConnectionResponse(
+    val overall_success: Boolean,
+    val summary: String,
+    val results: List<AITestConnectionResult>,
+    val total_providers: Int,
+    val working_providers: Int,
+    val failed_providers: Int
 )

@@ -60,24 +60,76 @@ fun PrinterSettingsScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
 
-            // Model Selector
-            DropdownSelector(
-                label = "Printer Model",
-                options = viewModel.supportedModels,
-                selectedOption = viewModel.config.model,
-                onOptionSelected = viewModel::onModelChange
-            )
+            // Print Method Selector
+            Text("Print Method", style = MaterialTheme.typography.titleSmall)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = viewModel.printMethod == "local",
+                    onClick = { viewModel.printMethod = "local" },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Local Bluetooth")
+                }
+                SegmentedButton(
+                    selected = viewModel.printMethod == "server",
+                    onClick = { viewModel.printMethod = "server" },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Server Printer")
+                }
+            }
 
-            // Interface Selector
-            DropdownSelector(
-                label = "Interface Type",
-                options = viewModel.supportedInterfaces,
-                selectedOption = viewModel.config.interface_type,
-                onOptionSelected = viewModel::onInterfaceChange
-            )
+            HorizontalDivider()
 
-            // Bluetooth UI
-            if (viewModel.config.interface_type == "bluetooth") {
+            if (viewModel.printMethod == "server") {
+                // Server Configuration
+                Text("Server Printer Configuration", style = MaterialTheme.typography.titleMedium)
+                
+                // Model Selector from Server
+                DropdownSelector(
+                    label = "Server Printer Model",
+                    options = viewModel.serverPrinterModels.map { it.label },
+                    selectedOption = viewModel.serverPrinterModels.find { it.value == viewModel.config.model }?.label ?: viewModel.config.model,
+                    onOptionSelected = { label ->
+                        viewModel.serverPrinterModels.find { it.label == label }?.let { 
+                            viewModel.onModelChange(it.value)
+                        }
+                    }
+                )
+
+                DropdownSelector(
+                    label = "Interface Type",
+                    options = viewModel.supportedInterfaces,
+                    selectedOption = viewModel.config.interface_type,
+                    onOptionSelected = viewModel::onInterfaceChange
+                )
+
+                OutlinedTextField(
+                    value = viewModel.config.address ?: "",
+                    onValueChange = viewModel::onAddressChange,
+                    label = { Text("Address (USB Port, IP, or MAC)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Button(
+                    onClick = { viewModel.printTest() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text("Test Connection")
+                }
+
+            } else {
+                // Local Configuration
+                // Model Selector
+                DropdownSelector(
+                    label = "Local Printer Model",
+                    options = viewModel.supportedModels,
+                    selectedOption = viewModel.config.model,
+                    onOptionSelected = viewModel::onModelChange
+                )
+
+                // Bluetooth UI
                 HorizontalDivider()
                 Text("Bluetooth Devices", style = MaterialTheme.typography.titleMedium)
                 
@@ -112,24 +164,20 @@ fun PrinterSettingsScreen(
                     Text("Status: $statusText")
                 }
                 
-                // Device List
-                LazyColumn(
-                    modifier = Modifier
-                        .height(200.dp)
-                        .fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                        .padding(4.dp),
-                ) {
-                    items(scannedDevices) { device ->
-                        ListItem(
-                            headlineContent = { Text(device.name ?: "Unknown Device") },
-                            supportingContent = { Text(device.address) },
-                            modifier = Modifier.clickable { 
-                                viewModel.connect(device) 
-                                viewModel.onAddressChange(device.address)
-                            }
-                        )
-                        HorizontalDivider()
+                // Device List (condensed)
+                Box(modifier = Modifier.height(150.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)) {
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                        items(scannedDevices) { device ->
+                            ListItem(
+                                headlineContent = { Text(device.name ?: "Unknown Device", style = MaterialTheme.typography.bodySmall) },
+                                supportingContent = { Text(device.address, style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.clickable { 
+                                    viewModel.connect(device) 
+                                    viewModel.onAddressChange(device.address)
+                                }
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
                 
@@ -139,19 +187,12 @@ fun PrinterSettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
-                        Text("Test Print")
+                        Text("Test Local Print")
                     }
                 }
-                HorizontalDivider()
             }
 
-            // Address Field
-            OutlinedTextField(
-                value = viewModel.config.address ?: "",
-                onValueChange = viewModel::onAddressChange,
-                label = { Text("Address (MAC or Port)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            HorizontalDivider()
 
             // Density Slider
             Text("Print Density: ${viewModel.config.density}", style = MaterialTheme.typography.bodyMedium)
@@ -162,23 +203,21 @@ fun PrinterSettingsScreen(
                 steps = 3
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (viewModel.errorMessage != null) {
-                Text(viewModel.errorMessage!!, color = MaterialTheme.colorScheme.error)
+                Text(viewModel.errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             if (viewModel.successMessage != null) {
-                Text(viewModel.successMessage!!, color = MaterialTheme.colorScheme.primary)
+                Text(viewModel.successMessage!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
 
             Button(
                 onClick = { viewModel.saveConfig() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = !viewModel.isLoading
             ) {
-                Text("Save Configuration")
+                Text("Save Server Configuration")
             }
         }
     }

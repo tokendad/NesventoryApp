@@ -74,7 +74,8 @@ fun ItemsScreen(
                                 val locationName = item.location_id?.let { viewModel.locationNames[it] }
                                 ItemRow(
                                     item = item, 
-                                    locationName = locationName, 
+                                    locationName = locationName,
+                                    serverUrl = viewModel.serverUrl,
                                     onClick = { onItemClick(item.id) },
                                     onEdit = { onEditItemClick(item.id) },
                                     onDelete = { viewModel.deleteItem(item.id) }
@@ -88,6 +89,7 @@ fun ItemsScreen(
 fun ItemRow(
     item: Item, 
     locationName: String?, 
+    serverUrl: String,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -107,7 +109,7 @@ fun ItemRow(
             val primaryPhoto = item.photos.find { it.is_primary }
             val imageUrl = primaryPhoto?.let { photo ->
                 if (photo.path.startsWith("http")) photo.path 
-                else "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                else "$serverUrl/${photo.path.removePrefix("/")}"
             }
 
             Card(

@@ -21,7 +21,8 @@ data class ServerSettings(
     val localUrl: String = "",
     val localSsid: String = "",
     val prioritizeLocal: Boolean = false,
-    val theme: String = "system"
+    val theme: String = "system",
+    val printMethod: String = "local" // "local" or "server"
 ) {
     fun isConfigured(): Boolean = remoteUrl.isNotBlank() || localUrl.isNotBlank()
 }
@@ -49,6 +50,7 @@ class PreferencesManager @Inject constructor(
         private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
         private val KEY_PRIORITIZE_LOCAL = androidx.datastore.preferences.core.booleanPreferencesKey("prioritize_local")
         private val KEY_THEME = stringPreferencesKey("app_theme")
+        private val KEY_PRINT_METHOD = stringPreferencesKey("print_method")
         
         // Credentials
         private val KEY_USERNAME = stringPreferencesKey("username")
@@ -63,7 +65,8 @@ class PreferencesManager @Inject constructor(
             localUrl = preferences[KEY_LOCAL_URL] ?: "",
             localSsid = preferences[KEY_LOCAL_SSID] ?: "",
             prioritizeLocal = preferences[KEY_PRIORITIZE_LOCAL] ?: false,
-            theme = preferences[KEY_THEME] ?: "system"
+            theme = preferences[KEY_THEME] ?: "system",
+            printMethod = preferences[KEY_PRINT_METHOD] ?: "local"
         )
     }
 
@@ -91,6 +94,7 @@ class PreferencesManager @Inject constructor(
             preferences[KEY_LOCAL_SSID] = settings.localSsid
             preferences[KEY_PRIORITIZE_LOCAL] = settings.prioritizeLocal
             preferences[KEY_THEME] = settings.theme
+            preferences[KEY_PRINT_METHOD] = settings.printMethod
         }
     }
 

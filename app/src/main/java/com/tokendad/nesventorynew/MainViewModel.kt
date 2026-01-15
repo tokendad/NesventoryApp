@@ -36,4 +36,10 @@ class MainViewModel @Inject constructor(
             preferencesManager.clearAccessToken()
         }
     }
+
+    fun handleOidcToken(token: String) {
+        viewModelScope.launch {
+            preferencesManager.saveAccessToken(token)
+        }
+    }
 }

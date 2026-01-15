@@ -62,7 +62,10 @@ interface NesVentoryApi {
      */
     @Multipart
     @POST("api/ai/detect-items")
-    suspend fun detectItems(@Part file: MultipartBody.Part): DetectionResult
+    suspend fun detectItems(
+        @Part file: MultipartBody.Part,
+        @Part("use_plugins") usePlugins: Boolean = true
+    ): DetectionResult
 
     /**
      * Check AI Status
@@ -71,13 +74,19 @@ interface NesVentoryApi {
     suspend fun getAIStatus(): AIStatusResponse
 
     /**
+     * Test AI Connection
+     */
+    @POST("api/ai/test-connection")
+    suspend fun testAIConnection(): AITestConnectionResponse
+
+    /**
      * Parse Data Tag from Image
      */
     @Multipart
     @POST("api/ai/parse-data-tag")
     suspend fun parseDataTag(
         @Part file: MultipartBody.Part,
-        @Part("use_plugin") usePlugin: Boolean = true
+        @Part("use_plugins") usePlugins: Boolean = true
     ): DataTagInfo
 
     /**
@@ -86,8 +95,7 @@ interface NesVentoryApi {
     @Multipart
     @POST("api/ai/scan-barcode")
     suspend fun scanBarcode(
-        @Part file: MultipartBody.Part,
-        @Part("use_plugin") usePlugin: Boolean = true
+        @Part file: MultipartBody.Part
     ): BarcodeScanResult
 
     /**
@@ -151,6 +159,9 @@ interface NesVentoryApi {
 
     @PUT("api/printer/config")
     suspend fun updatePrinterConfig(@Body config: PrinterConfig): PrinterConfig
+
+    @GET("api/printer/models")
+    suspend fun getPrinterModels(): PrinterModelsResponse
 
     @POST("api/printer/print-label")
     suspend fun printLabel(@Body request: PrintJobRequest): Map<String, Any>

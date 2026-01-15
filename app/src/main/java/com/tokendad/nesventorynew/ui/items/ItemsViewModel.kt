@@ -14,14 +14,21 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
+import kotlinx.coroutines.flow.first
+
 @HiltViewModel
 class ItemsViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val api: NesVentoryApi,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     var items by mutableStateOf<List<Item>>(emptyList())
     var locationNames by mutableStateOf<Map<UUID, String>>(emptyMap())
     var searchQuery by mutableStateOf("")
+    
+    // Default to the known base URL, but update from prefs
+    var serverUrl by mutableStateOf("https://nesdemo.welshrd.com") 
     
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -38,6 +45,17 @@ class ItemsViewModel @Inject constructor(
 
     init {
         fetchData()
+        loadServerUrl()
+    }
+    
+    private fun loadServerUrl() {
+        viewModelScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                if (settings.remoteUrl.isNotBlank()) {
+                    serverUrl = settings.remoteUrl.trimEnd('/')
+                }
+            }
+        }
     }
 
     fun fetchData() {
