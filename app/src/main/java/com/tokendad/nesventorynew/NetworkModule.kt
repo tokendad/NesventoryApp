@@ -38,8 +38,7 @@ object NetworkModule {
         preferencesManager: PreferencesManager
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            // Host Selection Interceptor (Dynamic URL)
+            // 1. Host Selection Interceptor (Dynamic URL) - Runs first to rewrite target
             .addInterceptor(Interceptor { chain ->
                 var request = chain.request()
                 
@@ -50,27 +49,32 @@ object NetworkModule {
                 if (currentHost == placeholderHost) {
                     // Fetch current settings
                     val settings = runBlocking { preferencesManager.serverSettings.first() }
-                    val targetUrlStr = if (settings.remoteUrl.isNotBlank()) {
-                         if (settings.remoteUrl.endsWith("/")) settings.remoteUrl else "${settings.remoteUrl}/"
-                    } else {
-                        BASE_URL
-                    }
-
-                    val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
                     
-                    if (newBaseUrl != null) {
-                        val newUrl = request.url.newBuilder()
-                            .scheme(newBaseUrl.scheme ?: "http")
-                            .host(newBaseUrl.host)
-                            .port(newBaseUrl.port)
-                            .build()
-                        request = request.newBuilder().url(newUrl).build()
+                    if (settings.remoteUrl.isNotBlank()) {
+                         val targetUrlStr = if (settings.remoteUrl.endsWith("/")) settings.remoteUrl else "${settings.remoteUrl}/"
+                         val newBaseUrl = targetUrlStr.toHttpUrlOrNull()
+                         
+                         if (newBaseUrl != null) {
+                             // Reconstruct URL preserving custom base path and original API path
+                             // request.url.encodedPath includes the full path (e.g. "/api/auth/login")
+                             // We strip the leading slash to append it safely to the new base
+                             val apiPath = request.url.encodedPath.trimStart('/')
+                             
+                             val newUrl = newBaseUrl.newBuilder()
+                                 .addEncodedPathSegments(apiPath)
+                                 .query(request.url.query) // Preserve query parameters
+                                 .build()
+                                 
+                             request = request.newBuilder()
+                                 .url(newUrl)
+                                 .build()
+                         }
                     }
                 }
 
                 chain.proceed(request)
             })
-            // Auth Header Interceptor
+            // 2. Auth Header Interceptor
             .addInterceptor(Interceptor { chain ->
                 val originalRequest = chain.request()
                 val requestBuilder = originalRequest.newBuilder()
@@ -83,7 +87,7 @@ object NetworkModule {
 
                 chain.proceed(requestBuilder.build())
             })
-            // 401 Unauthorized Interceptor
+            // 3. 401 Unauthorized Interceptor
             .addInterceptor(Interceptor { chain ->
                 val response = chain.proceed(chain.request())
                 
@@ -96,6 +100,8 @@ object NetworkModule {
                 
                 response
             })
+            // 4. Logging Interceptor - Runs last to log the FINAL request (headers + rewritten URL)
+            .addInterceptor(loggingInterceptor)
             .build()
     }
 
