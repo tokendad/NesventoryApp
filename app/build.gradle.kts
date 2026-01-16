@@ -17,7 +17,7 @@ android {
         applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = versionText
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
