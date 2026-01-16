@@ -6,8 +6,12 @@ An Android application for managing your NesVentory with AI-powered item detecti
 
 - **Inventory Management**: Keep track of your items, their locations, brands, and values.
 - **AI Item Detection**: Use your camera or gallery to automatically identify items and populate details.
-- **Location Tracking**: Organize your items by physical locations.
+- **Location Tracking**: Organize your items by physical locations with **Room Categories**.
 - **Printer Support**: Native support for Niimbot Bluetooth printers (D11, D110, D11_H) with RFID tag reading.
+- **Asset Management**:
+    - **Media Gallery**: Attach photos and documents to items.
+    - **Maintenance Tracking**: Schedule and track maintenance tasks for your equipment.
+    - **Insurance Info**: Record policy details and coverage for valuable items.
 - **Play Store Integrated**: Automated deployment workflows for internal testing.
 
 ## Printer Support
