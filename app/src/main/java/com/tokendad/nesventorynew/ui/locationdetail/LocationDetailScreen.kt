@@ -17,6 +17,9 @@ import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.InsuranceInfo
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.PolicyHolder
+import com.tokendad.nesventorynew.util.RoomCategories
+import com.tokendad.nesventorynew.util.CurrencyFormatter
+import com.tokendad.nesventorynew.util.DateFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +169,21 @@ fun DetailsTab(location: Location) {
         location.friendly_name?.let {
             Text(text = "($it)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
         }
+        
+        // Room Category
+        location.room_category?.let { category ->
+            AssistChip(
+                onClick = {},
+                label = { Text(category) },
+                leadingIcon = {
+                    Icon(
+                        RoomCategories.icons[category] ?: Icons.Default.Category,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (location.is_primary_location) {
@@ -196,12 +214,12 @@ fun DetailsTab(location: Location) {
 
             location.estimated_property_value?.let {
                 Text(text = "Property Value", style = MaterialTheme.typography.titleMedium)
-                Text(text = "$$it", style = MaterialTheme.typography.bodyLarge)
+                Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
             }
 
             location.estimated_value_with_items?.let {
                 Text(text = "Value with Items", style = MaterialTheme.typography.titleMedium)
-                Text(text = "$$it", style = MaterialTheme.typography.bodyLarge)
+                Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
             }
         }
 
@@ -209,8 +227,8 @@ fun DetailsTab(location: Location) {
 
         // Timestamps
         Column {
-            Text(text = "Created: ${location.created_at}", style = MaterialTheme.typography.bodySmall)
-            Text(text = "Updated: ${location.updated_at}", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Created: ${DateFormatter.formatDateTime(location.created_at)}", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Updated: ${DateFormatter.formatDateTime(location.updated_at)}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

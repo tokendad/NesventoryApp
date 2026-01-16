@@ -28,6 +28,7 @@ class EditLocationViewModel @Inject constructor(
     var selectedParentId by mutableStateOf<UUID?>(null)
     var isPrimaryLocation by mutableStateOf(false)
     var isContainer by mutableStateOf(false)
+    var roomCategory by mutableStateOf<String?>(null)
 
     // Insurance fields
     var companyName by mutableStateOf("")
@@ -72,6 +73,7 @@ class EditLocationViewModel @Inject constructor(
                 selectedParentId = loc.parent_id
                 isPrimaryLocation = loc.is_primary_location
                 isContainer = loc.is_container
+                roomCategory = loc.room_category
 
                 // Load insurance info
                 loc.insurance_info?.let { info ->
@@ -130,6 +132,7 @@ class EditLocationViewModel @Inject constructor(
                     is_primary_location = isPrimaryLocation,
                     is_container = isContainer,
                     estimated_property_value = estimatedPropertyValue.ifBlank { null },
+                    room_category = roomCategory,
                     insurance_info = com.tokendad.nesventorynew.data.remote.InsuranceInfo(
                         company_name = companyName.ifBlank { null },
                         company_address = companyAddress.ifBlank { null },

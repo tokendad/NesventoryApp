@@ -19,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.Item
 import com.tokendad.nesventorynew.data.remote.Photo
+import com.tokendad.nesventorynew.util.CurrencyFormatter
+import com.tokendad.nesventorynew.util.DateFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -204,7 +206,7 @@ fun DetailsTab(item: Item, serverUrl: String) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Purchase Price", style = MaterialTheme.typography.bodyMedium)
-                    Text("$$it", style = MaterialTheme.typography.bodyMedium)
+                    Text(CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             item.purchase_date?.let {
@@ -213,7 +215,7 @@ fun DetailsTab(item: Item, serverUrl: String) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Purchase Date", style = MaterialTheme.typography.bodyMedium)
-                    Text(it, style = MaterialTheme.typography.bodyMedium)
+                    Text(DateFormatter.formatDate(it), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             item.retailer?.let {
@@ -231,15 +233,23 @@ fun DetailsTab(item: Item, serverUrl: String) {
         item.estimated_value?.let {
             HorizontalDivider()
             Text(text = "Estimated Value", style = MaterialTheme.typography.titleMedium)
-            Text(text = "$$it", style = MaterialTheme.typography.bodyLarge)
+            Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
+        }
+
+        // Custom Fields
+        item.custom_fields?.let { fields ->
+            if (fields.isNotEmpty()) {
+                HorizontalDivider()
+                CustomFieldsSection(fields)
+            }
         }
 
         HorizontalDivider()
 
         // Timestamps
         Column {
-            Text(text = "Created: ${item.created_at}", style = MaterialTheme.typography.bodySmall)
-            Text(text = "Updated: ${item.updated_at}", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Created: ${DateFormatter.formatDateTime(item.created_at)}", style = MaterialTheme.typography.bodySmall)
+            Text(text = "Updated: ${DateFormatter.formatDateTime(item.updated_at)}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -320,6 +330,39 @@ fun MediaTab(photos: List<Photo>, serverUrl: String) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomFieldsSection(customFields: Map<String, Any>?) {
+    if (customFields.isNullOrEmpty()) return
+
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Custom Fields",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            customFields.forEach { (key, value) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = key.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }

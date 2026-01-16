@@ -16,7 +16,8 @@ data class Item(
     val location_id: UUID? = null,
     val created_at: String,
     val updated_at: String,
-    val photos: List<Photo> = emptyList()
+    val photos: List<Photo> = emptyList(),
+    val custom_fields: Map<String, Any>? = null
 )
 
 data class Photo(

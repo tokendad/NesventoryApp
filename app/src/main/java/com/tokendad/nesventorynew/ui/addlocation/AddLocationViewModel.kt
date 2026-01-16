@@ -26,6 +26,7 @@ class AddLocationViewModel @Inject constructor(
     var selectedParentId by mutableStateOf<UUID?>(null)
     var isPrimaryLocation by mutableStateOf(false)
     var isContainer by mutableStateOf(false)
+    var roomCategory by mutableStateOf<String?>(null)
     
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     
@@ -64,7 +65,8 @@ class AddLocationViewModel @Inject constructor(
                     parent_id = selectedParentId,
                     is_primary_location = isPrimaryLocation,
                     is_container = isContainer,
-                    estimated_property_value = estimatedPropertyValue.ifBlank { null }
+                    estimated_property_value = estimatedPropertyValue.ifBlank { null },
+                    room_category = roomCategory
                 )
                 api.createLocation(newLocation)
                 onSuccess()

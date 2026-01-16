@@ -6,12 +6,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tokendad.nesventorynew.util.RoomCategories
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +101,12 @@ fun AddLocationScreen(
                     }
                 }
             }
+
+            // Room Category
+            RoomCategorySelector(
+                selected = viewModel.roomCategory,
+                onSelect = { viewModel.roomCategory = it }
+            )
 
             // Address
             CompactTextField(
@@ -208,3 +216,55 @@ fun CompactTextField(
 fun Modifier.scale(scale: Float): Modifier = this.then(Modifier.size(width = 50.dp * scale, height = 30.dp * scale)) // Approximate logic, usually easier with Transform or just smaller size
 // Actually, standard Switch size is fixed. Modifier.scale works but affects layout size weirdly sometimes.
 // Let's rely on standard Switch but maybe smaller padding around text.
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RoomCategorySelector(
+    selected: String?,
+    onSelect: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selected ?: "Select Category",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Room Category", style = MaterialTheme.typography.bodySmall) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true),
+            textStyle = MaterialTheme.typography.bodySmall
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("None") },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                }
+            )
+            RoomCategories.categories.forEach { category ->
+                DropdownMenuItem(
+                    text = { Text(category) },
+                    leadingIcon = {
+                        Icon(
+                            RoomCategories.icons[category] ?: Icons.Default.Category,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        onSelect(category)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
