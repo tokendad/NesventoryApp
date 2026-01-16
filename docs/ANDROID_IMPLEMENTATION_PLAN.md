@@ -62,8 +62,17 @@ This document outlines the roadmap for updating the NesventoryNew Android applic
 - [ ] **International Formats (v6.5.0):**
     - **Currency:** Respect the server's or device's currency locale settings in `ItemDetail` and lists.
     - **Date/Time:** Use locale-aware date formatting throughout the app.
+    - **Implementation:** Create `CurrencyFormatter` and `DateFormatter` utility classes.
 - [ ] **Custom Fields:**
     - Support dynamic rendering of "Custom Fields" introduced in v6.5.0 if they are exposed in the Item API response.
+    - Add `custom_fields: Map<String, Any>?` to Item model.
+    - Create `CustomFieldsSection` composable for display.
+- [ ] **Location Room Categories:**
+    - **Feature:** Add room/area categorization for locations (Kitchen, Bedroom, Garage, Office, etc.).
+    - **Model:** Add `room_category: String?` to Location and LocationCreate models.
+    - **UI:** Add category selector dropdown in AddLocationScreen and EditLocationScreen.
+    - **Display:** Show room category chip with icon in LocationDetailScreen.
+    - **Categories:** Living Room, Bedroom, Kitchen, Bathroom, Dining Room, Office, Garage, Basement, Attic, Storage, Closet, Laundry Room, Outdoor, Other.
 
 ## Testing Strategy
 - **Stage 1 & 2:** Can be tested with a local dev server instance.
