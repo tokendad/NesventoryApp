@@ -216,7 +216,7 @@ fun ServerScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryEditable, true)
                                 .fillMaxWidth()
                                 .height(56.dp),
                             textStyle = MaterialTheme.typography.bodySmall

@@ -71,6 +71,7 @@ class DashboardViewModel @Inject constructor(
                     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                 ) {
                     val results = wifiManager.scanResults
+                    @Suppress("DEPRECATION")
                     availableSsids = results
                         .mapNotNull { it.SSID }
                         .filter { it.isNotBlank() }

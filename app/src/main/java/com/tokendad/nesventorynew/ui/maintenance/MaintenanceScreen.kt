@@ -215,7 +215,7 @@ fun CreateMaintenanceTaskDialog(viewModel: MaintenanceViewModel) {
                         readOnly = true,
                         label = { Text("Item *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
                     )
                     ExposedDropdownMenu(
                         expanded = itemExpanded,
@@ -254,7 +254,7 @@ fun CreateMaintenanceTaskDialog(viewModel: MaintenanceViewModel) {
                         readOnly = true,
                         label = { Text("Frequency") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = frequencyExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
                     )
                     ExposedDropdownMenu(
                         expanded = frequencyExpanded,

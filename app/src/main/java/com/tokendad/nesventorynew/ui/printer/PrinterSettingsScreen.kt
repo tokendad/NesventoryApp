@@ -243,7 +243,7 @@ fun DropdownSelector(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
         )
         ExposedDropdownMenu(
             expanded = expanded,

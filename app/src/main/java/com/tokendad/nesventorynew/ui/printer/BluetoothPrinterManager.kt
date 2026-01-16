@@ -141,7 +141,9 @@ class BluetoothPrinterManager @Inject constructor(
             val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
                 bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) == BluetoothGatt.GATT_SUCCESS
             } else {
+                @Suppress("DEPRECATION")
                 char.value = data
+                @Suppress("DEPRECATION")
                 bluetoothGatt?.writeCharacteristic(char) == true
             }
             
@@ -252,8 +254,14 @@ class BluetoothPrinterManager @Inject constructor(
                 // Standard descriptor for notifications
                 val descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
                 if (descriptor != null) {
-                    descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    gatt.writeDescriptor(descriptor)
+                    if (android.os.Build.VERSION.SDK_INT >= 33) {
+                        gatt.writeDescriptor(descriptor, android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                        @Suppress("DEPRECATION")
+                        gatt.writeDescriptor(descriptor)
+                    }
                     Log.d(TAG, "Notification descriptor written for ${characteristic.uuid}")
                 } else {
                      Log.w(TAG, "Could not find CCCD descriptor for ${characteristic.uuid}")
@@ -263,12 +271,25 @@ class BluetoothPrinterManager @Inject constructor(
             }
         }
 
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
+            handleCharacteristicChange(value)
+        }
+
+        @Suppress("DEPRECATION")
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
             val value = characteristic.value ?: return
+            handleCharacteristicChange(value)
+        }
+
+        private fun handleCharacteristicChange(value: ByteArray) {
             val hex = value.joinToString("") { "%02x".format(it) }
             Log.d(TAG, "Received: $hex")
             writeChannel.trySend(BluetoothGatt.GATT_SUCCESS) // Some printers Ack via notify?
