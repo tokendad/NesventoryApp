@@ -4,9 +4,8 @@ import java.text.NumberFormat
 import java.util.Locale
 
 object CurrencyFormatter {
-    private val currencyFormat: NumberFormat by lazy {
-        NumberFormat.getCurrencyInstance(Locale.getDefault())
-    }
+    private val currencyFormat: NumberFormat
+        get() = NumberFormat.getCurrencyInstance(Locale.getDefault())
 
     fun format(value: String?): String {
         if (value.isNullOrBlank()) return ""
