@@ -139,7 +139,7 @@ class BluetoothPrinterManager @Inject constructor(
             char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
             
             val success = if (android.os.Build.VERSION.SDK_INT >= 33) {
-                bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) == BluetoothGatt.GATT_SUCCESS
+                bluetoothGatt?.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) == android.bluetooth.BluetoothStatusCodes.SUCCESS
             } else {
                 @Suppress("DEPRECATION")
                 char.value = data
@@ -189,6 +189,7 @@ class BluetoothPrinterManager @Inject constructor(
             }
         }
 
+        @SuppressLint("MissingPermission")
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
             Log.d(TAG, "MTU changed to $mtu (Status: $status). Discovering services...")
             if (status == BluetoothGatt.GATT_SUCCESS) {

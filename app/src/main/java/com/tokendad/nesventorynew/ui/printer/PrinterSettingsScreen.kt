@@ -168,8 +168,10 @@ fun PrinterSettingsScreen(
                 Box(modifier = Modifier.height(150.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)) {
                     LazyColumn(modifier = Modifier.fillMaxSize().padding(4.dp)) {
                         items(scannedDevices) { device ->
+                            @android.annotation.SuppressLint("MissingPermission")
+                            val deviceName = device.name ?: "Unknown Device"
                             ListItem(
-                                headlineContent = { Text(device.name ?: "Unknown Device", style = MaterialTheme.typography.bodySmall) },
+                                headlineContent = { Text(deviceName, style = MaterialTheme.typography.bodySmall) },
                                 supportingContent = { Text(device.address, style = MaterialTheme.typography.labelSmall) },
                                 modifier = Modifier.clickable { 
                                     viewModel.connect(device) 
