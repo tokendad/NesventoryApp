@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.gson) // Explicit version to fix CVE-2022-25647
 
     // Coil
     implementation(libs.coil.compose)
