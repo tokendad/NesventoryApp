@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tokendad.nesventorynew.ui.dashboard.DashboardScreen
 import com.tokendad.nesventorynew.ui.dashboard.DashboardViewModel
