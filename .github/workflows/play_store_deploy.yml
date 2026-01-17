@@ -33,7 +33,12 @@ jobs:
           # Extract everything after the version header until the next version header or end of file
           sed -n "/## \[$VERSION\]/,/## \[/{/## \[$VERSION\]/b; /## \[/q; p}" CHANGELOG.md > /tmp/temp-notes.txt
           # Truncate to 500 characters (Google Play Store limit)
-          head -c 500 /tmp/temp-notes.txt > distribution/whatsnew/whatsnew-en-US
+          # If content is longer, truncate at word boundary and add ellipsis
+          if [ $(wc -c < /tmp/temp-notes.txt) -gt 500 ]; then
+            head -c 497 /tmp/temp-notes.txt | sed 's/[^ ]*$/.../' > distribution/whatsnew/whatsnew-en-US
+          else
+            cp /tmp/temp-notes.txt distribution/whatsnew/whatsnew-en-US
+          fi
 
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
