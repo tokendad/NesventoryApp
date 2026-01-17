@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tokendad.nesventorynew.ui.addlocation.CompactTextField
-import com.tokendad.nesventorynew.ui.addlocation.RoomCategorySelector
+import com.tokendad.nesventorynew.ui.addlocation.LocationCategorySelector
 import com.tokendad.nesventorynew.ui.addlocation.scale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,10 +134,11 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
             }
         }
 
-        // Room Category
-        RoomCategorySelector(
-            selected = viewModel.roomCategory,
-            onSelect = { viewModel.roomCategory = it }
+        // Location Category
+        LocationCategorySelector(
+            selected = viewModel.locationCategory,
+            categories = viewModel.locationCategories,
+            onSelect = { viewModel.locationCategory = it }
         )
 
         // Address

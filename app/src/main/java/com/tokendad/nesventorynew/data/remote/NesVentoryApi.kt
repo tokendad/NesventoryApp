@@ -169,6 +169,9 @@ interface NesVentoryApi {
     @GET("api/printer/status")
     suspend fun getPrinterStatus(): PrinterStatus
 
+    @POST("api/printer/test-connection")
+    suspend fun testPrinterConnection(@Body config: PrinterConfig): PrinterTestResult
+
     /**
      * Media Management
      */
@@ -201,6 +204,12 @@ interface NesVentoryApi {
         @Path("item_id") itemId: UUID,
         @Path("document_id") documentId: UUID
     )
+
+    /**
+     * Get Location Categories
+     */
+    @GET("api/settings/location-categories")
+    suspend fun getLocationCategories(): List<String>
 
     /**
      * Get Locations List

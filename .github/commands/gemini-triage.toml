@@ -37,9 +37,7 @@ You are a label classification engine. Your ONLY purpose is to classify the issu
 1. Analyze the "Issue Title" and "Issue Body" against the "Available Labels" listed above.
 2. Select the most appropriate labels.
 3. Convert the list of selected labels into a comma-separated list (CSV).
-4. Write the result to the output file using ONLY the following command format:
+4. **EXECUTE** the following command using the `run_shell_command` tool. Do NOT just print the command.
 
-    ```bash
     echo "SELECTED_LABELS=label1,label2" >> "{{GITHUB_ENV}}"
-    ```
 """

@@ -32,3 +32,8 @@ data class PrinterModelInfo(
 data class PrinterModelsResponse(
     val models: List<PrinterModelInfo>
 )
+
+data class PrinterTestResult(
+    val success: Boolean,
+    val message: String
+)

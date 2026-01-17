@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,11 +16,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LocationsViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val api: NesVentoryApi,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private var allLocations = listOf<Location>()
     var searchQuery by mutableStateOf("")
+    var serverUrl by mutableStateOf("")
     
     // Drill-down state
     var currentParentId by mutableStateOf<UUID?>(null)
@@ -49,6 +52,15 @@ class LocationsViewModel @Inject constructor(
 
     init {
         fetchLocations()
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                serverUrl = settings.remoteUrl.trimEnd('/')
+            }
+        }
     }
 
     fun fetchLocations() {

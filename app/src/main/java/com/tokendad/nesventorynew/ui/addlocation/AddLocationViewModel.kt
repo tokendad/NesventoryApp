@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.LocationCreate
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -26,15 +27,17 @@ class AddLocationViewModel @Inject constructor(
     var selectedParentId by mutableStateOf<UUID?>(null)
     var isPrimaryLocation by mutableStateOf(false)
     var isContainer by mutableStateOf(false)
-    var roomCategory by mutableStateOf<String?>(null)
-    
+    var locationCategory by mutableStateOf<String?>(null)
+
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
-    
+    var locationCategories by mutableStateOf<List<String>>(RoomCategories.defaultCategories)
+
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
     init {
         fetchLocations()
+        fetchLocationCategories()
     }
 
     private fun fetchLocations() {
@@ -43,6 +46,16 @@ class AddLocationViewModel @Inject constructor(
                 availableLocations = api.getLocations()
             } catch (_: Exception) {
                 // Fail silently
+            }
+        }
+    }
+
+    private fun fetchLocationCategories() {
+        viewModelScope.launch {
+            try {
+                locationCategories = api.getLocationCategories()
+            } catch (_: Exception) {
+                // Fall back to defaults silently
             }
         }
     }
@@ -66,7 +79,7 @@ class AddLocationViewModel @Inject constructor(
                     is_primary_location = isPrimaryLocation,
                     is_container = isContainer,
                     estimated_property_value = estimatedPropertyValue.ifBlank { null },
-                    room_category = roomCategory
+                    location_category = locationCategory
                 )
                 api.createLocation(newLocation)
                 onSuccess()

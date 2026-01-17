@@ -123,11 +123,11 @@ fun LocationDetailScreen(
             } else if (location != null) {
                 if (location.is_primary_location) {
                     when (selectedTab) {
-                        0 -> DetailsTab(location)
+                        0 -> DetailsTab(location, viewModel.serverUrl)
                         1 -> InsuranceTab(location.insurance_info)
                     }
                 } else {
-                    DetailsTab(location)
+                    DetailsTab(location, viewModel.serverUrl)
                 }
             }
         }
@@ -135,7 +135,7 @@ fun LocationDetailScreen(
 }
 
 @Composable
-fun DetailsTab(location: Location) {
+fun DetailsTab(location: Location, serverUrl: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -149,7 +149,7 @@ fun DetailsTab(location: Location) {
             val imageUrl = if (photo.path.startsWith("http")) {
                 photo.path
             } else {
-                 "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                "$serverUrl/${photo.path.removePrefix("/")}"
             }
 
             AsyncImage(
@@ -170,14 +170,14 @@ fun DetailsTab(location: Location) {
             Text(text = "($it)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
         }
         
-        // Room Category
-        location.room_category?.let { category ->
+        // Location Category
+        location.location_category?.let { category ->
             AssistChip(
                 onClick = {},
                 label = { Text(category) },
                 leadingIcon = {
                     Icon(
-                        RoomCategories.icons[category] ?: Icons.Default.Category,
+                        RoomCategories.getIcon(category),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

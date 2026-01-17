@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.ItemCreate
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
@@ -20,6 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class EditItemViewModel @Inject constructor(
     private val api: NesVentoryApi,
+    private val preferencesManager: PreferencesManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -42,6 +44,7 @@ class EditItemViewModel @Inject constructor(
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    var serverUrl by mutableStateOf("")
 
     // Enrichment Review State
     var isReviewingEnrichment by mutableStateOf(false)
@@ -54,6 +57,15 @@ class EditItemViewModel @Inject constructor(
             fetchItem(itemId!!)
         }
         fetchLocations()
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                serverUrl = settings.remoteUrl.trimEnd('/')
+            }
+        }
     }
 
     // ... (existing fetchItem, fetchMaintenanceTasks, fetchLocations, updateItem)

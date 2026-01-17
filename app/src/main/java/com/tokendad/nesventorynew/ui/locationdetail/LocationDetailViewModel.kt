@@ -34,7 +34,8 @@ class LocationDetailViewModel @Inject constructor(
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
-    
+    var serverUrl by mutableStateOf("")
+
     private var printMethod by mutableStateOf("local")
 
     init {
@@ -54,6 +55,7 @@ class LocationDetailViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.serverSettings.collect { settings ->
                 printMethod = settings.printMethod
+                serverUrl = settings.remoteUrl.trimEnd('/')
             }
         }
     }

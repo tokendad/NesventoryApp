@@ -2,9 +2,11 @@ package com.tokendad.nesventorynew.util
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
 
 object RoomCategories {
-    val categories = listOf(
+    // Default categories used as fallback when API is unavailable
+    val defaultCategories = listOf(
         "Living Room",
         "Bedroom",
         "Kitchen",
@@ -21,6 +23,7 @@ object RoomCategories {
         "Other"
     )
 
+    // Icon mappings for known categories
     val icons = mapOf(
         "Living Room" to Icons.Default.Weekend,
         "Bedroom" to Icons.Default.Bed,
@@ -35,6 +38,13 @@ object RoomCategories {
         "Closet" to Icons.Default.Checkroom,
         "Laundry Room" to Icons.Default.LocalLaundryService,
         "Outdoor" to Icons.Default.Park,
+        "Room" to Icons.Default.MeetingRoom,
+        "Primary" to Icons.Default.Home,
         "Other" to Icons.Default.Category
     )
+
+    // Get icon for a category, with fallback for unknown categories
+    fun getIcon(category: String): ImageVector {
+        return icons[category] ?: Icons.Default.Category
+    }
 }

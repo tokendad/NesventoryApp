@@ -81,7 +81,8 @@ fun DashboardScreen(
 
                     items(displayItems) { item ->
                         DashboardItemRow(
-                            item = item, 
+                            item = item,
+                            serverUrl = viewModel.remoteUrl.trimEnd('/'),
                             onClick = { onItemClick(item.id) },
                             onEdit = { onEditItemClick(item.id) },
                             onDelete = { viewModel.deleteItem(item.id) }
@@ -101,7 +102,8 @@ fun DashboardScreen(
 
 @Composable
 fun DashboardItemRow(
-    item: Item, 
+    item: Item,
+    serverUrl: String,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -120,8 +122,8 @@ fun DashboardItemRow(
             // Primary Photo
             val primaryPhoto = item.photos.find { it.is_primary }
             val imageUrl = primaryPhoto?.let { photo ->
-                if (photo.path.startsWith("http")) photo.path 
-                else "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                if (photo.path.startsWith("http")) photo.path
+                else "$serverUrl/${photo.path.removePrefix("/")}"
             }
 
             Card(

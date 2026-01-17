@@ -87,6 +87,7 @@ fun LocationsScreen(
                 items(viewModel.displayedLocations) { location ->
                     LocationRow(
                         location = location,
+                        serverUrl = viewModel.serverUrl,
                         onNavigate = { viewModel.navigateTo(location.id) },
                         onViewDetails = { onLocationClick(location.id) },
                         onEdit = { onEditLocationClick(location.id) },
@@ -101,6 +102,7 @@ fun LocationsScreen(
 @Composable
 fun LocationRow(
     location: Location,
+    serverUrl: String,
     onNavigate: () -> Unit,
     onViewDetails: () -> Unit,
     onEdit: () -> Unit,
@@ -124,8 +126,8 @@ fun LocationRow(
                 // Primary Photo
                 val primaryPhoto = location.location_photos.find { it.is_primary }
                 val imageUrl = primaryPhoto?.let { photo ->
-                    if (photo.path.startsWith("http")) photo.path 
-                    else "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                    if (photo.path.startsWith("http")) photo.path
+                    else "$serverUrl/${photo.path.removePrefix("/")}"
                 }
 
                 Card(

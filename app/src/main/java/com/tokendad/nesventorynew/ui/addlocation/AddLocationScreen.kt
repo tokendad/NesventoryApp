@@ -102,10 +102,11 @@ fun AddLocationScreen(
                 }
             }
 
-            // Room Category
-            RoomCategorySelector(
-                selected = viewModel.roomCategory,
-                onSelect = { viewModel.roomCategory = it }
+            // Location Category
+            LocationCategorySelector(
+                selected = viewModel.locationCategory,
+                categories = viewModel.locationCategories,
+                onSelect = { viewModel.locationCategory = it }
             )
 
             // Address
@@ -219,8 +220,9 @@ fun Modifier.scale(scale: Float): Modifier = this.then(Modifier.size(width = 50.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomCategorySelector(
+fun LocationCategorySelector(
     selected: String?,
+    categories: List<String>,
     onSelect: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -234,7 +236,7 @@ fun RoomCategorySelector(
             value = selected ?: "Select Category",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Room Category", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("Location Category", style = MaterialTheme.typography.bodySmall) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true),
             textStyle = MaterialTheme.typography.bodySmall
@@ -250,12 +252,12 @@ fun RoomCategorySelector(
                     expanded = false
                 }
             )
-            RoomCategories.categories.forEach { category ->
+            categories.forEach { category ->
                 DropdownMenuItem(
                     text = { Text(category) },
                     leadingIcon = {
                         Icon(
-                            RoomCategories.icons[category] ?: Icons.Default.Category,
+                            RoomCategories.getIcon(category),
                             contentDescription = null
                         )
                     },

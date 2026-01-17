@@ -68,7 +68,7 @@ fun EditItemScreen(
         ) {
             when (selectedTab) {
                 0 -> DetailsTab(viewModel, onItemUpdated)
-                1 -> MediaTab(viewModel)
+                1 -> MediaTab(viewModel, viewModel.serverUrl)
                 2 -> MaintenanceTab(viewModel)
             }
         }
@@ -264,7 +264,7 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
 }
 
 @Composable
-fun MediaTab(viewModel: EditItemViewModel) {
+fun MediaTab(viewModel: EditItemViewModel, serverUrl: String) {
     if (viewModel.itemMedia.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No photos available for this item.")
@@ -278,8 +278,8 @@ fun MediaTab(viewModel: EditItemViewModel) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(viewModel.itemMedia) { photo ->
-                val imageUrl = if (photo.path.startsWith("http")) photo.path 
-                else "https://nesdemo.welshrd.com/${photo.path.removePrefix("/")}"
+                val imageUrl = if (photo.path.startsWith("http")) photo.path
+                else "$serverUrl/${photo.path.removePrefix("/")}"
                 
                 Box {
                     AsyncImage(

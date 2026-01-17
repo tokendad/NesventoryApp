@@ -18,7 +18,7 @@ data class Location(
     val created_at: String,
     val updated_at: String,
     val location_photos: List<LocationPhoto> = emptyList(),
-    val room_category: String? = null
+    val location_category: String? = null
 )
 
 data class InsuranceInfo(
@@ -61,5 +61,5 @@ data class LocationCreate(
     val is_container: Boolean = false,
     val estimated_property_value: String? = null,
     val insurance_info: InsuranceInfo? = null,
-    val room_category: String? = null
+    val location_category: String? = null
 )

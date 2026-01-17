@@ -19,6 +19,45 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onServerSettingsClick: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LoginScreenContent(
+        username = viewModel.username,
+        onUsernameChange = { viewModel.username = it },
+        password = viewModel.password,
+        onPasswordChange = { viewModel.password = it },
+        rememberCredentials = viewModel.rememberCredentials,
+        onRememberCredentialsChange = { viewModel.rememberCredentials = it },
+        isLoading = viewModel.isLoading,
+        errorMessage = viewModel.errorMessage,
+        onLoginClick = { viewModel.login(onLoginSuccess) },
+        onSsoLoginClick = {
+            scope.launch {
+                val url = viewModel.getSsoUrl()
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                context.startActivity(intent)
+            }
+        },
+        onServerSettingsClick = onServerSettingsClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreenContent(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    rememberCredentials: Boolean,
+    onRememberCredentialsChange: (Boolean) -> Unit,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onLoginClick: () -> Unit,
+    onSsoLoginClick: () -> Unit,
+    onServerSettingsClick: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -43,8 +82,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = viewModel.username,
-                onValueChange = { viewModel.username = it },
+                value = username,
+                onValueChange = onUsernameChange,
                 label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -53,8 +92,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = viewModel.password,
-                onValueChange = { viewModel.password = it },
+                value = password,
+                onValueChange = onPasswordChange,
                 label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -68,19 +107,19 @@ fun LoginScreen(
                     .padding(vertical = 8.dp)
             ) {
                 Checkbox(
-                    checked = viewModel.rememberCredentials,
-                    onCheckedChange = { viewModel.rememberCredentials = it }
+                    checked = rememberCredentials,
+                    onCheckedChange = onRememberCredentialsChange
                 )
                 Text(text = "Remember credentials")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (viewModel.isLoading) {
+            if (isLoading) {
                 CircularProgressIndicator()
             } else {
                 Button(
-                    onClick = { viewModel.login(onLoginSuccess) },
+                    onClick = onLoginClick,
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("Login")
@@ -88,27 +127,18 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val context = androidx.compose.ui.platform.LocalContext.current
-                val scope = rememberCoroutineScope()
-
                 OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            val url = viewModel.getSsoUrl()
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                            context.startActivity(intent)
-                        }
-                    },
+                    onClick = onSsoLoginClick,
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("Login with SSO")
                 }
             }
 
-            if (viewModel.errorMessage != null) {
+            if (errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = viewModel.errorMessage!!,
+                    text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )

@@ -113,11 +113,18 @@ fun ServerScreen(
                             .fillMaxWidth()
                             .height(56.dp)
                             .border(
-                                width = if (remoteStatus == true) 2.dp else 0.dp,
-                                color = if (remoteStatus == true) Color.Green else Color.Transparent,
+                                width = if (remoteStatus != null) 2.dp else 0.dp,
+                                color = when (remoteStatus) {
+                                    true -> Color.Green
+                                    false -> Color.Red
+                                    null -> Color.Transparent
+                                },
                                 shape = RoundedCornerShape(4.dp)
                             ),
-                        textStyle = MaterialTheme.typography.bodySmall
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        supportingText = if (remoteStatus == false) {
+                            { Text("Connection failed", color = Color.Red, style = MaterialTheme.typography.labelSmall) }
+                        } else null
                     )
 
                     // Local URL
@@ -130,13 +137,46 @@ fun ServerScreen(
                             .fillMaxWidth()
                             .height(56.dp)
                             .border(
-                                width = if (localStatus == true) 2.dp else 0.dp,
-                                color = if (localStatus == true) Color.Green else Color.Transparent,
+                                width = if (localStatus != null) 2.dp else 0.dp,
+                                color = when (localStatus) {
+                                    true -> Color.Green
+                                    false -> Color.Red
+                                    null -> Color.Transparent
+                                },
                                 shape = RoundedCornerShape(4.dp)
                             ),
-                        textStyle = MaterialTheme.typography.bodySmall
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        supportingText = if (localStatus == false) {
+                            { Text("Connection failed", color = Color.Red, style = MaterialTheme.typography.labelSmall) }
+                        } else null
                     )
-                    
+
+                    // Connection status summary
+                    if (remoteStatus != null || localStatus != null) {
+                        val statusText = buildString {
+                            if (remoteStatus == true) append("Remote: Connected")
+                            else if (remoteStatus == false) append("Remote: Failed")
+
+                            if (remoteStatus != null && localStatus != null) append(" | ")
+
+                            if (localStatus == true) append("Local: Connected")
+                            else if (localStatus == false) append("Local: Failed")
+                        }
+                        if (statusText.isNotEmpty()) {
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if ((remoteStatus == false && localStatus != true) ||
+                                           (localStatus == false && remoteStatus != true))
+                                    MaterialTheme.colorScheme.error
+                                else if (remoteStatus == true || localStatus == true)
+                                    Color.Green
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
                     Button(
                         onClick = onTestConnection,
                         modifier = Modifier.align(Alignment.End).height(36.dp),

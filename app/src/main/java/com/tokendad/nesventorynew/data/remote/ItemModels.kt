@@ -60,12 +60,17 @@ data class DetectedItem(
 data class MaintenanceTask(
     val id: UUID,
     val item_id: UUID,
+    @com.google.gson.annotations.SerializedName("name")
     val title: String,
     val description: String? = null,
+    @com.google.gson.annotations.SerializedName("next_due_date")
     val due_date: String,
+    @com.google.gson.annotations.SerializedName("recurrence_type")
     val frequency: String? = null,
+    val recurrence_interval: Int? = null,
     val color: String? = null,
     val completed: Boolean = false,
+    @com.google.gson.annotations.SerializedName("last_completed")
     val completed_date: String? = null,
     val created_at: String,
     val updated_at: String
@@ -73,16 +78,22 @@ data class MaintenanceTask(
 
 data class MaintenanceTaskCreate(
     val item_id: UUID,
+    @com.google.gson.annotations.SerializedName("name")
     val title: String,
     val description: String? = null,
+    @com.google.gson.annotations.SerializedName("next_due_date")
     val due_date: String,
+    @com.google.gson.annotations.SerializedName("recurrence_type")
     val frequency: String? = null,
+    val recurrence_interval: Int? = null,
     val color: String? = null
 )
 
 data class MaintenanceTaskUpdate(
+    @com.google.gson.annotations.SerializedName("name")
     val title: String? = null,
     val completed: Boolean? = null,
+    @com.google.gson.annotations.SerializedName("last_completed")
     val completed_date: String? = null
 )
 

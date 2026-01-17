@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.LocationCreate
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -28,7 +29,7 @@ class EditLocationViewModel @Inject constructor(
     var selectedParentId by mutableStateOf<UUID?>(null)
     var isPrimaryLocation by mutableStateOf(false)
     var isContainer by mutableStateOf(false)
-    var roomCategory by mutableStateOf<String?>(null)
+    var locationCategory by mutableStateOf<String?>(null)
 
     // Insurance fields
     var companyName by mutableStateOf("")
@@ -44,8 +45,9 @@ class EditLocationViewModel @Inject constructor(
     var insurancePurchaseDate by mutableStateOf("")
     var insurancePurchasePrice by mutableStateOf("")
     var insuranceBuildDate by mutableStateOf("")
-    
+
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
+    var locationCategories by mutableStateOf<List<String>>(RoomCategories.defaultCategories)
     var locationId: UUID? = null
 
     var isLoading by mutableStateOf(false)
@@ -58,6 +60,17 @@ class EditLocationViewModel @Inject constructor(
             fetchLocation(locationId!!)
         }
         fetchLocations()
+        fetchLocationCategories()
+    }
+
+    private fun fetchLocationCategories() {
+        viewModelScope.launch {
+            try {
+                locationCategories = api.getLocationCategories()
+            } catch (_: Exception) {
+                // Fall back to defaults silently
+            }
+        }
     }
 
     private fun fetchLocation(id: UUID) {
@@ -73,7 +86,7 @@ class EditLocationViewModel @Inject constructor(
                 selectedParentId = loc.parent_id
                 isPrimaryLocation = loc.is_primary_location
                 isContainer = loc.is_container
-                roomCategory = loc.room_category
+                locationCategory = loc.location_category
 
                 // Load insurance info
                 loc.insurance_info?.let { info ->
@@ -132,7 +145,7 @@ class EditLocationViewModel @Inject constructor(
                     is_primary_location = isPrimaryLocation,
                     is_container = isContainer,
                     estimated_property_value = estimatedPropertyValue.ifBlank { null },
-                    room_category = roomCategory,
+                    location_category = locationCategory,
                     insurance_info = com.tokendad.nesventorynew.data.remote.InsuranceInfo(
                         company_name = companyName.ifBlank { null },
                         company_address = companyAddress.ifBlank { null },
