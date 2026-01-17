@@ -35,6 +35,7 @@ jobs:
           # Truncate to 500 characters (Google Play Store limit)
           # If content is longer, truncate at word boundary and add ellipsis
           if [ "$(wc -c < /tmp/temp-notes.txt)" -gt 500 ]; then
+            # Use 497 chars (500 - 3 for '...') to stay within limit
             head -c 497 /tmp/temp-notes.txt | sed 's/[[:space:]]*[^[:space:]]*$/.../' > distribution/whatsnew/whatsnew-en-US
           else
             cp /tmp/temp-notes.txt distribution/whatsnew/whatsnew-en-US
