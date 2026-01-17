@@ -37,37 +37,46 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home", style = MaterialTheme.typography.labelSmall) }
+            androidx.compose.foundation.layout.Column {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp
                 )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Items") },
-                    label = { Text("Items", style = MaterialTheme.typography.labelSmall) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Locations") },
-                    label = { Text("Locs", style = MaterialTheme.typography.labelSmall) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
-                    label = { Text("Maint", style = MaterialTheme.typography.labelSmall) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 },
-                    icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
-                    label = { Text("Server", style = MaterialTheme.typography.labelSmall) }
-                )
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        label = { Text("Home", style = MaterialTheme.typography.labelSmall) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Items") },
+                        label = { Text("Items", style = MaterialTheme.typography.labelSmall) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        icon = { Icon(Icons.Default.Place, contentDescription = "Locations") },
+                        label = { Text("Locs", style = MaterialTheme.typography.labelSmall) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
+                        label = { Text("Maint", style = MaterialTheme.typography.labelSmall) }
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 4,
+                        onClick = { selectedTab = 4 },
+                        icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
+                        label = { Text("Server", style = MaterialTheme.typography.labelSmall) }
+                    )
+                }
             }
         }
     ) { paddingValues ->
