@@ -17,7 +17,7 @@ android {
         applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
+        versionCode = (System.getenv("VERSION_CODE")?.toIntOrNull() ?: 4)
         versionName = versionText
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -114,21 +114,4 @@ dependencies {
 
     // Jetpack Navigation
     implementation(libs.androidx.navigation.compose)
-
-    // Retrofit & OkHttp
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.gson) // Explicit version to fix CVE-2022-25647
-
-    // Coil
-    implementation(libs.coil.compose)
-
-    // Zxing
-    implementation(libs.zxing.core)
-
-    // Google Sign-In with Credential Manager
-    implementation(libs.credentials.core)
-    implementation(libs.credentials.play.services)
-    implementation(libs.identity.googleid)
 }
