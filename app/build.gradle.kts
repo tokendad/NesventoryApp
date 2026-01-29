@@ -126,4 +126,9 @@ dependencies {
 
     // Zxing
     implementation(libs.zxing.core)
+
+    // Google Sign-In with Credential Manager
+    implementation(libs.credentials.core)
+    implementation(libs.credentials.play.services)
+    implementation(libs.identity.googleid)
 }

@@ -1,22 +1,49 @@
 package com.tokendad.nesventorynew.ui.dashboard
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.Item
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesLoadingState
+import com.tokendad.nesventorynew.ui.components.NesSearchField
+import com.tokendad.nesventorynew.ui.theme.NesSize
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,18 +65,15 @@ fun DashboardScreen(
                         }
                     }
                 )
-                // Search Bar Area
-                OutlinedTextField(
+                // Search Bar
+                NesSearchField(
                     value = viewModel.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .height(50.dp),
-                    placeholder = { Text("Search items...", style = MaterialTheme.typography.bodySmall) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(20.dp)) },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodySmall
+                    placeholder = "Search items...",
+                    modifier = Modifier.padding(
+                        horizontal = NesSpacing.sm,
+                        vertical = NesSpacing.xs
+                    )
                 )
             }
         }
@@ -58,40 +82,51 @@ fun DashboardScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = NesSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
-            Text("Newest Items", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "Newest Items",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = NesSpacing.sm)
+            )
 
-            if (viewModel.isItemsLoading) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            when {
+                viewModel.isItemsLoading -> {
+                    NesLoadingState(message = "Loading items...")
                 }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                else -> {
                     val displayItems = if (viewModel.searchQuery.isBlank()) {
                         viewModel.recentItems
                     } else {
-                        viewModel.recentItems.filter { 
-                            it.name.contains(viewModel.searchQuery, ignoreCase = true) 
+                        viewModel.recentItems.filter {
+                            it.name.contains(viewModel.searchQuery, ignoreCase = true)
                         }
                     }
 
-                    items(displayItems) { item ->
-                        DashboardItemRow(
-                            item = item,
-                            serverUrl = viewModel.remoteUrl.trimEnd('/'),
-                            onClick = { onItemClick(item.id) },
-                            onEdit = { onEditItemClick(item.id) },
-                            onDelete = { viewModel.deleteItem(item.id) }
-                        )
-                    }
-                    
                     if (displayItems.isEmpty()) {
-                        item {
-                            Text("No items found.", style = MaterialTheme.typography.bodySmall)
+                        NesEmptyState(
+                            title = "No items found",
+                            message = if (viewModel.searchQuery.isNotBlank()) {
+                                "Try a different search term"
+                            } else {
+                                "Add your first item to get started"
+                            },
+                            icon = Icons.Outlined.Inventory2
+                        )
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
+                        ) {
+                            items(displayItems) { item ->
+                                DashboardItemRow(
+                                    item = item,
+                                    serverUrl = viewModel.remoteUrl.trimEnd('/'),
+                                    onClick = { onItemClick(item.id) },
+                                    onEdit = { onEditItemClick(item.id) },
+                                    onDelete = { viewModel.deleteItem(item.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -116,10 +151,10 @@ fun DashboardItemRow(
             .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(NesSpacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Primary Photo
+            // Primary Photo Thumbnail
             val primaryPhoto = item.photos.find { it.is_primary }
             val imageUrl = primaryPhoto?.let { photo ->
                 if (photo.path.startsWith("http")) photo.path
@@ -127,7 +162,7 @@ fun DashboardItemRow(
             }
 
             Card(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(NesSize.thumbnailSmall),
                 shape = MaterialTheme.shapes.small
             ) {
                 if (imageUrl != null) {
@@ -142,27 +177,42 @@ fun DashboardItemRow(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No Img", style = MaterialTheme.typography.labelSmall)
+                        Icon(
+                            imageVector = Icons.Outlined.Inventory2,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(NesSize.iconSmall)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(NesSpacing.md))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.name, style = MaterialTheme.typography.titleSmall)
-                item.estimated_value?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                item.estimated_value?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
-            // Ellipsis Menu
+            // Overflow Menu
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(NesSize.iconDefault)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More",
+                        contentDescription = "More options",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -185,7 +235,12 @@ fun DashboardItemRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete Item", color = MaterialTheme.colorScheme.error) },
+                        text = {
+                            Text(
+                                "Delete Item",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
                         onClick = {
                             menuExpanded = false
                             onDelete()

@@ -1,23 +1,59 @@
 package com.tokendad.nesventorynew.ui.server
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-
-import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.tokendad.nesventorynew.ui.components.ConnectionStatus
+import com.tokendad.nesventorynew.ui.components.NesCompactButton
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSecondaryButton
+import com.tokendad.nesventorynew.ui.components.NesSectionCard
+import com.tokendad.nesventorynew.ui.components.NesStatusBorder
+import com.tokendad.nesventorynew.ui.components.NesStatusIndicator
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +82,7 @@ fun ServerScreen(
     onExit: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    
+
     LaunchedEffect(Unit) {
         onRequestSsidScan()
     }
@@ -91,239 +127,188 @@ fun ServerScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(8.dp)
+                .padding(NesSpacing.sm)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
-            // Connection Config
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Connection Config Section
+            NesSectionCard(
+                title = "Connection Config",
+                icon = Icons.Default.Cloud
+            ) {
+                // Remote URL with status border
+                NesStatusBorder(
+                    status = remoteStatus?.let {
+                        if (it) ConnectionStatus.Connected else ConnectionStatus.Error
+                    }
                 ) {
-                    Text("Connection Config", style = MaterialTheme.typography.labelLarge)
-                    
-                    // Remote URL
-                    OutlinedTextField(
+                    NesTextField(
                         value = remoteUrl,
                         onValueChange = onRemoteUrlChange,
-                        label = { Text("Remote URL", style = MaterialTheme.typography.bodySmall) },
-                        enabled = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .border(
-                                width = if (remoteStatus != null) 2.dp else 0.dp,
-                                color = when (remoteStatus) {
-                                    true -> Color.Green
-                                    false -> Color.Red
-                                    null -> Color.Transparent
-                                },
-                                shape = RoundedCornerShape(4.dp)
-                            ),
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        supportingText = if (remoteStatus == false) {
-                            { Text("Connection failed", color = Color.Red, style = MaterialTheme.typography.labelSmall) }
-                        } else null
+                        label = "Remote URL",
+                        isError = remoteStatus == false,
+                        errorMessage = if (remoteStatus == false) "Connection failed" else null
                     )
+                }
 
-                    // Local URL
-                    OutlinedTextField(
+                // Local URL with status border
+                NesStatusBorder(
+                    status = localStatus?.let {
+                        if (it) ConnectionStatus.Connected else ConnectionStatus.Error
+                    }
+                ) {
+                    NesTextField(
                         value = localUrl,
                         onValueChange = onLocalUrlChange,
-                        label = { Text("Local URL", style = MaterialTheme.typography.bodySmall) },
-                        placeholder = { Text("http://192.168.1.x:8000") },
+                        label = "Local URL",
+                        placeholder = "http://192.168.1.x:8000",
+                        isError = localStatus == false,
+                        errorMessage = if (localStatus == false) "Connection failed" else null
+                    )
+                }
+
+                // Connection status summary
+                if (remoteStatus != null || localStatus != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(NesSpacing.lg)
+                    ) {
+                        if (remoteStatus != null) {
+                            NesStatusIndicator(
+                                status = if (remoteStatus) ConnectionStatus.Connected else ConnectionStatus.Error,
+                                label = "Remote"
+                            )
+                        }
+                        if (localStatus != null) {
+                            NesStatusIndicator(
+                                status = if (localStatus) ConnectionStatus.Connected else ConnectionStatus.Error,
+                                label = "Local"
+                            )
+                        }
+                    }
+                }
+
+                NesCompactButton(
+                    text = "Test & Save Connection",
+                    onClick = onTestConnection,
+                    modifier = Modifier.align(Alignment.End)
+                )
+            }
+
+            // AI Provider Section
+            NesSectionCard(
+                title = "AI Provider",
+                icon = Icons.Default.Psychology
+            ) {
+                if (!aiStatusMessage.isNullOrBlank()) {
+                    NesStatusIndicator(
+                        status = if (aiStatus == true) ConnectionStatus.Connected else ConnectionStatus.Error,
+                        label = aiStatusMessage
+                    )
+                }
+
+                NesSecondaryButton(
+                    text = "Test AI Connection",
+                    onClick = onTestAIConnection
+                )
+            }
+
+            // Hardware Section
+            NesSectionCard(
+                title = "Hardware",
+                icon = Icons.Default.Print
+            ) {
+                NesPrimaryButton(
+                    text = "Configure Printer",
+                    onClick = onPrinterSettingsClick
+                )
+            }
+
+            // Local Network Section
+            NesSectionCard(
+                title = "Local Network",
+                icon = Icons.Default.Wifi
+            ) {
+                var expanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = localSsid,
+                        onValueChange = onLocalSsidChange,
+                        label = { Text("Local SSID Name") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryEditable, true)
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .border(
-                                width = if (localStatus != null) 2.dp else 0.dp,
-                                color = when (localStatus) {
-                                    true -> Color.Green
-                                    false -> Color.Red
-                                    null -> Color.Transparent
-                                },
-                                shape = RoundedCornerShape(4.dp)
-                            ),
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        supportingText = if (localStatus == false) {
-                            { Text("Connection failed", color = Color.Red, style = MaterialTheme.typography.labelSmall) }
-                        } else null
                     )
 
-                    // Connection status summary
-                    if (remoteStatus != null || localStatus != null) {
-                        val statusText = buildString {
-                            if (remoteStatus == true) append("Remote: Connected")
-                            else if (remoteStatus == false) append("Remote: Failed")
-
-                            if (remoteStatus != null && localStatus != null) append(" | ")
-
-                            if (localStatus == true) append("Local: Connected")
-                            else if (localStatus == false) append("Local: Failed")
-                        }
-                        if (statusText.isNotEmpty()) {
-                            Text(
-                                text = statusText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if ((remoteStatus == false && localStatus != true) ||
-                                           (localStatus == false && remoteStatus != true))
-                                    MaterialTheme.colorScheme.error
-                                else if (remoteStatus == true || localStatus == true)
-                                    Color.Green
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = onTestConnection,
-                        modifier = Modifier.align(Alignment.End).height(36.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                    ) {
-                        Text("Test & Save Connection", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-
-            // AI Provider Settings
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("AI Provider", style = MaterialTheme.typography.labelLarge)
-                    
-                    if (!aiStatusMessage.isNullOrBlank()) {
-                        Text(
-                            text = aiStatusMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (aiStatus == true) Color.Green else MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    Button(
-                        onClick = onTestAIConnection,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = if (aiStatus != null) 2.dp else 0.dp,
-                                color = if (aiStatus == true) Color.Green else if (aiStatus == false) Color.Red else Color.Transparent,
-                                shape = RoundedCornerShape(20.dp) // Match button shape usually
-                            )
-                    ) {
-                        Text("Test AI Connection")
-                    }
-                }
-            }
-            
-             // Printer Settings
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Hardware", style = MaterialTheme.typography.labelLarge)
-                    Button(
-                        onClick = onPrinterSettingsClick,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Configure Printer")
-                    }
-                }
-            }
-
-            // Local Network Settings
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Local Network", style = MaterialTheme.typography.labelLarge)
-                    
-                    var expanded by remember { mutableStateOf(false) }
-                    
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = localSsid,
-                            onValueChange = onLocalSsidChange,
-                            label = { Text("Local SSID Name", style = MaterialTheme.typography.bodySmall) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                            modifier = Modifier
-                                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryEditable, true)
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            textStyle = MaterialTheme.typography.bodySmall
-                        )
-                        
-                        if (availableSsids.isNotEmpty()) {
-                            ExposedDropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                availableSsids.forEach { ssid ->
-                                    DropdownMenuItem(
-                                        text = { Text(ssid, style = MaterialTheme.typography.bodySmall) },
-                                        onClick = {
-                                            onLocalSsidChange(ssid)
-                                            expanded = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                    )
-                                }
+                    if (availableSsids.isNotEmpty()) {
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            availableSsids.forEach { ssid ->
+                                DropdownMenuItem(
+                                    text = { Text(ssid) },
+                                    onClick = {
+                                        onLocalSsidChange(ssid)
+                                        expanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
                             }
                         }
                     }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Checkbox(
-                            checked = prioritizeLocal,
-                            onCheckedChange = onPrioritizeLocalChange,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Prioritize Local Connection", style = MaterialTheme.typography.bodySmall)
-                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = prioritizeLocal,
+                        onCheckedChange = onPrioritizeLocalChange
+                    )
+                    Spacer(Modifier.width(NesSpacing.sm))
+                    Text(
+                        text = "Prioritize Local Connection",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
-            
-            // Theme Settings
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+
+            // Theme Section
+            NesSectionCard(
+                title = "App Theme",
+                icon = Icons.Default.Palette
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)
                 ) {
-                    Text("App Theme", style = MaterialTheme.typography.labelLarge)
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        ThemeOption(
-                            label = "System", 
-                            selected = theme == "system", 
-                            onClick = { onThemeChange("system") }
-                        )
-                        ThemeOption(
-                            label = "Light", 
-                            selected = theme == "light", 
-                            onClick = { onThemeChange("light") }
-                        )
-                        ThemeOption(
-                            label = "Dark", 
-                            selected = theme == "dark", 
-                            onClick = { onThemeChange("dark") }
-                        )
-                    }
+                    ThemeOption(
+                        label = "System",
+                        selected = theme == "system",
+                        onClick = { onThemeChange("system") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ThemeOption(
+                        label = "Light",
+                        selected = theme == "light",
+                        onClick = { onThemeChange("light") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ThemeOption(
+                        label = "Dark",
+                        selected = theme == "dark",
+                        onClick = { onThemeChange("dark") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -331,10 +316,16 @@ fun ServerScreen(
 }
 
 @Composable
-fun ThemeOption(label: String, selected: Boolean, onClick: () -> Unit) {
+fun ThemeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label) }
+        label = { Text(label) },
+        modifier = modifier
     )
 }

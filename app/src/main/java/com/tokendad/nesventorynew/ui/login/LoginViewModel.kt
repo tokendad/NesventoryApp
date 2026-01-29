@@ -1,11 +1,24 @@
 package com.tokendad.nesventorynew.ui.login
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.remote.GoogleAuthRequest
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
@@ -22,11 +35,21 @@ class LoginViewModel @Inject constructor(
     var username by mutableStateOf("")
     var password by mutableStateOf("")
     var rememberCredentials by mutableStateOf(false)
-    
+
     var isLoading by mutableStateOf(false)
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    // Google Sign-In state
+    var isGoogleSignInAvailable by mutableStateOf(false)
+        private set
+
+    var googleClientId by mutableStateOf<String?>(null)
+        private set
+
+    var isGoogleLoading by mutableStateOf(false)
         private set
 
     init {
@@ -37,6 +60,24 @@ class LoginViewModel @Inject constructor(
                     password = credentials.password
                     rememberCredentials = true
                 }
+            }
+        }
+        checkGoogleAuthStatus()
+    }
+
+    /**
+     * Check if Google OAuth is enabled on the server.
+     */
+    private fun checkGoogleAuthStatus() {
+        viewModelScope.launch {
+            try {
+                val status = api.getGoogleAuthStatus()
+                isGoogleSignInAvailable = status.enabled
+                googleClientId = status.client_id
+            } catch (e: Exception) {
+                // Google auth not available - keep button hidden
+                isGoogleSignInAvailable = false
+                googleClientId = null
             }
         }
     }
@@ -78,6 +119,150 @@ class LoginViewModel @Inject constructor(
             } finally {
                 isLoading = false
             }
+        }
+    }
+
+    /**
+     * Initiates Google Sign-In using Credential Manager.
+     *
+     * @param context Activity context needed for Credential Manager
+     * @param onSuccess Callback when login succeeds
+     */
+    fun signInWithGoogle(context: Context, onSuccess: () -> Unit) {
+        val clientId = googleClientId
+        if (clientId == null) {
+            errorMessage = "Google Sign-In is not configured on the server"
+            return
+        }
+
+        viewModelScope.launch {
+            isGoogleLoading = true
+            errorMessage = null
+
+            try {
+                val credentialManager = CredentialManager.create(context)
+
+                // Use GetSignInWithGoogleOption for the full sign-in flow
+                // This shows the Google Sign-In button/dialog
+                val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(clientId)
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(signInWithGoogleOption)
+                    .build()
+
+                // Launch credential picker
+                val result = credentialManager.getCredential(
+                    request = request,
+                    context = context
+                )
+
+                handleGoogleSignInResult(result, onSuccess)
+
+            } catch (e: GetCredentialCancellationException) {
+                // User cancelled - don't show error
+                errorMessage = null
+            } catch (e: NoCredentialException) {
+                // Try fallback with GetGoogleIdOption
+                tryGoogleIdFallback(context, clientId, onSuccess)
+            } catch (e: GetCredentialException) {
+                errorMessage = "Google Sign-In failed: ${e.localizedMessage}"
+                e.printStackTrace()
+            } finally {
+                isGoogleLoading = false
+            }
+        }
+    }
+
+    /**
+     * Fallback to GetGoogleIdOption if GetSignInWithGoogleOption fails.
+     */
+    private suspend fun tryGoogleIdFallback(context: Context, clientId: String, onSuccess: () -> Unit) {
+        try {
+            val credentialManager = CredentialManager.create(context)
+
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(clientId)
+                .build()
+
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
+            val result = credentialManager.getCredential(
+                request = request,
+                context = context
+            )
+
+            handleGoogleSignInResult(result, onSuccess)
+
+        } catch (e: Exception) {
+            errorMessage = "Google Sign-In not available. Please ensure you have a Google account on this device."
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * Handle the credential response from Google Sign-In.
+     */
+    private suspend fun handleGoogleSignInResult(
+        result: GetCredentialResponse,
+        onSuccess: () -> Unit
+    ) {
+        val credential = result.credential
+
+        when (credential) {
+            is CustomCredential -> {
+                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    try {
+                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                        val idToken = googleIdTokenCredential.idToken
+
+                        // Exchange Google ID token for NesVentory access token
+                        exchangeGoogleToken(idToken, onSuccess)
+
+                    } catch (e: GoogleIdTokenParsingException) {
+                        errorMessage = "Invalid Google credential"
+                        e.printStackTrace()
+                    }
+                } else {
+                    errorMessage = "Unexpected credential type"
+                }
+            }
+            else -> {
+                errorMessage = "Unexpected credential type"
+            }
+        }
+    }
+
+    /**
+     * Exchange Google ID token for NesVentory access token.
+     */
+    private suspend fun exchangeGoogleToken(idToken: String, onSuccess: () -> Unit) {
+        try {
+            val response = api.loginWithGoogle(GoogleAuthRequest(credential = idToken))
+
+            // Save the access token
+            preferencesManager.saveAccessToken(response.access_token)
+
+            // Clear any saved password credentials (using Google now)
+            preferencesManager.saveCredentials("", "", false)
+
+            // Navigate to dashboard
+            onSuccess()
+
+        } catch (e: Exception) {
+            val errorMsg = e.localizedMessage ?: "Authentication failed"
+            errorMessage = when {
+                errorMsg.contains("pending", ignoreCase = true) ->
+                    "Account created! Waiting for admin approval."
+                errorMsg.contains("403") ->
+                    "Account pending admin approval"
+                else ->
+                    "Google Sign-In failed: $errorMsg"
+            }
+            e.printStackTrace()
         }
     }
 
