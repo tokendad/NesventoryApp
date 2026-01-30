@@ -1,7 +1,7 @@
 name: Deploy to Play Store
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   workflow_dispatch:
@@ -21,6 +21,25 @@ jobs:
 
       - name: Decode Keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/release.keystore
+
+      - name: Bump version code
+        run: |
+          # Extract current version code from build.gradle.kts
+          current_code=$(grep -oP 'System\.getenv\("VERSION_CODE"\)\?\.toIntOrNull\(\) \?: \K\d+' app/build.gradle.kts)
+          new_code=$((current_code + 1))
+          
+          echo "Current versionCode: $current_code"
+          echo "New versionCode: $new_code"
+          
+          # Update the version code in build.gradle.kts
+          sed -i "s/versionCode = (System.getenv(\"VERSION_CODE\")?.toIntOrNull() ?: $current_code)/versionCode = (System.getenv(\"VERSION_CODE\")?.toIntOrNull() ?: $new_code)/" app/build.gradle.kts
+          
+          # Commit and push the change
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle.kts
+          git commit -m "Bump versionCode to $new_code [skip ci]"
+          git push
 
       - name: Build with Gradle
         run: ./gradlew bundleRelease
