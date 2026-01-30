@@ -5,14 +5,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import com.tokendad.nesventorynew.util.RoomCategories
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,69 +40,48 @@ fun AddLocationScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
             // Name & Friendly Name
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                NesTextField(
                     value = viewModel.name,
                     onValueChange = { viewModel.name = it },
                     label = "Name *",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.friendlyName,
                     onValueChange = { viewModel.friendlyName = it },
                     label = "Friendly Name",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
 
             // Parent Location Selector
-            var parentExpanded by remember { mutableStateOf(false) }
             val selectedParentName = viewModel.availableLocations
-                .find { it.id == viewModel.selectedParentId }?.name ?: ""
+                .find { it.id == viewModel.selectedParentId }?.name ?: "None (Root)"
+            
+            val parentOptions = listOf("None (Root)") + viewModel.availableLocations.map { it.name }
 
-            Box {
-                OutlinedTextField(
-                    value = selectedParentName,
-                    onValueChange = {},
-                    label = { Text("Parent Location", style = MaterialTheme.typography.bodySmall) },
-                    placeholder = { Text("Select Parent (Optional)", style = MaterialTheme.typography.bodySmall) },
-                    readOnly = true,
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    trailingIcon = {
-                        IconButton(onClick = { parentExpanded = !parentExpanded }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            NesDropdown(
+                label = "Parent Location",
+                options = parentOptions,
+                selectedOption = selectedParentName,
+                onOptionSelected = { selectedName ->
+                    if (selectedName == "None (Root)") {
+                        viewModel.selectedParentId = null
+                    } else {
+                        viewModel.availableLocations.find { it.name == selectedName }?.let {
+                            viewModel.selectedParentId = it.id
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                )
-                DropdownMenu(
-                    expanded = parentExpanded,
-                    onDismissRequest = { parentExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("None (Root)", style = MaterialTheme.typography.bodySmall) },
-                        onClick = {
-                            viewModel.selectedParentId = null
-                            parentExpanded = false
-                        }
-                    )
-                    viewModel.availableLocations.forEach { loc ->
-                        DropdownMenuItem(
-                            text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
-                            onClick = {
-                                viewModel.selectedParentId = loc.id
-                                parentExpanded = false
-                            }
-                        )
                     }
                 }
-            }
+            )
 
             // Location Category
             LocationCategorySelector(
@@ -110,21 +91,23 @@ fun AddLocationScreen(
             )
 
             // Address
-            CompactTextField(
+            NesTextField(
                 value = viewModel.address,
                 onValueChange = { viewModel.address = it },
                 label = "Address",
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
-                minLines = 2
+                minLines = 2,
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             // Estimated Value
-            CompactTextField(
+            NesTextField(
                 value = viewModel.estimatedPropertyValue,
                 onValueChange = { viewModel.estimatedPropertyValue = it },
                 label = "Estimated Property Value",
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             // Flags
@@ -138,8 +121,7 @@ fun AddLocationScreen(
                     Spacer(Modifier.width(4.dp))
                     Switch(
                         checked = viewModel.isPrimaryLocation,
-                        onCheckedChange = { viewModel.isPrimaryLocation = it },
-                        modifier = Modifier.scale(0.8f)
+                        onCheckedChange = { viewModel.isPrimaryLocation = it }
                     )
                 }
                 
@@ -148,75 +130,39 @@ fun AddLocationScreen(
                     Spacer(Modifier.width(4.dp))
                     Switch(
                         checked = viewModel.isContainer,
-                        onCheckedChange = { viewModel.isContainer = it },
-                        modifier = Modifier.scale(0.8f)
+                        onCheckedChange = { viewModel.isContainer = it }
                     )
                 }
             }
 
             // Description
-            CompactTextField(
+            NesTextField(
                 value = viewModel.description,
                 onValueChange = { viewModel.description = it },
                 label = "Description",
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
-                minLines = 2
+                minLines = 2,
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
-            if (viewModel.errorMessage != null) {
+            viewModel.errorMessage?.let {
                 Text(
-                    text = viewModel.errorMessage!!,
+                    text = it,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            Button(
+            NesPrimaryButton(
+                text = "Create Location",
                 onClick = { viewModel.createLocation(onSuccess = onLocationCreated) },
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !viewModel.isLoading,
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                if (viewModel.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Create Location", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+                loading = viewModel.isLoading
+            )
         }
     }
 }
-
-@Composable
-fun CompactTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    singleLine: Boolean = true,
-    minLines: Int = 1
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-        modifier = modifier.height(if (minLines > 1) 80.dp else 56.dp),
-        textStyle = MaterialTheme.typography.bodySmall,
-        singleLine = singleLine,
-        minLines = minLines,
-        maxLines = if (singleLine) 1 else 3
-    )
-}
-
-// Extension to scale Switch
-fun Modifier.scale(scale: Float): Modifier = this.then(Modifier.size(width = 50.dp * scale, height = 30.dp * scale)) // Approximate logic, usually easier with Transform or just smaller size
-// Actually, standard Switch size is fixed. Modifier.scale works but affects layout size weirdly sometimes.
-// Let's rely on standard Switch but maybe smaller padding around text.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,7 +182,7 @@ fun LocationCategorySelector(
             value = selected ?: "Select Category",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Location Category", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("Location Category") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true),
             textStyle = MaterialTheme.typography.bodySmall

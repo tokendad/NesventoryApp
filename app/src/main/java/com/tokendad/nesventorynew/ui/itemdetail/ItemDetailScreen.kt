@@ -19,6 +19,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.Item
 import com.tokendad.nesventorynew.data.remote.Photo
+import com.tokendad.nesventorynew.ui.components.NesCard
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesErrorState
+import com.tokendad.nesventorynew.ui.components.NesListItemCard
+import com.tokendad.nesventorynew.ui.components.NesLoadingState
+import com.tokendad.nesventorynew.ui.components.NesSectionCard
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import com.tokendad.nesventorynew.util.CurrencyFormatter
 import com.tokendad.nesventorynew.util.DateFormatter
 
@@ -82,7 +89,7 @@ fun ItemDetailScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(text = item?.name ?: "Item Details") },
+                    title = { Text(text = item?.name ?: "Item Details", style = MaterialTheme.typography.titleMedium) },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -122,18 +129,25 @@ fun ItemDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (isLoading && item == null) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (errorMessage != null && item == null) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else if (item != null) {
-                when (selectedTab) {
-                    0 -> DetailsTab(item, viewModel.serverUrl)
-                    1 -> MediaTab(item.photos, viewModel.serverUrl)
+            when {
+                isLoading && item == null -> {
+                    NesLoadingState(
+                        modifier = Modifier.align(Alignment.Center),
+                        message = "Loading item details..."
+                    )
+                }
+                errorMessage != null && item == null -> {
+                    NesErrorState(
+                        title = "Error loading item",
+                        message = errorMessage,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                item != null -> {
+                    when (selectedTab) {
+                        0 -> DetailsTab(item, viewModel.serverUrl)
+                        1 -> MediaTab(item.photos, viewModel.serverUrl)
+                    }
                 }
             }
         }
@@ -145,112 +159,118 @@ fun DetailsTab(item: Item, serverUrl: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.md)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
     ) {
         // Primary Photo
         val primaryPhoto = item.photos.find { it.is_primary }
-        primaryPhoto?.let { photo ->
-            val imageUrl = if (photo.path.startsWith("http")) {
-                photo.path
+        if (primaryPhoto != null) {
+            val imageUrl = if (primaryPhoto.path.startsWith("http")) {
+                primaryPhoto.path
             } else {
-                "$serverUrl/${photo.path.removePrefix("/")}"
+                "$serverUrl/${primaryPhoto.path.removePrefix("/")}"
             }
 
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "Primary Photo for ${item.name}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Name
-        Text(text = item.name, style = MaterialTheme.typography.headlineMedium)
-
-        // Brand & Model
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            item.brand?.let {
-                AssistChip(onClick = {}, label = { Text("Brand: $it") })
-            }
-            item.model_number?.let {
-                AssistChip(onClick = {}, label = { Text("Model: $it") })
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Primary Photo for ${item.name}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
 
-        HorizontalDivider()
-
-        // Description
-        if (!item.description.isNullOrBlank()) {
-            Text(text = "Description", style = MaterialTheme.typography.titleMedium)
-            Text(text = item.description, style = MaterialTheme.typography.bodyLarge)
-        }
-
-        // Serial Number
-        if (!item.serial_number.isNullOrBlank()) {
-            Text(text = "Serial Number", style = MaterialTheme.typography.titleMedium)
-            Text(text = item.serial_number, style = MaterialTheme.typography.bodyLarge)
-        }
-
-        // Purchase Info
-        if (item.purchase_price != null || item.purchase_date != null || item.retailer != null) {
-            HorizontalDivider()
-            Text(text = "Purchase Information", style = MaterialTheme.typography.titleMedium)
-
-            item.purchase_price?.let {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Purchase Price", style = MaterialTheme.typography.bodyMedium)
-                    Text(CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyMedium)
+        // Basic Info
+        NesCard {
+            Text(text = item.name, style = MaterialTheme.typography.headlineSmall)
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                item.brand?.let {
+                    AssistChip(
+                        onClick = {}, 
+                        label = { Text("Brand: $it") },
+                        leadingIcon = { Icon(Icons.Default.Label, contentDescription = null, Modifier.size(16.dp)) }
+                    )
                 }
-            }
-            item.purchase_date?.let {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Purchase Date", style = MaterialTheme.typography.bodyMedium)
-                    Text(DateFormatter.formatDate(it), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            item.retailer?.let {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Retailer", style = MaterialTheme.typography.bodyMedium)
-                    Text(it, style = MaterialTheme.typography.bodyMedium)
+                item.model_number?.let {
+                    AssistChip(
+                        onClick = {}, 
+                        label = { Text("Model: $it") },
+                        leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, Modifier.size(16.dp)) }
+                    )
                 }
             }
         }
 
-        // Value
-        item.estimated_value?.let {
-            HorizontalDivider()
-            Text(text = "Estimated Value", style = MaterialTheme.typography.titleMedium)
-            Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
+        // Description & Serial
+        if (!item.description.isNullOrBlank() || !item.serial_number.isNullOrBlank()) {
+            NesSectionCard(title = "About", icon = Icons.Default.Description) {
+                if (!item.description.isNullOrBlank()) {
+                    Text(text = item.description, style = MaterialTheme.typography.bodyMedium)
+                }
+                if (!item.serial_number.isNullOrBlank()) {
+                    if (!item.description.isNullOrBlank()) Spacer(modifier = Modifier.height(NesSpacing.sm))
+                    Row {
+                        Text("Serial Number: ", style = MaterialTheme.typography.labelMedium)
+                        Text(item.serial_number, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+
+        // Purchase & Value Info
+        if (item.purchase_price != null || item.purchase_date != null || item.retailer != null || item.estimated_value != null) {
+            NesSectionCard(title = "Value & Purchase", icon = Icons.Default.AttachMoney) {
+                item.estimated_value?.let {
+                    DetailRow("Estimated Value", CurrencyFormatter.format(it), true)
+                }
+                item.purchase_price?.let {
+                    DetailRow("Purchase Price", CurrencyFormatter.format(it))
+                }
+                item.purchase_date?.let {
+                    DetailRow("Purchase Date", DateFormatter.formatDate(it))
+                }
+                item.retailer?.let {
+                    DetailRow("Retailer", it)
+                }
+            }
         }
 
         // Custom Fields
         item.custom_fields?.let { fields ->
             if (fields.isNotEmpty()) {
-                HorizontalDivider()
                 CustomFieldsSection(fields)
             }
         }
 
-        HorizontalDivider()
-
         // Timestamps
-        Column {
-            Text(text = "Created: ${DateFormatter.formatDateTime(item.created_at)}", style = MaterialTheme.typography.bodySmall)
-            Text(text = "Updated: ${DateFormatter.formatDateTime(item.updated_at)}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(horizontal = NesSpacing.sm)) {
+            Text(text = "Created: ${DateFormatter.formatDateTime(item.created_at)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = "Updated: ${DateFormatter.formatDateTime(item.updated_at)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String, isHighlight: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value, 
+            style = if (isHighlight) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+            color = if (isHighlight) MaterialTheme.typography.titleSmall.color else MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -261,28 +281,19 @@ fun MediaTab(photos: List<Photo>, serverUrl: String) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Default.PhotoLibrary,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "No photos available for this item",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
+            NesEmptyState(
+                title = "No photos",
+                message = "No photos available for this item",
+                icon = Icons.Default.PhotoLibrary
+            )
         }
     } else {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(120.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(NesSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
             items(photos) { photo ->
                 val imageUrl = if (photo.path.startsWith("http")) {
@@ -340,30 +351,21 @@ fun MediaTab(photos: List<Photo>, serverUrl: String) {
 fun CustomFieldsSection(customFields: Map<String, Any>?) {
     if (customFields.isNullOrEmpty()) return
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Custom Fields",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            customFields.forEach { (key, value) ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = key.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = value.toString(),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+    NesSectionCard(title = "Custom Fields", icon = Icons.Default.Extension) {
+        customFields.forEach { (key, value) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = key.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value.toString(),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

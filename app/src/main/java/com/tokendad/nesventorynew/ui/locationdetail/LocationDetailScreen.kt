@@ -17,6 +17,12 @@ import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.InsuranceInfo
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.PolicyHolder
+import com.tokendad.nesventorynew.ui.components.NesCard
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesErrorState
+import com.tokendad.nesventorynew.ui.components.NesLoadingState
+import com.tokendad.nesventorynew.ui.components.NesSectionCard
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import com.tokendad.nesventorynew.util.RoomCategories
 import com.tokendad.nesventorynew.util.CurrencyFormatter
 import com.tokendad.nesventorynew.util.DateFormatter
@@ -72,7 +78,7 @@ fun LocationDetailScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(text = location?.name ?: "Location Details") },
+                    title = { Text(text = location?.name ?: "Location Details", style = MaterialTheme.typography.titleMedium) },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -112,22 +118,29 @@ fun LocationDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (errorMessage != null) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else if (location != null) {
-                if (location.is_primary_location) {
-                    when (selectedTab) {
-                        0 -> DetailsTab(location, viewModel.serverUrl)
-                        1 -> InsuranceTab(location.insurance_info)
+            when {
+                isLoading -> {
+                    NesLoadingState(
+                        modifier = Modifier.align(Alignment.Center),
+                        message = "Loading location details..."
+                    )
+                }
+                errorMessage != null -> {
+                    NesErrorState(
+                        title = "Error loading location",
+                        message = errorMessage,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                location != null -> {
+                    if (location.is_primary_location) {
+                        when (selectedTab) {
+                            0 -> DetailsTab(location, viewModel.serverUrl)
+                            1 -> InsuranceTab(location.insurance_info)
+                        }
+                    } else {
+                        DetailsTab(location, viewModel.serverUrl)
                     }
-                } else {
-                    DetailsTab(location, viewModel.serverUrl)
                 }
             }
         }
@@ -139,97 +152,113 @@ fun DetailsTab(location: Location, serverUrl: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(NesSpacing.lg)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
     ) {
         // Primary Photo
         val primaryPhoto = location.location_photos.find { it.is_primary }
-        primaryPhoto?.let { photo ->
-            val imageUrl = if (photo.path.startsWith("http")) {
-                photo.path
+        if (primaryPhoto != null) {
+            val imageUrl = if (primaryPhoto.path.startsWith("http")) {
+                primaryPhoto.path
             } else {
-                "$serverUrl/${photo.path.removePrefix("/")}"
+                "$serverUrl/${primaryPhoto.path.removePrefix("/")}"
             }
 
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "Primary Photo for ${location.name}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                contentScale = ContentScale.Crop
-            )
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Primary Photo for ${location.name}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
 
-        // Name
-        Text(text = location.name, style = MaterialTheme.typography.headlineMedium)
+        // Basic Info
+        NesCard {
+            Text(text = location.name, style = MaterialTheme.typography.headlineSmall)
+            
+            location.friendly_name?.let {
+                Text(text = it, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
+            }
 
-        // Friendly Name
-        location.friendly_name?.let {
-            Text(text = "($it)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-        }
-        
-        // Location Category
-        location.location_category?.let { category ->
-            AssistChip(
-                onClick = {},
-                label = { Text(category) },
-                leadingIcon = {
-                    Icon(
-                        RoomCategories.getIcon(category),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                location.location_category?.let { category ->
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(category) },
+                        leadingIcon = {
+                            Icon(
+                                RoomCategories.getIcon(category),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     )
                 }
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (location.is_primary_location) {
-                AssistChip(onClick = {}, label = { Text("Primary Location") })
-            }
-            if (location.is_container) {
-                AssistChip(onClick = {}, label = { Text("Container") })
+                if (location.is_primary_location) {
+                    AssistChip(onClick = {}, label = { Text("Primary") })
+                }
+                if (location.is_container) {
+                    AssistChip(onClick = {}, label = { Text("Container") })
+                }
             }
         }
 
-        HorizontalDivider()
-
-        // Description
-        if (!location.description.isNullOrBlank()) {
-            Text(text = "Description", style = MaterialTheme.typography.titleMedium)
-            Text(text = location.description, style = MaterialTheme.typography.bodyLarge)
-        }
-
-        // Address
-        if (!location.address.isNullOrBlank()) {
-            Text(text = "Address", style = MaterialTheme.typography.titleMedium)
-            Text(text = location.address, style = MaterialTheme.typography.bodyLarge)
+        // About
+        if (!location.description.isNullOrBlank() || !location.address.isNullOrBlank()) {
+            NesSectionCard(title = "About", icon = Icons.Default.Info) {
+                if (!location.description.isNullOrBlank()) {
+                    Text(text = "Description", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = location.description, style = MaterialTheme.typography.bodyMedium)
+                }
+                if (!location.address.isNullOrBlank()) {
+                    if (!location.description.isNullOrBlank()) Spacer(modifier = Modifier.height(NesSpacing.md))
+                    Text(text = "Address", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = location.address, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
 
         // Values
         if (location.estimated_property_value != null || location.estimated_value_with_items != null) {
-            HorizontalDivider()
-
-            location.estimated_property_value?.let {
-                Text(text = "Property Value", style = MaterialTheme.typography.titleMedium)
-                Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
-            }
-
-            location.estimated_value_with_items?.let {
-                Text(text = "Value with Items", style = MaterialTheme.typography.titleMedium)
-                Text(text = CurrencyFormatter.format(it), style = MaterialTheme.typography.bodyLarge)
+            NesSectionCard(title = "Value", icon = Icons.Default.AttachMoney) {
+                location.estimated_property_value?.let {
+                    DetailRow("Property Value", CurrencyFormatter.format(it))
+                }
+                location.estimated_value_with_items?.let {
+                    DetailRow("Value with Items", CurrencyFormatter.format(it), true)
+                }
             }
         }
-
-        HorizontalDivider()
 
         // Timestamps
-        Column {
-            Text(text = "Created: ${DateFormatter.formatDateTime(location.created_at)}", style = MaterialTheme.typography.bodySmall)
-            Text(text = "Updated: ${DateFormatter.formatDateTime(location.updated_at)}", style = MaterialTheme.typography.bodySmall)
+        Column(modifier = Modifier.padding(horizontal = NesSpacing.sm)) {
+            Text(text = "Created: ${DateFormatter.formatDateTime(location.created_at)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = "Updated: ${DateFormatter.formatDateTime(location.updated_at)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String, isHighlight: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value, 
+            style = if (isHighlight) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+            color = if (isHighlight) MaterialTheme.typography.titleSmall.color else MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -238,29 +267,20 @@ fun InsuranceTab(insuranceInfo: InsuranceInfo?) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(NesSpacing.lg)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
     ) {
         if (insuranceInfo == null) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Shield,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "No insurance information configured",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
+                NesEmptyState(
+                    title = "No insurance information",
+                    message = "No insurance information configured",
+                    icon = Icons.Default.Shield
+                )
             }
         } else {
             // Insurance Company Section
@@ -331,32 +351,11 @@ private fun InsuranceSection(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            HorizontalDivider()
-            content()
-        }
-    }
+    NesSectionCard(
+        title = title,
+        icon = icon,
+        content = content
+    )
 }
 
 @Composable

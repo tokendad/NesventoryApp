@@ -16,6 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tokendad.nesventorynew.data.remote.MaintenanceTask
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesListItemCard
+import com.tokendad.nesventorynew.ui.components.NesLoadingState
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSize
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,8 +62,8 @@ fun MaintenanceScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)
                 ) {
                     FilterChip(
                         selected = viewModel.filterState == "all",
@@ -77,7 +85,8 @@ fun MaintenanceScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.showCreateDialog = true }
+                onClick = { viewModel.showCreateDialog = true },
+                modifier = Modifier.size(NesSize.minTouchTarget)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Task")
             }
@@ -85,42 +94,38 @@ fun MaintenanceScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (viewModel.filteredTasks.isEmpty()) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline
+            when {
+                viewModel.isLoading -> {
+                    NesLoadingState(
+                        modifier = Modifier.align(Alignment.Center),
+                        message = "Loading tasks..."
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        when (viewModel.filterState) {
+                }
+                viewModel.filteredTasks.isEmpty() -> {
+                    NesEmptyState(
+                        modifier = Modifier.align(Alignment.Center),
+                        title = when (viewModel.filterState) {
                             "pending" -> "No pending tasks"
                             "completed" -> "No completed tasks"
                             else -> "No maintenance tasks found"
                         },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.outline
+                        message = "Add a maintenance task to get started",
+                        icon = Icons.Default.CheckCircle
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(viewModel.filteredTasks) { task ->
-                        MaintenanceTaskRow(
-                            task = task,
-                            onToggle = { viewModel.toggleTaskCompletion(task) },
-                            onDelete = { viewModel.taskToDelete = task }
-                        )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(NesSpacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
+                    ) {
+                        items(viewModel.filteredTasks) { task ->
+                            MaintenanceTaskRow(
+                                task = task,
+                                onToggle = { viewModel.toggleTaskCompletion(task) },
+                                onDelete = { viewModel.taskToDelete = task }
+                            )
+                        }
                     }
                 }
             }
@@ -160,9 +165,6 @@ fun MaintenanceScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateMaintenanceTaskDialog(viewModel: MaintenanceViewModel) {
-    var itemExpanded by remember { mutableStateOf(false) }
-    var frequencyExpanded by remember { mutableStateOf(false) }
-
     val frequencies = listOf(null to "None", "daily" to "Daily", "weekly" to "Weekly", "monthly" to "Monthly", "yearly" to "Yearly")
     val colors = listOf(
         "#4CAF50" to "Green",
@@ -184,99 +186,66 @@ fun CreateMaintenanceTaskDialog(viewModel: MaintenanceViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(NesSpacing.md)
             ) {
                 // Title
-                OutlinedTextField(
+                NesTextField(
                     value = viewModel.newTaskTitle,
                     onValueChange = { viewModel.newTaskTitle = it },
-                    label = { Text("Title *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    label = "Title *",
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 // Description
-                OutlinedTextField(
+                NesTextField(
                     value = viewModel.newTaskDescription,
                     onValueChange = { viewModel.newTaskDescription = it },
-                    label = { Text("Description") },
+                    label = "Description",
                     modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
                     minLines = 2
                 )
 
                 // Item Selector
-                ExposedDropdownMenuBox(
-                    expanded = itemExpanded,
-                    onExpandedChange = { itemExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = viewModel.availableItems.find { it.id == viewModel.newTaskItemId }?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Item *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = itemExpanded,
-                        onDismissRequest = { itemExpanded = false }
-                    ) {
-                        viewModel.availableItems.forEach { item ->
-                            DropdownMenuItem(
-                                text = { Text(item.name) },
-                                onClick = {
-                                    viewModel.newTaskItemId = item.id
-                                    itemExpanded = false
-                                }
-                            )
+                val selectedItemName = viewModel.availableItems.find { it.id == viewModel.newTaskItemId }?.name ?: ""
+                NesDropdown(
+                    label = "Item *",
+                    options = viewModel.availableItems.map { it.name },
+                    selectedOption = selectedItemName,
+                    onOptionSelected = { name ->
+                        viewModel.availableItems.find { it.name == name }?.let {
+                            viewModel.newTaskItemId = it.id
                         }
                     }
-                }
+                )
 
                 // Due Date
-                OutlinedTextField(
+                NesTextField(
                     value = viewModel.newTaskDueDate,
                     onValueChange = { viewModel.newTaskDueDate = it },
-                    label = { Text("Due Date * (YYYY-MM-DD)") },
+                    label = "Due Date * (YYYY-MM-DD)",
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("2024-12-31") }
+                    placeholder = "2024-12-31"
                 )
 
                 // Frequency Selector
-                ExposedDropdownMenuBox(
-                    expanded = frequencyExpanded,
-                    onExpandedChange = { frequencyExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = frequencies.find { it.first == viewModel.newTaskFrequency }?.second ?: "None",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Frequency") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = frequencyExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = frequencyExpanded,
-                        onDismissRequest = { frequencyExpanded = false }
-                    ) {
-                        frequencies.forEach { (value, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    viewModel.newTaskFrequency = value
-                                    frequencyExpanded = false
-                                }
-                            )
+                val selectedFrequencyLabel = frequencies.find { it.first == viewModel.newTaskFrequency }?.second ?: "None"
+                NesDropdown(
+                    label = "Frequency",
+                    options = frequencies.map { it.second },
+                    selectedOption = selectedFrequencyLabel,
+                    onOptionSelected = { label ->
+                        frequencies.find { it.second == label }?.let {
+                            viewModel.newTaskFrequency = it.first
                         }
                     }
-                }
+                )
 
                 // Color Picker
                 Text("Color", style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)
                 ) {
                     colors.forEach { (hex, _) ->
                         val color = try {
@@ -344,17 +313,15 @@ fun MaintenanceTaskRow(
         }
     } ?: MaterialTheme.colorScheme.primary
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    NesListItemCard(onClick = onToggle) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .padding(4.dp)
+                    .size(NesSize.thumbnailSmall)
+                    .padding(NesSpacing.xs)
             ) {
                 Icon(
                     imageVector = if (task.completed) Icons.Default.CheckCircle else Icons.Default.DateRange,
@@ -364,12 +331,12 @@ fun MaintenanceTaskRow(
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(NesSpacing.md))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)
                 ) {
                     Text(
                         text = task.title,

@@ -18,8 +18,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.tokendad.nesventorynew.ui.additem.CompactTextField
+import com.tokendad.nesventorynew.ui.components.NesCard
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSecondaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
 import com.tokendad.nesventorynew.ui.maintenance.MaintenanceTaskRow
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,127 +84,121 @@ fun EditItemScreen(
 @Composable
 fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
     val highlightColor = Color(0xFFFF0000)
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
     ) {
         // Name & Brand
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactTextField(
+            NesTextField(
                 value = viewModel.name,
                 onValueChange = { viewModel.name = it },
                 label = "Name *",
-                modifier = Modifier.weight(1.2f)
+                modifier = Modifier.weight(1.2f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.brand,
                 onValueChange = { viewModel.brand = it },
                 label = "Brand",
                 modifier = Modifier.weight(0.8f),
-                textColor = if (viewModel.isFieldModified("brand", viewModel.brand)) highlightColor else Color.Unspecified
+                textStyle = if (viewModel.isFieldModified("brand", viewModel.brand)) 
+                    MaterialTheme.typography.bodySmall.copy(color = highlightColor) 
+                else MaterialTheme.typography.bodySmall
             )
         }
 
         // Model & Serial
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactTextField(
+            NesTextField(
                 value = viewModel.modelNumber,
                 onValueChange = { viewModel.modelNumber = it },
                 label = "Model",
                 modifier = Modifier.weight(1f),
-                textColor = if (viewModel.isFieldModified("modelNumber", viewModel.modelNumber)) highlightColor else Color.Unspecified
+                textStyle = if (viewModel.isFieldModified("modelNumber", viewModel.modelNumber)) 
+                    MaterialTheme.typography.bodySmall.copy(color = highlightColor) 
+                else MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.serialNumber,
                 onValueChange = { viewModel.serialNumber = it },
                 label = "Serial",
                 modifier = Modifier.weight(1f),
-                textColor = if (viewModel.isFieldModified("serialNumber", viewModel.serialNumber)) highlightColor else Color.Unspecified
+                textStyle = if (viewModel.isFieldModified("serialNumber", viewModel.serialNumber)) 
+                    MaterialTheme.typography.bodySmall.copy(color = highlightColor) 
+                else MaterialTheme.typography.bodySmall
             )
         }
 
         // Retailer & Location
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactTextField(
+            NesTextField(
                 value = viewModel.retailer,
                 onValueChange = { viewModel.retailer = it },
                 label = "Retailer",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
             
             // Location Selector
-            var locationExpanded by remember { mutableStateOf(false) }
             val selectedLocationName = viewModel.availableLocations
                 .find { it.id == viewModel.selectedLocationId }?.name ?: ""
 
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = selectedLocationName,
-                    onValueChange = {},
-                    label = { Text("Location", style = MaterialTheme.typography.bodySmall) },
-                    readOnly = true,
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    trailingIcon = {
-                        IconButton(onClick = { locationExpanded = !locationExpanded }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                )
-                DropdownMenu(
-                    expanded = locationExpanded,
-                    onDismissRequest = { locationExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.5f)
-                ) {
-                    viewModel.availableLocations.forEach { loc ->
-                        DropdownMenuItem(
-                            text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
-                            onClick = {
-                                viewModel.selectedLocationId = loc.id
-                                locationExpanded = false
-                            }
-                        )
+            NesDropdown(
+                label = "Location",
+                options = viewModel.availableLocations.map { it.name },
+                selectedOption = selectedLocationName,
+                onOptionSelected = { name ->
+                    viewModel.availableLocations.find { it.name == name }?.let {
+                        viewModel.selectedLocationId = it.id
                     }
-                }
-            }
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
 
         // Price, Value, Date
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactTextField(
+            NesTextField(
                 value = viewModel.purchasePrice,
                 onValueChange = { viewModel.purchasePrice = it },
                 label = "Price",
-                modifier = Modifier.weight(0.8f)
+                modifier = Modifier.weight(0.8f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.estimatedValue,
                 onValueChange = { viewModel.estimatedValue = it },
                 label = "Value",
                 modifier = Modifier.weight(0.8f),
-                textColor = if (viewModel.isFieldModified("estimatedValue", viewModel.estimatedValue)) highlightColor else Color.Unspecified
+                textStyle = if (viewModel.isFieldModified("estimatedValue", viewModel.estimatedValue)) 
+                    MaterialTheme.typography.bodySmall.copy(color = highlightColor) 
+                else MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.purchaseDate,
                 onValueChange = { viewModel.purchaseDate = it },
                 label = "Date",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
         }
 
         // Description
-        CompactTextField(
+        NesTextField(
             value = viewModel.description,
             onValueChange = { viewModel.description = it },
             label = "Description",
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
             minLines = 2,
-            textColor = if (viewModel.isFieldModified("description", viewModel.description)) highlightColor else Color.Unspecified
+            textStyle = if (viewModel.isFieldModified("description", viewModel.description)) 
+                MaterialTheme.typography.bodySmall.copy(color = highlightColor) 
+            else MaterialTheme.typography.bodySmall
         )
 
         if (viewModel.errorMessage != null) {
@@ -210,55 +210,31 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
         }
 
         if (viewModel.isReviewingEnrichment) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
+            NesCard(
+                title = "AI Enrichment Preview",
+                subtitle = "Review the highlighted changes above."
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "AI Enrichment Preview",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Spacer(modifier = Modifier.height(NesSpacing.lg))
+                Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                    NesSecondaryButton(
+                        text = "Discard Changes",
+                        onClick = { viewModel.discardEnrichment() },
+                        modifier = Modifier.weight(1f)
                     )
-                    Text(
-                        "Review the highlighted changes above.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    NesPrimaryButton(
+                        text = "Accept Changes",
+                        onClick = { viewModel.acceptEnrichment() },
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { viewModel.discardEnrichment() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Discard Changes")
-                        }
-                        Button(
-                            onClick = { viewModel.acceptEnrichment() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Accept Changes")
-                        }
-                    }
                 }
             }
         } else {
-            Button(
+            NesPrimaryButton(
+                text = "Update Item",
                 onClick = { viewModel.updateItem(onSuccess = onItemUpdated) },
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !viewModel.isLoading,
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                if (viewModel.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Update Item", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+                loading = viewModel.isLoading
+            )
         }
     }
 }
@@ -267,15 +243,19 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
 fun MediaTab(viewModel: EditItemViewModel, serverUrl: String) {
     if (viewModel.itemMedia.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No photos available for this item.")
+            NesEmptyState(
+                title = "No photos",
+                message = "No photos available for this item.",
+                icon = Icons.Default.PhotoLibrary
+            )
         }
     } else {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(120.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(NesSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
             items(viewModel.itemMedia) { photo ->
                 val imageUrl = if (photo.path.startsWith("http")) photo.path
@@ -314,15 +294,19 @@ fun MediaTab(viewModel: EditItemViewModel, serverUrl: String) {
 fun MaintenanceTab(viewModel: EditItemViewModel) {
     if (viewModel.maintenanceTasks.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No maintenance history for this item.")
+            NesEmptyState(
+                title = "No maintenance history",
+                message = "No maintenance history for this item.",
+                icon = Icons.Default.Build
+            )
         }
     } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(NesSpacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
             viewModel.maintenanceTasks.forEach { task ->
                 MaintenanceTaskRow(task = task, onToggle = { viewModel.toggleMaintenanceTask(task) })

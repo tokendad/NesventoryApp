@@ -13,9 +13,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesInlineLoading
+import com.tokendad.nesventorynew.ui.components.NesMessageBanner
+import com.tokendad.nesventorynew.ui.components.MessageType
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSecondaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,13 +59,11 @@ fun PrinterSettingsScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(NesSpacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
         ) {
-            if (viewModel.isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
+            NesInlineLoading(isLoading = viewModel.isLoading)
 
             // Print Method Selector
             Text("Print Method", style = MaterialTheme.typography.titleSmall)
@@ -86,7 +91,7 @@ fun PrinterSettingsScreen(
                 Text("Server Printer Configuration", style = MaterialTheme.typography.titleMedium)
                 
                 // Model Selector from Server
-                DropdownSelector(
+                NesDropdown(
                     label = "Server Printer Model",
                     options = viewModel.serverPrinterModels.map { it.label },
                     selectedOption = viewModel.serverPrinterModels.find { it.value == viewModel.config.model }?.label ?: viewModel.config.model,
@@ -97,32 +102,28 @@ fun PrinterSettingsScreen(
                     }
                 )
 
-                DropdownSelector(
+                NesDropdown(
                     label = "Interface Type",
                     options = viewModel.supportedInterfaces,
                     selectedOption = viewModel.config.interface_type,
                     onOptionSelected = viewModel::onInterfaceChange
                 )
 
-                OutlinedTextField(
+                NesTextField(
                     value = viewModel.config.address ?: "",
                     onValueChange = viewModel::onAddressChange,
-                    label = { Text("Address (USB Port, IP, or MAC)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Address (USB Port, IP, or MAC)"
                 )
-                
-                Button(
-                    onClick = { viewModel.printTest() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text("Test Connection")
-                }
+
+                NesSecondaryButton(
+                    text = "Test Connection",
+                    onClick = { viewModel.printTest() }
+                )
 
             } else {
                 // Local Configuration
                 // Model Selector
-                DropdownSelector(
+                NesDropdown(
                     label = "Local Printer Model",
                     options = viewModel.supportedModels,
                     selectedOption = viewModel.config.model,
@@ -132,41 +133,48 @@ fun PrinterSettingsScreen(
                 // Bluetooth UI
                 HorizontalDivider()
                 Text("Bluetooth Devices", style = MaterialTheme.typography.titleMedium)
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = { 
-                        val permissions = if (android.os.Build.VERSION.SDK_INT >= 31) {
-                            listOf(
-                                android.Manifest.permission.BLUETOOTH_SCAN,
-                                android.Manifest.permission.BLUETOOTH_CONNECT
-                            )
-                        } else {
-                            listOf(
-                                android.Manifest.permission.ACCESS_FINE_LOCATION
-                            )
-                        }
-                        permissionLauncher.launch(permissions.toTypedArray())
-                    }) {
-                        Text("Scan")
-                    }
-                    
-                    val statusText = when(connectionState) {
-                         0 -> "Disconnected"
-                         1 -> "Connecting..."
-                         2 -> "Connected"
-                         3 -> "Disconnecting..."
-                         else -> "Unknown"
+                    NesSecondaryButton(
+                        text = "Scan",
+                        onClick = {
+                            val permissions = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                                listOf(
+                                    android.Manifest.permission.BLUETOOTH_SCAN,
+                                    android.Manifest.permission.BLUETOOTH_CONNECT
+                                )
+                            } else {
+                                listOf(
+                                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                                )
+                            }
+                            permissionLauncher.launch(permissions.toTypedArray())
+                        },
+                        fullWidth = false
+                    )
+
+                    val statusText = when (connectionState) {
+                        0 -> "Disconnected"
+                        1 -> "Connecting..."
+                        2 -> "Connected"
+                        3 -> "Disconnecting..."
+                        else -> "Unknown"
                     }
                     Text("Status: $statusText")
                 }
-                
+
                 // Device List (condensed)
-                Box(modifier = Modifier.height(150.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)) {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                Box(
+                    modifier = Modifier
+                        .height(150.dp)
+                        .fillMaxWidth()
+                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(NesSpacing.xs)) {
                         items(scannedDevices) { device ->
                             @android.annotation.SuppressLint("MissingPermission")
                             val deviceName = device.name ?: "Unknown Device"
@@ -184,13 +192,10 @@ fun PrinterSettingsScreen(
                 }
                 
                 if (connectionState == 2) { // Connected
-                    Button(
-                        onClick = { viewModel.printTest() },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                    ) {
-                        Text("Test Local Print")
-                    }
+                    NesSecondaryButton(
+                        text = "Test Local Print",
+                        onClick = { viewModel.printTest() }
+                    )
                 }
             }
 
@@ -205,61 +210,21 @@ fun PrinterSettingsScreen(
                 steps = 3
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(NesSpacing.sm))
 
-            if (viewModel.errorMessage != null) {
-                Text(viewModel.errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            viewModel.errorMessage?.let {
+                NesMessageBanner(message = it, type = MessageType.Error)
             }
-            if (viewModel.successMessage != null) {
-                Text(viewModel.successMessage!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            viewModel.successMessage?.let {
+                NesMessageBanner(message = it, type = MessageType.Success)
             }
 
-            Button(
+            NesPrimaryButton(
+                text = "Save Server Configuration",
                 onClick = { viewModel.saveConfig() },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !viewModel.isLoading
-            ) {
-                Text("Save Server Configuration")
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DropdownSelector(
-    label: String,
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-    ) {
-        OutlinedTextField(
-            value = selectedOption,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    }
-                )
-            }
+                enabled = !viewModel.isLoading,
+                loading = viewModel.isLoading
+            )
         }
     }
 }

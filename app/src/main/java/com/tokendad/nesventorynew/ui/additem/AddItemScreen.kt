@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Refresh
@@ -16,10 +15,16 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tokendad.nesventorynew.ui.components.NesCompactButton
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesInlineLoading
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSecondaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,10 +65,10 @@ fun AddItemScreen(
             title = { Text("Barcode Lookup") },
             text = {
                 Column {
-                    OutlinedTextField(
+                    NesTextField(
                         value = viewModel.barcodeInput,
                         onValueChange = { viewModel.barcodeInput = it },
-                        label = { Text("UPC / EAN") },
+                        label = "UPC / EAN",
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -138,160 +143,140 @@ fun AddItemScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
         ) {
             // Auto-fill Buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { 
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                NesCompactButton(
+                    text = "Gallery",
+                    onClick = {
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(Icons.Default.Create, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Gallery", style = MaterialTheme.typography.bodySmall)
-                }
-                
-                OutlinedButton(
+                    icon = Icons.Default.Create
+                )
+
+                NesCompactButton(
+                    text = "Camera",
                     onClick = { cameraLauncher.launch(null) },
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(Icons.Default.Face, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Camera", style = MaterialTheme.typography.bodySmall)
-                }
+                    icon = Icons.Default.Face
+                )
 
-                OutlinedButton(
+                NesCompactButton(
+                    text = "Barcode",
                     onClick = { viewModel.showBarcodeDialog = true },
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Barcode", style = MaterialTheme.typography.bodySmall)
-                }
+                    icon = Icons.Default.Search
+                )
             }
-            
+
+            NesInlineLoading(isLoading = viewModel.isLoading)
             if (viewModel.isLoading) {
-                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                 Text("Analyzing...", style = MaterialTheme.typography.labelSmall)
+                Text("Analyzing...", style = MaterialTheme.typography.labelSmall)
             }
 
             // Name & Brand
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+                NesTextField(
                     value = viewModel.name,
                     onValueChange = { viewModel.name = it },
                     label = "Name *",
-                    modifier = Modifier.weight(1.2f)
+                    modifier = Modifier.weight(1.2f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.brand,
                     onValueChange = { viewModel.brand = it },
                     label = "Brand",
-                    modifier = Modifier.weight(0.8f)
+                    modifier = Modifier.weight(0.8f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
 
             // Model & Serial
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+                NesTextField(
                     value = viewModel.modelNumber,
                     onValueChange = { viewModel.modelNumber = it },
                     label = "Model",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.serialNumber,
                     onValueChange = { viewModel.serialNumber = it },
                     label = "Serial",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
 
             // Retailer & Location
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+                NesTextField(
                     value = viewModel.retailer,
                     onValueChange = { viewModel.retailer = it },
                     label = "Retailer",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
                 
                 // Location Selector
-                var locationExpanded by remember { mutableStateOf(false) }
                 val selectedLocationName = viewModel.availableLocations
                     .find { it.id == viewModel.selectedLocationId }?.name ?: ""
 
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = selectedLocationName,
-                        onValueChange = {},
-                        label = { Text("Location", style = MaterialTheme.typography.bodySmall) },
-                        readOnly = true,
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        trailingIcon = {
-                            IconButton(onClick = { locationExpanded = !locationExpanded }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
-                    )
-                    DropdownMenu(
-                        expanded = locationExpanded,
-                        onDismissRequest = { locationExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.5f)
-                    ) {
-                        viewModel.availableLocations.forEach { loc ->
-                            DropdownMenuItem(
-                                text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
-                                onClick = {
-                                    viewModel.selectedLocationId = loc.id
-                                    locationExpanded = false
-                                }
-                            )
+                NesDropdown(
+                    label = "Location",
+                    options = viewModel.availableLocations.map { it.name },
+                    selectedOption = selectedLocationName,
+                    onOptionSelected = { name ->
+                        viewModel.availableLocations.find { it.name == name }?.let {
+                            viewModel.selectedLocationId = it.id
                         }
-                    }
-                }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             // Price, Value, Date
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+                NesTextField(
                     value = viewModel.purchasePrice,
                     onValueChange = { viewModel.purchasePrice = it },
                     label = "Price",
-                    modifier = Modifier.weight(0.8f)
+                    modifier = Modifier.weight(0.8f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.estimatedValue,
                     onValueChange = { viewModel.estimatedValue = it },
                     label = "Value",
-                    modifier = Modifier.weight(0.8f)
+                    modifier = Modifier.weight(0.8f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.purchaseDate,
                     onValueChange = { viewModel.purchaseDate = it },
                     label = "Date",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
 
             // Description
-            CompactTextField(
+            NesTextField(
                 value = viewModel.description,
                 onValueChange = { viewModel.description = it },
                 label = "Description",
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
-                minLines = 2
+                minLines = 2,
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             if (viewModel.errorMessage != null) {
@@ -303,59 +288,19 @@ fun AddItemScreen(
             }
             
             if (viewModel.showRetryOption) {
-                Button(
+                NesSecondaryButton(
+                    text = "Retry with Standard AI",
                     onClick = { viewModel.retryWithStandardAi() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                ) {
-                    Icon(androidx.compose.material.icons.Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Retry with Standard AI", style = MaterialTheme.typography.bodyMedium)
-                }
+                    icon = Icons.Default.Refresh
+                )
             }
 
-            Button(
+            NesPrimaryButton(
+                text = "Create Item",
                 onClick = { viewModel.createItem(onSuccess = onItemCreated) },
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !viewModel.isLoading,
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                if (viewModel.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Create Item", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+                loading = viewModel.isLoading
+            )
         }
     }
-}
-
-@Composable
-fun CompactTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    singleLine: Boolean = true,
-    minLines: Int = 1,
-    textColor: Color = Color.Unspecified
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
-        modifier = modifier.height(if (minLines > 1) 80.dp else 56.dp),
-        textStyle = MaterialTheme.typography.bodySmall,
-        singleLine = singleLine,
-        minLines = minLines,
-        maxLines = if (singleLine) 1 else 3,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = if (textColor != Color.Unspecified) textColor else MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = if (textColor != Color.Unspecified) textColor else MaterialTheme.colorScheme.onSurface
-        )
-    )
 }

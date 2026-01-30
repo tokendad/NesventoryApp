@@ -5,16 +5,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tokendad.nesventorynew.ui.addlocation.CompactTextField
 import com.tokendad.nesventorynew.ui.addlocation.LocationCategorySelector
-import com.tokendad.nesventorynew.ui.addlocation.scale
+import com.tokendad.nesventorynew.ui.components.NesDropdown
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSecondaryButton
+import com.tokendad.nesventorynew.ui.components.NesTextField
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,71 +72,50 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)
     ) {
         // Name & Friendly Name
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactTextField(
+        Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+            NesTextField(
                 value = viewModel.name,
                 onValueChange = { viewModel.name = it },
                 label = "Name *",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.friendlyName,
                 onValueChange = { viewModel.friendlyName = it },
                 label = "Friendly Name",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodySmall
             )
         }
 
         // Parent Location Selector
-        var parentExpanded by remember { mutableStateOf(false) }
         val selectedParentName = viewModel.availableLocations
-            .find { it.id == viewModel.selectedParentId }?.name ?: ""
+            .find { it.id == viewModel.selectedParentId }?.name ?: "None (Root)"
 
-        Box {
-            OutlinedTextField(
-                value = selectedParentName,
-                onValueChange = {},
-                label = { Text("Parent Location", style = MaterialTheme.typography.bodySmall) },
-                placeholder = { Text("Select Parent (Optional)", style = MaterialTheme.typography.bodySmall) },
-                readOnly = true,
-                textStyle = MaterialTheme.typography.bodySmall,
-                trailingIcon = {
-                    IconButton(onClick = { parentExpanded = !parentExpanded }) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+        val parentOptions = listOf("None (Root)") + viewModel.availableLocations
+            .filter { it.id != viewModel.locationId }
+            .map { it.name }
+
+        NesDropdown(
+            label = "Parent Location",
+            options = parentOptions,
+            selectedOption = selectedParentName,
+            onOptionSelected = { selectedName ->
+                if (selectedName == "None (Root)") {
+                    viewModel.selectedParentId = null
+                } else {
+                    viewModel.availableLocations.find { it.name == selectedName }?.let {
+                        viewModel.selectedParentId = it.id
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
-            )
-            DropdownMenu(
-                expanded = parentExpanded,
-                onDismissRequest = { parentExpanded = false },
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                DropdownMenuItem(
-                    text = { Text("None (Root)", style = MaterialTheme.typography.bodySmall) },
-                    onClick = {
-                        viewModel.selectedParentId = null
-                        parentExpanded = false
-                    }
-                )
-                viewModel.availableLocations
-                    .filter { it.id != viewModel.locationId } // Prevent self-parenting
-                    .forEach { loc ->
-                    DropdownMenuItem(
-                        text = { Text(loc.name, style = MaterialTheme.typography.bodySmall) },
-                        onClick = {
-                            viewModel.selectedParentId = loc.id
-                            parentExpanded = false
-                        }
-                    )
                 }
             }
-        }
+        )
 
         // Location Category
         LocationCategorySelector(
@@ -142,21 +125,23 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
         )
 
         // Address
-        CompactTextField(
+        NesTextField(
             value = viewModel.address,
             onValueChange = { viewModel.address = it },
             label = "Address",
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
-            minLines = 2
+            minLines = 2,
+            textStyle = MaterialTheme.typography.bodySmall
         )
 
         // Estimated Value
-        CompactTextField(
+        NesTextField(
             value = viewModel.estimatedPropertyValue,
             onValueChange = { viewModel.estimatedPropertyValue = it },
             label = "Estimated Property Value",
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodySmall
         )
 
         // Flags
@@ -170,8 +155,7 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
                 Spacer(Modifier.width(4.dp))
                 Switch(
                     checked = viewModel.isPrimaryLocation,
-                    onCheckedChange = { viewModel.isPrimaryLocation = it },
-                    modifier = Modifier.scale(0.8f)
+                    onCheckedChange = { viewModel.isPrimaryLocation = it }
                 )
             }
             
@@ -180,60 +164,54 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
                 Spacer(Modifier.width(4.dp))
                 Switch(
                     checked = viewModel.isContainer,
-                    onCheckedChange = { viewModel.isContainer = it },
-                    modifier = Modifier.scale(0.8f)
+                    onCheckedChange = { viewModel.isContainer = it }
                 )
             }
         }
 
         // Description
-        CompactTextField(
+        NesTextField(
             value = viewModel.description,
             onValueChange = { viewModel.description = it },
             label = "Description",
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
-            minLines = 2
+            minLines = 2,
+            textStyle = MaterialTheme.typography.bodySmall
         )
 
-        if (viewModel.errorMessage != null) {
+        viewModel.errorMessage?.let {
             Text(
-                text = viewModel.errorMessage!!,
+                text = it,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
         }
 
-        Button(
+        NesPrimaryButton(
+            text = "Update Location",
             onClick = { viewModel.updateLocation(onSuccess = onLocationUpdated) },
-            modifier = Modifier.fillMaxWidth(),
             enabled = !viewModel.isLoading,
-            contentPadding = PaddingValues(8.dp)
-        ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Update Location", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+            loading = viewModel.isLoading
+        )
     }
 }
 
 @Composable
 fun MediaTab() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Media Management", style = MaterialTheme.typography.titleMedium)
-            Text("Photos and videos for this location will appear here.", style = MaterialTheme.typography.bodySmall)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { /* TODO */ }) {
-                Text("Add Media")
+        NesEmptyState(
+            title = "Media Management",
+            message = "Photos and videos for this location will appear here.",
+            icon = Icons.Default.PhotoLibrary,
+            action = {
+                NesPrimaryButton(
+                    text = "Add Media",
+                    onClick = { /* TODO */ },
+                    fullWidth = false
+                )
             }
-        }
+        )
     }
 }
 
@@ -241,117 +219,128 @@ fun MediaTab() {
 fun InsuranceTab(viewModel: EditLocationViewModel) {
     if (!viewModel.isPrimaryLocation) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                "Insurance details are only available for primary locations.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(32.dp)
+            NesEmptyState(
+                title = "Insurance unavailable",
+                message = "Insurance details are only available for primary locations."
             )
         }
     } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
         ) {
             Text("Company Details", style = MaterialTheme.typography.titleMedium)
-            CompactTextField(
+            NesTextField(
                 value = viewModel.companyName,
                 onValueChange = { viewModel.companyName = it },
-                label = "Company Name"
+                label = "Company Name",
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            CompactTextField(
+            NesTextField(
                 value = viewModel.companyAddress,
                 onValueChange = { viewModel.companyAddress = it },
-                label = "Company Address"
+                label = "Company Address",
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                NesTextField(
                     value = viewModel.companyEmail,
                     onValueChange = { viewModel.companyEmail = it },
                     label = "Company Email",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.companyPhone,
                     onValueChange = { viewModel.companyPhone = it },
                     label = "Company Phone",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
-            CompactTextField(
+            NesTextField(
                 value = viewModel.agentName,
                 onValueChange = { viewModel.agentName = it },
-                label = "Agent Name"
+                label = "Agent Name",
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             HorizontalDivider()
             Text("Policy Details", style = MaterialTheme.typography.titleMedium)
-            CompactTextField(
+            NesTextField(
                 value = viewModel.policyNumber,
                 onValueChange = { viewModel.policyNumber = it },
-                label = "Policy Number"
+                label = "Policy Number",
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             HorizontalDivider()
             Text("Primary Holder Details", style = MaterialTheme.typography.titleMedium)
-            CompactTextField(
+            NesTextField(
                 value = viewModel.primaryHolderName,
                 onValueChange = { viewModel.primaryHolderName = it },
-                label = "Name"
+                label = "Name",
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                NesTextField(
                     value = viewModel.primaryHolderEmail,
                     onValueChange = { viewModel.primaryHolderEmail = it },
                     label = "Email",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.primaryHolderPhone,
                     onValueChange = { viewModel.primaryHolderPhone = it },
                     label = "Phone",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
-            CompactTextField(
+            NesTextField(
                 value = viewModel.primaryHolderAddress,
                 onValueChange = { viewModel.primaryHolderAddress = it },
-                label = "Address"
+                label = "Address",
+                textStyle = MaterialTheme.typography.bodySmall
             )
 
             HorizontalDivider()
             Text("Property Details", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactTextField(
+            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                NesTextField(
                     value = viewModel.insurancePurchaseDate,
                     onValueChange = { viewModel.insurancePurchaseDate = it },
                     label = "Purchase Date",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
-                CompactTextField(
+                NesTextField(
                     value = viewModel.insurancePurchasePrice,
                     onValueChange = { viewModel.insurancePurchasePrice = it },
                     label = "Purchase Price",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             }
-            CompactTextField(
+            NesTextField(
                 value = viewModel.insuranceBuildDate,
                 onValueChange = { viewModel.insuranceBuildDate = it },
-                label = "Build Date"
+                label = "Build Date",
+                textStyle = MaterialTheme.typography.bodySmall
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
+
+            Spacer(modifier = Modifier.height(NesSpacing.lg))
+            NesPrimaryButton(
+                text = "Save Insurance Info",
                 onClick = { viewModel.updateLocation(onSuccess = {}) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !viewModel.isLoading
-            ) {
-                Text("Save Insurance Info")
-            }
-            Spacer(modifier = Modifier.height(32.dp))
+                enabled = !viewModel.isLoading,
+                loading = viewModel.isLoading
+            )
+            Spacer(modifier = Modifier.height(NesSpacing.xxl))
         }
     }
 }
