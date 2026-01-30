@@ -1,7 +1,16 @@
 package com.tokendad.nesventorynew.ui.locations
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -10,16 +19,37 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.FolderOff
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tokendad.nesventorynew.data.remote.Location
+import com.tokendad.nesventorynew.ui.components.NesEmptyState
+import com.tokendad.nesventorynew.ui.components.NesListItemCard
+import com.tokendad.nesventorynew.ui.components.NesLoadingState
+import com.tokendad.nesventorynew.ui.components.NesPrimaryButton
+import com.tokendad.nesventorynew.ui.components.NesSearchField
+import com.tokendad.nesventorynew.ui.theme.NesSize
+import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,11 +65,11 @@ fun LocationsScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { 
+                    title = {
                         Text(
-                            text = viewModel.currentParent?.name ?: "Locations", 
+                            text = viewModel.currentParent?.name ?: "Locations",
                             style = MaterialTheme.typography.titleMedium
-                        ) 
+                        )
                     },
                     navigationIcon = {
                         if (viewModel.currentParentId != null) {
@@ -54,45 +84,86 @@ fun LocationsScreen(
                         }
                     }
                 )
-                OutlinedTextField(
+                NesSearchField(
                     value = viewModel.searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .height(50.dp), // Compact height
-                    placeholder = { Text("Search locations...", style = MaterialTheme.typography.bodySmall) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(20.dp)) },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodySmall
+                    placeholder = "Search locations...",
+                    modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddLocationClick, modifier = Modifier.size(48.dp)) {
+            FloatingActionButton(
+                onClick = onAddLocationClick,
+                modifier = Modifier.size(NesSize.minTouchTarget)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Location")
             }
         }
     ) { padding ->
-        if (viewModel.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when {
+            viewModel.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    NesLoadingState(message = "Loading locations...")
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(viewModel.displayedLocations) { location ->
-                    LocationRow(
-                        location = location,
-                        serverUrl = viewModel.serverUrl,
-                        onNavigate = { viewModel.navigateTo(location.id) },
-                        onViewDetails = { onLocationClick(location.id) },
-                        onEdit = { onEditLocationClick(location.id) },
-                        onDelete = { viewModel.deleteLocation(location.id) }
+            viewModel.displayedLocations.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    NesEmptyState(
+                        title = when {
+                            viewModel.searchQuery.isNotEmpty() -> "No locations found"
+                            viewModel.currentParentId != null -> "No sub-locations"
+                            else -> "No locations yet"
+                        },
+                        message = when {
+                            viewModel.searchQuery.isNotEmpty() -> "Try adjusting your search query"
+                            viewModel.currentParentId != null -> "Add a sub-location to organize this area"
+                            else -> "Add your first location to get started"
+                        },
+                        icon = if (viewModel.searchQuery.isNotEmpty())
+                            Icons.Outlined.FolderOff
+                        else
+                            Icons.Outlined.Place,
+                        action = if (viewModel.searchQuery.isEmpty()) {
+                            {
+                                NesPrimaryButton(
+                                    text = "Add Location",
+                                    onClick = onAddLocationClick,
+                                    fullWidth = false
+                                )
+                            }
+                        } else null
                     )
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(NesSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                ) {
+                    items(viewModel.displayedLocations) { location ->
+                        LocationRow(
+                            location = location,
+                            serverUrl = viewModel.serverUrl,
+                            onNavigate = { viewModel.navigateTo(location.id) },
+                            onViewDetails = { onLocationClick(location.id) },
+                            onEdit = { onEditLocationClick(location.id) },
+                            onDelete = { viewModel.deleteLocation(location.id) }
+                        )
+                    }
                 }
             }
         }
@@ -114,13 +185,11 @@ fun LocationRow(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ElevatedCard(
-            modifier = Modifier
-                .weight(1f)
-                .clickable { onNavigate() }
+        NesListItemCard(
+            modifier = Modifier.weight(1f),
+            onClick = onNavigate
         ) {
             Row(
-                modifier = Modifier.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Primary Photo
@@ -131,7 +200,7 @@ fun LocationRow(
                 }
 
                 Card(
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(NesSize.thumbnailSmall),
                     shape = MaterialTheme.shapes.small
                 ) {
                     if (imageUrl != null) {
@@ -151,19 +220,26 @@ fun LocationRow(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(NesSpacing.sm))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(location.name, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = location.name,
+                        style = MaterialTheme.typography.titleSmall
+                    )
                     location.friendly_name?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                     }
                 }
-                
+
                 // Info Button for details
                 IconButton(
                     onClick = onViewDetails,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(NesSize.iconDefault)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
@@ -176,11 +252,11 @@ fun LocationRow(
                 Box {
                     IconButton(
                         onClick = { menuExpanded = true },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(NesSize.iconDefault)
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More",
+                            contentDescription = "More options",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
