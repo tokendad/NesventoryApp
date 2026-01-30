@@ -110,4 +110,21 @@ dependencies {
 
     // Jetpack Navigation
     implementation(libs.androidx.navigation.compose)
+
+    // Retrofit & OkHttp
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.gson)
+
+    // Coil
+    implementation(libs.coil.compose)
+
+    // Zxing
+    implementation(libs.zxing.core)
+
+    // Google Sign-In with Credential Manager
+    implementation(libs.credentials.core)
+    implementation(libs.credentials.play.services)
+    implementation(libs.identity.googleid)
 }
