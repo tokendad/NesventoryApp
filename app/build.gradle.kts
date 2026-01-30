@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("kotlin-kapt")
 }
 
 android {
@@ -76,10 +76,6 @@ android {
     }
 }
 
-kapt {
-    correctErrorTypes = true
-}
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -101,9 +97,9 @@ dependencies {
 
     // Hilt core and compiler
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
-    kaptTest(libs.hilt.compiler)
-    kaptAndroidTest(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
+    kspTest(libs.hilt.compiler)
+    kspAndroidTest(libs.hilt.compiler)
 
     // Hilt testing
     testImplementation(libs.hilt.testing)
