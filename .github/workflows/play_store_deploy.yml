@@ -6,6 +6,10 @@ permissions:
 on:
   workflow_dispatch:
 
+concurrency:
+  group: play-store-deploy
+  cancel-in-progress: false
+
 jobs:
   distribute:
     runs-on: ubuntu-latest
@@ -34,6 +38,15 @@ jobs:
           # Update the version code in build.gradle.kts
           sed -i "s/versionCode = (System.getenv(\"VERSION_CODE\")?.toIntOrNull() ?: $current_code)/versionCode = (System.getenv(\"VERSION_CODE\")?.toIntOrNull() ?: $new_code)/" app/build.gradle.kts
           
+          # Verify the change was made
+          if ! grep -q "?: $new_code)" app/build.gradle.kts; then
+            echo "Error: Failed to update version code in build.gradle.kts"
+            exit 1
+          fi
+          
+          # Export the new version code for use in subsequent steps
+          echo "NEW_VERSION_CODE=$new_code" >> $GITHUB_ENV
+          
           # Commit and push the change
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -44,6 +57,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew bundleRelease
         env:
+          VERSION_CODE: ${{ env.NEW_VERSION_CODE }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
