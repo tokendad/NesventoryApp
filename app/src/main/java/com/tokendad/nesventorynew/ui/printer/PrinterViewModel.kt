@@ -59,7 +59,15 @@ class PrinterViewModel @Inject constructor(
 
 
 
-    val supportedModels = listOf("D110M_V4")
+    // Local printer models from enum
+    val supportedLocalModels = PrinterModel.entries.map { it.displayName }
+
+    // Selected local printer model
+    var selectedLocalModel by mutableStateOf(PrinterModel.D11_H)
+        private set
+
+    // Server URL for QR codes
+    private var serverUrl by mutableStateOf("https://nesdemo.welshrd.com")
 
     val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
 
@@ -84,17 +92,27 @@ class PrinterViewModel @Inject constructor(
 
 
     private fun loadSettings() {
-
         viewModelScope.launch {
-
             preferencesManager.serverSettings.collect { settings ->
-
                 printMethod = settings.printMethod
-
+                // Load selected local printer model
+                PrinterModel.fromString(settings.localPrinterModel)?.let {
+                    selectedLocalModel = it
+                }
+                // Load local density and apply to config for UI display
+                config = config.copy(density = settings.localPrinterDensity)
+                // Load server URL for QR codes
+                if (settings.remoteUrl.isNotBlank()) {
+                    serverUrl = settings.remoteUrl.trimEnd('/')
+                }
             }
-
         }
+    }
 
+    fun onLocalModelChange(displayName: String) {
+        PrinterModel.entries.find { it.displayName == displayName }?.let {
+            selectedLocalModel = it
+        }
     }
 
 
@@ -164,11 +182,20 @@ class PrinterViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                config = api.updatePrinterConfig(config)
-                
-                // Save printMethod to preferences
+                // Save local settings to preferences (always needed for local printing)
                 val currentSettings = preferencesManager.serverSettings.first()
-                preferencesManager.saveServerSettings(currentSettings.copy(printMethod = printMethod))
+                preferencesManager.saveServerSettings(
+                    currentSettings.copy(
+                        printMethod = printMethod,
+                        localPrinterModel = selectedLocalModel.name,
+                        localPrinterDensity = config.density
+                    )
+                )
+
+                // Only update server config if in server mode
+                if (printMethod == "server") {
+                    config = api.updatePrinterConfig(config)
+                }
 
                 successMessage = "Printer configuration saved successfully!"
             } catch (e: Exception) {
@@ -226,8 +253,8 @@ class PrinterViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             android.util.Log.d("PrinterViewModel", "Starting local test print...")
             try {
-                val model = PrinterModel.D110M_V4
-                android.util.Log.d("PrinterViewModel", "Using Model: ${model.name}")
+                val model = selectedLocalModel
+                android.util.Log.d("PrinterViewModel", "Using Model: ${model.displayName} (${model.name})")
                 
                 // 1. Connect (Packet)
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
@@ -236,34 +263,35 @@ class PrinterViewModel @Inject constructor(
                 android.util.Log.d("PrinterViewModel", "Connect sent. Waiting 1s...")
                 kotlinx.coroutines.delay(1000) // Wait for ack
 
-                // 2. Generate Bitmap
+                // 2. Generate Bitmap with model-specific dimensions
                 android.util.Log.d("PrinterViewModel", "Generating Label Bitmap...")
-                // 40mm @ 300dpi = ~472px length
-                val height = 472 
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
-                    height = height,
+                    height = model.defaultHeightPx,
                     title = "Test Label",
                     subtitle = "1234-5678-ABCD",
-                    qrContent = "https://nesventory.com/test",
+                    qrContent = "${serverUrl}/api/test",
                     iconType = "box"
                 )
-                android.util.Log.d("PrinterViewModel", "Bitmap Generated (${bitmap.width}x${bitmap.height}). Generating Packets...")
+                android.util.Log.d("PrinterViewModel", "Bitmap Generated (${bitmap.width}x${bitmap.height}) for ${model.displayName}. Generating Packets...")
                 
                 // 3. Protocol Data
                 val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
                 android.util.Log.d("PrinterViewModel", "Packets Generated: ${packets.size}. Sending...")
-                
-                // 4. Send
-                packets.forEachIndexed { index, packet -> 
+
+                // 4. Send with appropriate timing
+                // B1 uses 15ms between rows, others use 20ms
+                val rowDelay = if (model.protocol == ProtocolVariant.B1_CLASSIC) 15L else 20L
+
+                packets.forEachIndexed { index, packet ->
                     val sent = bluetoothManager.sendData(packet)
                     if (!sent) throw Exception("Failed to send packet $index")
-                    kotlinx.coroutines.delay(20) // Fast packet sending
+                    kotlinx.coroutines.delay(rowDelay)
                 }
-                
-                // 5. Wait and Finalize
+
+                // 5. Wait for print to complete (3 seconds as per backend)
                 android.util.Log.d("PrinterViewModel", "Waiting for print to finish...")
-                kotlinx.coroutines.delay(5000) // Wait 5 seconds for print to complete
+                kotlinx.coroutines.delay(3000)
                 val endPacket = NiimbotProtocol.createPrintEndPacket()
                 bluetoothManager.sendData(endPacket)
                 kotlinx.coroutines.delay(100)

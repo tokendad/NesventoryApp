@@ -12,6 +12,7 @@ import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
 import com.tokendad.nesventorynew.ui.printer.LabelBitmapGenerator
 import com.tokendad.nesventorynew.ui.printer.NiimbotProtocol
 import com.tokendad.nesventorynew.ui.printer.PrinterModel
+import com.tokendad.nesventorynew.ui.printer.ProtocolVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,8 @@ class ItemDetailViewModel @Inject constructor(
     // Default to known base, update from prefs
     var serverUrl by mutableStateOf("https://nesdemo.welshrd.com")
     private var printMethod by mutableStateOf("local")
+    private var selectedModel by mutableStateOf(PrinterModel.D11_H)
+    private var localDensity by mutableStateOf(3)
 
     init {
         val itemIdString: String? = savedStateHandle["itemId"]
@@ -60,6 +63,11 @@ class ItemDetailViewModel @Inject constructor(
                     serverUrl = settings.remoteUrl.trimEnd('/')
                 }
                 printMethod = settings.printMethod
+                // Load selected local printer model
+                PrinterModel.fromString(settings.localPrinterModel)?.let {
+                    selectedModel = it
+                }
+                localDensity = settings.localPrinterDensity
             }
         }
     }
@@ -96,7 +104,7 @@ class ItemDetailViewModel @Inject constructor(
 
     private fun printLabelLocally() {
         val currentItem = item ?: return
-        
+
         if (bluetoothManager.connectionState.value != 2) { // 2 = Connected
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
@@ -107,37 +115,43 @@ class ItemDetailViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                // 1. Get Config
-                val config = api.getPrinterConfig()
-                val model = PrinterModel.D110M_V4
-                android.util.Log.d("ItemDetailViewModel", "Using Model: ${model.name}")
+                // Use locally stored settings (no API call needed for local printing)
+                val model = selectedModel
+                val density = localDensity
+                android.util.Log.d("ItemDetailViewModel", "Using Model: ${model.displayName} (${model.name}), Density: $density")
 
-                // 2. Generate Bitmap
-                // Width based on model. Height 472px (40mm @ 300dpi).
+                // Generate Bitmap with model-specific dimensions
+                // QR points to configured server's API endpoint
+                val qrUrl = "${serverUrl}/api/items/${currentItem.id}"
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
-                    height = 472,
+                    height = model.defaultHeightPx,
                     title = currentItem.name,
                     subtitle = currentItem.id.toString().take(8), // Short ID
-                    qrContent = "https://nesventory.com/#/item/${currentItem.id}",
-                    iconType = "box" 
+                    qrContent = qrUrl,
+                    iconType = "box"
                 )
+                android.util.Log.d("ItemDetailViewModel", "Bitmap: ${bitmap.width}x${bitmap.height}")
 
-                // 3. Protocol Data
-                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
+                // Protocol Data
+                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = density)
 
-                // 4. Send
+                // Send connect packet
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
                 if (!connectSuccess) throw Exception("Failed to send connect packet")
                 delay(500) // Wait for ack
 
+                // Send packets with appropriate timing
+                // B1 uses 15ms between rows, others use 20ms
+                val rowDelay = if (model.protocol == ProtocolVariant.B1_CLASSIC) 15L else 20L
+
                 packets.forEachIndexed { index, packet ->
                     if (!bluetoothManager.sendData(packet)) throw Exception("Failed to send packet $index")
-                    delay(20)
+                    delay(rowDelay)
                 }
 
-                // 5. Wait and Finalize
-                delay(5000)
+                // Wait for print to complete (3 seconds as per backend)
+                delay(3000)
                 bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
                 delay(100)
                 bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())

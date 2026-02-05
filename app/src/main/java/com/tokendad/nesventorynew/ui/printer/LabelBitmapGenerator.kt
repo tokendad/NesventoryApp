@@ -46,15 +46,20 @@ class LabelBitmapGenerator @Inject constructor(
         }
 
         // Layout: QR Left, Text Right (becomes QR Top, Text Bottom after 90deg rotation)
-        // Reduce QR size slightly to avoid edge cutoff (12mm is tight)
-        // 136px is theoretical max. Let's use 120px (8px padding per side).
-        val safePadding = 8f
-        val qrSize = (drawHeight - (safePadding * 2)).toInt()
-        val qrX = safePadding
-        val qrY = safePadding
-        
+        val safePadding = 4f  // Reduced padding to shift QR left/top
+
+        // QR size should be proportional to label dimensions
+        // For wide labels (B1: 384x240), use ~1/3 of width
+        // For narrow labels (D11: 96x472), use height-based sizing
+        val maxQrByHeight = (drawHeight - (safePadding * 2)).toInt()
+        val maxQrByWidth = (drawWidth / 3).toInt()  // Max 1/3 of width for QR
+        val qrSize = minOf(maxQrByHeight, maxQrByWidth)
+
+        val qrX = safePadding  // Left edge
+        val qrY = safePadding  // Top edge
+
         // Add gap between QR and Text
-        val gap = 16f
+        val gap = 8f
         val textX = qrX + qrSize + gap
         val textWidth = drawWidth - textX - safePadding
         var currentY = safePadding
@@ -67,9 +72,9 @@ class LabelBitmapGenerator @Inject constructor(
 
         // 2. Text Area
         if (textWidth > 0) {
-            // Title - Fixed size 40f as requested
+            // Title - Reduced from 40f to 32f for better fit
             paint.typeface = Typeface.DEFAULT_BOLD
-            paint.textSize = 40f
+            paint.textSize = 32f
             val titleLines = wrapText(title, paint, textWidth)
             
             for (line in titleLines) {

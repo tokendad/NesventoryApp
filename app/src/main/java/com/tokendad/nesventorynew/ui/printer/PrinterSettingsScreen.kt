@@ -122,12 +122,12 @@ fun PrinterSettingsScreen(
 
             } else {
                 // Local Configuration
-                // Model Selector
+                // Model Selector - uses local PrinterModel enum
                 NesDropdown(
                     label = "Local Printer Model",
-                    options = viewModel.supportedModels,
-                    selectedOption = viewModel.config.model,
-                    onOptionSelected = viewModel::onModelChange
+                    options = viewModel.supportedLocalModels,
+                    selectedOption = viewModel.selectedLocalModel.displayName,
+                    onOptionSelected = viewModel::onLocalModelChange
                 )
 
                 // Bluetooth UI
@@ -220,7 +220,7 @@ fun PrinterSettingsScreen(
             }
 
             NesPrimaryButton(
-                text = "Save Server Configuration",
+                text = "Save Configuration",
                 onClick = { viewModel.saveConfig() },
                 enabled = !viewModel.isLoading,
                 loading = viewModel.isLoading

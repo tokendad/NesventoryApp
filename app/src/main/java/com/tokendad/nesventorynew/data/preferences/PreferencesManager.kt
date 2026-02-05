@@ -22,7 +22,9 @@ data class ServerSettings(
     val localSsid: String = "",
     val prioritizeLocal: Boolean = false,
     val theme: String = "system",
-    val printMethod: String = "local" // "local" or "server"
+    val printMethod: String = "local", // "local" or "server"
+    val localPrinterModel: String = "D11_H", // Default to D11-H
+    val localPrinterDensity: Int = 3 // Print density 1-5, default 3
 ) {
     fun isConfigured(): Boolean = remoteUrl.isNotBlank() || localUrl.isNotBlank()
 }
@@ -51,7 +53,9 @@ class PreferencesManager @Inject constructor(
         private val KEY_PRIORITIZE_LOCAL = androidx.datastore.preferences.core.booleanPreferencesKey("prioritize_local")
         private val KEY_THEME = stringPreferencesKey("app_theme")
         private val KEY_PRINT_METHOD = stringPreferencesKey("print_method")
-        
+        private val KEY_LOCAL_PRINTER_MODEL = stringPreferencesKey("local_printer_model")
+        private val KEY_LOCAL_PRINTER_DENSITY = androidx.datastore.preferences.core.intPreferencesKey("local_printer_density")
+
         // Credentials
         private val KEY_USERNAME = stringPreferencesKey("username")
         private val KEY_PASSWORD = stringPreferencesKey("password")
@@ -66,7 +70,9 @@ class PreferencesManager @Inject constructor(
             localSsid = preferences[KEY_LOCAL_SSID] ?: "",
             prioritizeLocal = preferences[KEY_PRIORITIZE_LOCAL] ?: false,
             theme = preferences[KEY_THEME] ?: "system",
-            printMethod = preferences[KEY_PRINT_METHOD] ?: "local"
+            printMethod = preferences[KEY_PRINT_METHOD] ?: "local",
+            localPrinterModel = preferences[KEY_LOCAL_PRINTER_MODEL] ?: "D11_H",
+            localPrinterDensity = preferences[KEY_LOCAL_PRINTER_DENSITY] ?: 3
         )
     }
 
@@ -95,6 +101,8 @@ class PreferencesManager @Inject constructor(
             preferences[KEY_PRIORITIZE_LOCAL] = settings.prioritizeLocal
             preferences[KEY_THEME] = settings.theme
             preferences[KEY_PRINT_METHOD] = settings.printMethod
+            preferences[KEY_LOCAL_PRINTER_MODEL] = settings.localPrinterModel
+            preferences[KEY_LOCAL_PRINTER_DENSITY] = settings.localPrinterDensity
         }
     }
 

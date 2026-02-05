@@ -74,8 +74,10 @@ class LoginViewModel @Inject constructor(
                 val status = api.getGoogleAuthStatus()
                 isGoogleSignInAvailable = status.enabled
                 googleClientId = status.client_id
+                android.util.Log.d("LoginViewModel", "Google Auth status: enabled=${status.enabled}, clientId=${status.client_id?.take(30)}...")
             } catch (e: Exception) {
                 // Google auth not available - keep button hidden
+                android.util.Log.w("LoginViewModel", "Google Auth check failed: ${e.message}")
                 isGoogleSignInAvailable = false
                 googleClientId = null
             }
@@ -161,13 +163,18 @@ class LoginViewModel @Inject constructor(
 
             } catch (e: GetCredentialCancellationException) {
                 // User cancelled - don't show error
+                android.util.Log.d("LoginViewModel", "Google Sign-In cancelled by user")
                 errorMessage = null
             } catch (e: NoCredentialException) {
                 // Try fallback with GetGoogleIdOption
+                android.util.Log.d("LoginViewModel", "NoCredentialException - trying fallback: ${e.message}")
                 tryGoogleIdFallback(context, clientId, onSuccess)
             } catch (e: GetCredentialException) {
+                android.util.Log.e("LoginViewModel", "GetCredentialException: ${e.type} - ${e.message}", e)
+                errorMessage = "Google Sign-In failed: ${e.type} - ${e.localizedMessage}"
+            } catch (e: Exception) {
+                android.util.Log.e("LoginViewModel", "Unexpected error in Google Sign-In", e)
                 errorMessage = "Google Sign-In failed: ${e.localizedMessage}"
-                e.printStackTrace()
             } finally {
                 isGoogleLoading = false
             }
@@ -178,6 +185,7 @@ class LoginViewModel @Inject constructor(
      * Fallback to GetGoogleIdOption if GetSignInWithGoogleOption fails.
      */
     private suspend fun tryGoogleIdFallback(context: Context, clientId: String, onSuccess: () -> Unit) {
+        android.util.Log.d("LoginViewModel", "Trying Google ID fallback with clientId: ${clientId.take(20)}...")
         try {
             val credentialManager = CredentialManager.create(context)
 
@@ -195,11 +203,15 @@ class LoginViewModel @Inject constructor(
                 context = context
             )
 
+            android.util.Log.d("LoginViewModel", "Fallback got credential result")
             handleGoogleSignInResult(result, onSuccess)
 
+        } catch (e: GetCredentialCancellationException) {
+            android.util.Log.d("LoginViewModel", "Fallback cancelled by user")
+            errorMessage = null
         } catch (e: Exception) {
-            errorMessage = "Google Sign-In not available. Please ensure you have a Google account on this device."
-            e.printStackTrace()
+            android.util.Log.e("LoginViewModel", "Fallback failed: ${e.javaClass.simpleName} - ${e.message}", e)
+            errorMessage = "Google Sign-In not available: ${e.localizedMessage}"
         }
     }
 

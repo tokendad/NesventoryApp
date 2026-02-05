@@ -13,6 +13,7 @@ import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
 import com.tokendad.nesventorynew.ui.printer.LabelBitmapGenerator
 import com.tokendad.nesventorynew.ui.printer.NiimbotProtocol
 import com.tokendad.nesventorynew.ui.printer.PrinterModel
+import com.tokendad.nesventorynew.ui.printer.ProtocolVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,8 @@ class LocationDetailViewModel @Inject constructor(
     var serverUrl by mutableStateOf("")
 
     private var printMethod by mutableStateOf("local")
+    private var selectedModel by mutableStateOf(PrinterModel.D11_H)
+    private var localDensity by mutableStateOf(3)
 
     init {
         val locationIdString: String? = savedStateHandle["locationId"]
@@ -56,6 +59,11 @@ class LocationDetailViewModel @Inject constructor(
             preferencesManager.serverSettings.collect { settings ->
                 printMethod = settings.printMethod
                 serverUrl = settings.remoteUrl.trimEnd('/')
+                // Load selected local printer model
+                PrinterModel.fromString(settings.localPrinterModel)?.let {
+                    selectedModel = it
+                }
+                localDensity = settings.localPrinterDensity
             }
         }
     }
@@ -92,7 +100,7 @@ class LocationDetailViewModel @Inject constructor(
 
     private fun printLabelLocally() {
         val currentLocation = location ?: return
-        
+
         if (bluetoothManager.connectionState.value != 2) {
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
@@ -103,32 +111,42 @@ class LocationDetailViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                val config = api.getPrinterConfig()
-                val model = PrinterModel.D110M_V4
-                android.util.Log.d("LocationDetailViewModel", "Using Model: ${model.name}")
+                // Use locally stored settings (no API call needed for local printing)
+                val model = selectedModel
+                val density = localDensity
+                android.util.Log.d("LocationDetailViewModel", "Using Model: ${model.displayName} (${model.name}), Density: $density")
 
+                // Generate Bitmap with model-specific dimensions
+                // QR points to configured server's API endpoint
+                val qrUrl = "${serverUrl}/api/locations/${currentLocation.id}"
                 val bitmap = labelGenerator.generateLabel(
                     width = model.width,
-                    height = 472,
+                    height = model.defaultHeightPx,
                     title = currentLocation.name,
                     subtitle = currentLocation.id.toString().take(8),
-                    qrContent = "https://nesventory.com/#/location/${currentLocation.id}",
+                    qrContent = qrUrl,
                     iconType = "location"
                 )
+                android.util.Log.d("LocationDetailViewModel", "Bitmap: ${bitmap.width}x${bitmap.height}")
 
-                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = config.density)
+                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = density)
 
+                // Send connect packet
                 val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
                 if (!connectSuccess) throw Exception("Failed to send connect packet")
                 delay(500)
 
+                // Send packets with appropriate timing
+                // B1 uses 15ms between rows, others use 20ms
+                val rowDelay = if (model.protocol == ProtocolVariant.B1_CLASSIC) 15L else 20L
+
                 packets.forEachIndexed { index, packet ->
                     if (!bluetoothManager.sendData(packet)) throw Exception("Failed to send packet $index")
-                    delay(20)
+                    delay(rowDelay)
                 }
 
-                // Wait and Finalize
-                delay(5000)
+                // Wait for print to complete (3 seconds as per backend)
+                delay(3000)
                 bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
                 delay(100)
                 bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
