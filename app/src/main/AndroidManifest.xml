@@ -43,6 +43,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="nesventory" android:host="auth" />
             </intent-filter>
+
+            <!-- Deep Link for Items and Locations -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="nesventory.welshrd.com" android:pathPrefix="/api/items/" />
+                <data android:scheme="https" android:host="nesventory.welshrd.com" android:pathPrefix="/api/locations/" />
+            </intent-filter>
         </activity>
     </application>
 

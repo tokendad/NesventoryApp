@@ -55,19 +55,45 @@ class MainActivity : ComponentActivity() {
                 // Handle Deep Link
                 LaunchedEffect(Unit) {
                     val data = intent?.data
-                    if (data != null && data.scheme == "nesventory" && data.host == "auth") {
-                        val token = data.getQueryParameter("token")
-                        if (!token.isNullOrBlank()) {
-                            viewModel.handleOidcToken(token)
+                    if (data != null) {
+                        if (data.scheme == "nesventory" && data.host == "auth") {
+                            val token = data.getQueryParameter("token")
+                            if (!token.isNullOrBlank()) {
+                                viewModel.handleOidcToken(token)
+                            }
+                        } else if ((data.scheme == "https" || data.scheme == "http") && data.pathSegments.size >= 3) {
+                            // Generic handler for any configured server domain
+                            val pathSegments = data.pathSegments // [api, items, UUID]
+                            if (pathSegments[0] == "api") {
+                                val type = pathSegments[1]
+                                val id = pathSegments[2]
+                                if (type == "items") {
+                                    viewModel.setPendingRoute(Routes.itemDetails(id))
+                                } else if (type == "locations") {
+                                    viewModel.setPendingRoute(Routes.locationDetails(id))
+                                }
+                            }
                         }
                     }
                 }
 
                 // Auth State Observer
-                LaunchedEffect(uiState.isLoggedIn) {
+                val pendingRouteState = viewModel.pendingRoute.collectAsState()
+                val pendingRoute = pendingRouteState.value
+
+                LaunchedEffect(uiState.isLoggedIn, pendingRoute) {
                     if (uiState.isLoggedIn) {
-                        navController.navigate(Routes.DASHBOARD) {
-                            popUpTo(Routes.LOGIN) { inclusive = true }
+                        // If we are just logging in, navigate to dashboard first
+                        if (navController.currentDestination?.route == Routes.LOGIN) {
+                            navController.navigate(Routes.DASHBOARD) {
+                                popUpTo(Routes.LOGIN) { inclusive = true }
+                            }
+                        }
+                        
+                        // Handle pending deep link navigation
+                        if (pendingRoute != null) {
+                            navController.navigate(pendingRoute)
+                            viewModel.clearPendingRoute()
                         }
                     }
                 }
