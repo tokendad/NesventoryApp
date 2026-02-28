@@ -68,6 +68,7 @@ class LabelBitmapGenerator @Inject constructor(
         val qrBitmap = createQrCode(qrContent, qrSize)
         if (qrBitmap != null) {
             canvas.drawBitmap(qrBitmap, qrX, qrY, null)
+            qrBitmap.recycle()
         }
 
         // 2. Text Area
@@ -109,7 +110,9 @@ class LabelBitmapGenerator @Inject constructor(
         }
 
         return if (needRotation) {
-            rotateBitmap(bitmap, 90f)
+            val rotated = rotateBitmap(bitmap, 90f)
+            bitmap.recycle() // Recycle the pre-rotation bitmap
+            rotated
         } else {
             bitmap
         }

@@ -120,8 +120,8 @@ class DashboardViewModel @Inject constructor(
                 // Fetch Status
                 val status = api.getStatus()
                 val media = api.getMediaStats()
-                statusMessage = "Server Version: ${status["version"] ?: "Unknown"}"
-                itemStats = "Total Media Files: ${media["total_count"] ?: 0}"
+                statusMessage = "Server Version: ${status.version ?: "Unknown"}"
+                itemStats = "Total Media Files: ${media.total_count}"
                 connectionStatus = "Connected (Remote)"
 
                 // Fetch Recent Items

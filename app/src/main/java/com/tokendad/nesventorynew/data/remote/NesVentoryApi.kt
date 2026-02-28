@@ -51,13 +51,13 @@ interface NesVentoryApi {
      * Get system status including health and version.
      */
     @GET("api/status")
-    suspend fun getStatus(): Map<String, Any>
+    suspend fun getStatus(): StatusResponse
 
     /**
      * Get media statistics (Total counts, etc.)
      */
     @GET("api/media/stats")
-    suspend fun getMediaStats(): Map<String, Any>
+    suspend fun getMediaStats(): MediaStatsResponse
     /**
      * Get Items List
      */
@@ -178,7 +178,7 @@ interface NesVentoryApi {
     suspend fun getPrinterModels(): PrinterModelsResponse
 
     @POST("api/printer/print-label")
-    suspend fun printLabel(@Body request: PrintJobRequest): Map<String, Any>
+    suspend fun printLabel(@Body request: PrintJobRequest): PrintLabelResponse
 
     @GET("api/printer/status")
     suspend fun getPrinterStatus(): PrinterStatus
