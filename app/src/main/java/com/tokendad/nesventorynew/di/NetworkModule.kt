@@ -1,13 +1,16 @@
 package com.tokendad.nesventorynew.di
 
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.preferences.SecurePreferencesManager
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.util.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -20,8 +23,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    // This is a placeholder and will be replaced by the interceptor
-    private const val BASE_URL = "https://nesdemo.welshrd.com/"
+    private const val BASE_URL = "${Constants.DEFAULT_REMOTE_URL}/"
+
+    @Volatile private var cachedToken: String? = null
+    @Volatile private var cachedRemoteUrl: String = ""
+    @Volatile private var cachedLocalUrl: String = ""
+    @Volatile private var cachedPrioritizeLocal: Boolean = false
+    @Volatile private var cachedLocalSsid: String = ""
 
     @Provides
     @Singleton
@@ -35,96 +43,95 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        preferencesManager: PreferencesManager
+        preferencesManager: PreferencesManager,
+        securePreferencesManager: SecurePreferencesManager,
+        applicationScope: CoroutineScope
     ): OkHttpClient {
+        // Cache settings and token via background coroutines (no runBlocking)
+        applicationScope.launch {
+            preferencesManager.serverSettings.collect { settings ->
+                cachedRemoteUrl = settings.remoteUrl
+                cachedLocalUrl = settings.localUrl
+                cachedPrioritizeLocal = settings.prioritizeLocal
+                cachedLocalSsid = settings.localSsid
+            }
+        }
+        applicationScope.launch {
+            // Initialize token from encrypted storage
+            cachedToken = securePreferencesManager.getAccessToken()
+        }
+
         return OkHttpClient.Builder()
-            // 1. Host Selection Interceptor (Dynamic URL) - Runs first to rewrite target
+            // 1. Host Selection Interceptor
             .addInterceptor(Interceptor { chain ->
                 var request = chain.request()
-                
-                // Only intercept and rewrite if the request is targeting the placeholder BASE_URL
                 val currentHost = request.url.host
                 val placeholderHost = "nesdemo.welshrd.com"
                 
                 if (currentHost == placeholderHost) {
-                    // Fetch current settings
-                    val settings = runBlocking { preferencesManager.serverSettings.first() }
-                    
-                    // Determine Target URL
-                    // Prioritize Remote URL, then fallback to Local URL
-                    val targetUrlStr = if (settings.remoteUrl.isNotBlank()) {
-                        settings.remoteUrl
-                    } else if (settings.localUrl.isNotBlank()) {
-                        settings.localUrl
+                    val targetUrlStr = if (cachedRemoteUrl.isNotBlank()) {
+                        cachedRemoteUrl
+                    } else if (cachedLocalUrl.isNotBlank()) {
+                        cachedLocalUrl
                     } else {
                         null
                     }
                     
                     if (targetUrlStr != null) {
-                         val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
-                         val newBaseUrl = safeTarget.toHttpUrlOrNull()
-                         
-                         if (newBaseUrl != null) {
-                             // Reconstruct URL preserving custom base path and original API path
-                             // request.url.encodedPath includes the full path (e.g. "/api/auth/login")
-                             // We strip the leading slash to append it safely to the new base
-                             val apiPath = request.url.encodedPath.trimStart('/')
-                             
-                             val newUrl = newBaseUrl.newBuilder()
-                                 .addEncodedPathSegments(apiPath)
-                                 .query(request.url.query) // Preserve query parameters
-                                 .build()
-                                 
-                             request = request.newBuilder()
-                                 .url(newUrl)
-                                 .build()
-                         }
+                        val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
+                        val newBaseUrl = safeTarget.toHttpUrlOrNull()
+                        
+                        if (newBaseUrl != null) {
+                            val apiPath = request.url.encodedPath.trimStart('/')
+                            val newUrl = newBaseUrl.newBuilder()
+                                .addEncodedPathSegments(apiPath)
+                                .query(request.url.query)
+                                .build()
+                            request = request.newBuilder().url(newUrl).build()
+                        }
                     }
                 }
-
                 chain.proceed(request)
             })
-            // 2. Auth Header Interceptor
+            // 2. Auth Header Interceptor (reads cached token - no blocking)
             .addInterceptor(Interceptor { chain ->
                 val originalRequest = chain.request()
                 val requestBuilder = originalRequest.newBuilder()
-
-                val session = runBlocking { preferencesManager.userSession.first() }
-
-                if (session.accessToken.isNotBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer ${session.accessToken}")
+                val token = cachedToken
+                if (!token.isNullOrBlank()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
                 }
-
                 chain.proceed(requestBuilder.build())
             })
             // 3. 401 Unauthorized Interceptor
             .addInterceptor(Interceptor { chain ->
                 val response = chain.proceed(chain.request())
-                
                 if (response.code == 401) {
-                    // Clear session on 401
-                    runBlocking {
-                        preferencesManager.clearAccessToken()
-                    }
+                    securePreferencesManager.clearAccessToken()
+                    cachedToken = null
                 }
-                
                 response
             })
-            // 4. Logging Interceptor - Runs last to log the FINAL request (headers + rewritten URL)
+            // 4. Logging Interceptor
             .addInterceptor(loggingInterceptor)
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideNesVentoryApi(
-        okHttpClient: OkHttpClient
-    ): NesVentoryApi {
+    fun provideNesVentoryApi(okHttpClient: OkHttpClient): NesVentoryApi {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL) // Using a constant URL, Interceptor handles the rest
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(NesVentoryApi::class.java)
+    }
+
+    /**
+     * Updates the cached token. Called after login/logout.
+     */
+    fun updateCachedToken(token: String?) {
+        cachedToken = token
     }
 }

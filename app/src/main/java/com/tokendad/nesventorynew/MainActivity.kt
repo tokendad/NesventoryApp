@@ -57,8 +57,9 @@ class MainActivity : ComponentActivity() {
                     val data = intent?.data
                     if (data != null) {
                         if (data.scheme == "nesventory" && data.host == "auth") {
+                            val returnedState = data.getQueryParameter("state")
                             val token = data.getQueryParameter("token")
-                            if (!token.isNullOrBlank()) {
+                            if (viewModel.validateOidcState(returnedState) && !token.isNullOrBlank()) {
                                 viewModel.handleOidcToken(token)
                             }
                         } else if ((data.scheme == "https" || data.scheme == "http") && data.pathSegments.size >= 3) {

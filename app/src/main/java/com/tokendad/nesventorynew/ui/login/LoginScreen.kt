@@ -46,7 +46,6 @@ import com.tokendad.nesventorynew.ui.components.NesTextField
 import com.tokendad.nesventorynew.ui.theme.NesSpacing
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
@@ -56,6 +55,51 @@ fun LoginScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    LoginScreenContent(
+        username = viewModel.username,
+        onUsernameChange = { viewModel.username = it },
+        password = viewModel.password,
+        onPasswordChange = { viewModel.password = it },
+        rememberCredentials = viewModel.rememberCredentials,
+        onRememberCredentialsChange = { viewModel.rememberCredentials = it },
+        isLoading = viewModel.isLoading,
+        errorMessage = viewModel.errorMessage,
+        onLoginClick = { viewModel.login(onLoginSuccess) },
+        onSsoLoginClick = {
+            scope.launch {
+                val url = viewModel.getSsoUrl()
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url)
+                )
+                context.startActivity(intent)
+            }
+        },
+        onServerSettingsClick = onServerSettingsClick,
+        isGoogleSignInAvailable = viewModel.isGoogleSignInAvailable,
+        isGoogleLoading = viewModel.isGoogleLoading,
+        onGoogleSignInClick = { viewModel.signInWithGoogle(context, onLoginSuccess) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreenContent(
+    username: String,
+    onUsernameChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    rememberCredentials: Boolean,
+    onRememberCredentialsChange: (Boolean) -> Unit,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onLoginClick: () -> Unit,
+    onSsoLoginClick: () -> Unit,
+    onServerSettingsClick: () -> Unit,
+    isGoogleSignInAvailable: Boolean = false,
+    isGoogleLoading: Boolean = false,
+    onGoogleSignInClick: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,8 +130,8 @@ fun LoginScreen(
 
             // Username field
             NesTextField(
-                value = viewModel.username,
-                onValueChange = { viewModel.username = it },
+                value = username,
+                onValueChange = onUsernameChange,
                 label = "Username"
             )
 
@@ -95,8 +139,8 @@ fun LoginScreen(
 
             // Password field
             NesPasswordField(
-                value = viewModel.password,
-                onValueChange = { viewModel.password = it },
+                value = password,
+                onValueChange = onPasswordChange,
                 label = "Password"
             )
 
@@ -108,8 +152,8 @@ fun LoginScreen(
                     .padding(vertical = NesSpacing.sm)
             ) {
                 Checkbox(
-                    checked = viewModel.rememberCredentials,
-                    onCheckedChange = { viewModel.rememberCredentials = it }
+                    checked = rememberCredentials,
+                    onCheckedChange = onRememberCredentialsChange
                 )
                 Text(text = "Remember credentials")
             }
@@ -119,9 +163,9 @@ fun LoginScreen(
             // Login button
             NesPrimaryButton(
                 text = "Login",
-                onClick = { viewModel.login(onLoginSuccess) },
-                loading = viewModel.isLoading,
-                enabled = !viewModel.isGoogleLoading
+                onClick = onLoginClick,
+                loading = isLoading,
+                enabled = !isGoogleLoading
             )
 
             Spacer(modifier = Modifier.height(NesSpacing.lg))
@@ -129,21 +173,12 @@ fun LoginScreen(
             // SSO Login button
             NesSecondaryButton(
                 text = "Login with SSO",
-                onClick = {
-                    scope.launch {
-                        val url = viewModel.getSsoUrl()
-                        val intent = android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse(url)
-                        )
-                        context.startActivity(intent)
-                    }
-                },
-                enabled = !viewModel.isLoading && !viewModel.isGoogleLoading
+                onClick = onSsoLoginClick,
+                enabled = !isLoading && !isGoogleLoading
             )
 
             // Google Sign-In button (only shown if enabled on server)
-            AnimatedVisibility(visible = viewModel.isGoogleSignInAvailable) {
+            AnimatedVisibility(visible = isGoogleSignInAvailable) {
                 Column {
                     Spacer(modifier = Modifier.height(NesSpacing.md))
 
@@ -165,19 +200,19 @@ fun LoginScreen(
 
                     // Google Sign-In button
                     GoogleSignInButton(
-                        onClick = { viewModel.signInWithGoogle(context, onLoginSuccess) },
-                        isLoading = viewModel.isGoogleLoading,
-                        enabled = !viewModel.isLoading
+                        onClick = onGoogleSignInClick,
+                        isLoading = isGoogleLoading,
+                        enabled = !isLoading
                     )
                 }
             }
 
             // Error message
-            AnimatedVisibility(visible = viewModel.errorMessage != null) {
+            AnimatedVisibility(visible = errorMessage != null) {
                 Column {
                     Spacer(modifier = Modifier.height(NesSpacing.lg))
                     Text(
-                        text = viewModel.errorMessage ?: "",
+                        text = errorMessage ?: "",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
@@ -188,7 +223,8 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
 
-            // Test credentials card
+            // Test credentials card (debug builds only)
+            if (com.tokendad.nesventorynew.BuildConfig.DEBUG) {
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -204,6 +240,7 @@ fun LoginScreen(
                     Text("Username: Demouser")
                     Text("Password: demo123")
                 }
+            }
             }
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))

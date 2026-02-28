@@ -18,8 +18,11 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
+import com.tokendad.nesventorynew.data.preferences.SecurePreferencesManager
 import com.tokendad.nesventorynew.data.remote.GoogleAuthRequest
 import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.di.NetworkModule
+import com.tokendad.nesventorynew.BuildConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -28,7 +31,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val api: NesVentoryApi,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val securePreferencesManager: SecurePreferencesManager
 ) : ViewModel() {
 
     // UI State for the Login screen
@@ -54,11 +58,12 @@ class LoginViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            preferencesManager.savedCredentials.collect { credentials ->
-                if (credentials.isRemembered) {
-                    username = credentials.username
-                    password = credentials.password
+            preferencesManager.savedUsername.collect { saved ->
+                if (saved.isRemembered) {
+                    username = saved.username
                     rememberCredentials = true
+                    // Load password from encrypted storage
+                    securePreferencesManager.getPassword()?.let { password = it }
                 }
             }
         }
@@ -74,7 +79,9 @@ class LoginViewModel @Inject constructor(
                 val status = api.getGoogleAuthStatus()
                 isGoogleSignInAvailable = status.enabled
                 googleClientId = status.client_id
-                android.util.Log.d("LoginViewModel", "Google Auth status: enabled=${status.enabled}, clientId=${status.client_id?.take(30)}...")
+                if (BuildConfig.DEBUG) {
+                    android.util.Log.d("LoginViewModel", "Google Auth status: enabled=${status.enabled}, clientId=${status.client_id?.take(30)}...")
+                }
             } catch (e: Exception) {
                 // Google auth not available - keep button hidden
                 android.util.Log.w("LoginViewModel", "Google Auth check failed: ${e.message}")
@@ -107,10 +114,16 @@ class LoginViewModel @Inject constructor(
                 )
 
                 // Save the token to DataStore for persistent session management
-                preferencesManager.saveAccessToken(response.access_token)
+                securePreferencesManager.saveAccessToken(response.access_token)
+                NetworkModule.updateCachedToken(response.access_token)
 
-                // Save or clear credentials based on user preference
-                preferencesManager.saveCredentials(username, password, rememberCredentials)
+                // Save username to DataStore, password to encrypted storage
+                preferencesManager.saveUsername(username, rememberCredentials)
+                if (rememberCredentials) {
+                    securePreferencesManager.savePassword(password)
+                } else {
+                    securePreferencesManager.clearPassword()
+                }
 
                 // Trigger navigation to Dashboard
                 onLoginSuccess()
@@ -185,7 +198,9 @@ class LoginViewModel @Inject constructor(
      * Fallback to GetGoogleIdOption if GetSignInWithGoogleOption fails.
      */
     private suspend fun tryGoogleIdFallback(context: Context, clientId: String, onSuccess: () -> Unit) {
-        android.util.Log.d("LoginViewModel", "Trying Google ID fallback with clientId: ${clientId.take(20)}...")
+        if (BuildConfig.DEBUG) {
+            android.util.Log.d("LoginViewModel", "Trying Google ID fallback with clientId: ${clientId.take(20)}...")
+        }
         try {
             val credentialManager = CredentialManager.create(context)
 
@@ -256,10 +271,12 @@ class LoginViewModel @Inject constructor(
             val response = api.loginWithGoogle(GoogleAuthRequest(credential = idToken))
 
             // Save the access token
-            preferencesManager.saveAccessToken(response.access_token)
+            securePreferencesManager.saveAccessToken(response.access_token)
+            NetworkModule.updateCachedToken(response.access_token)
 
             // Clear any saved password credentials (using Google now)
-            preferencesManager.saveCredentials("", "", false)
+            preferencesManager.saveUsername("", false)
+            securePreferencesManager.clearPassword()
 
             // Navigate to dashboard
             onSuccess()
@@ -280,7 +297,7 @@ class LoginViewModel @Inject constructor(
 
     suspend fun getSsoUrl(): String {
         val settings = preferencesManager.serverSettings.first()
-        val baseUrl = if (settings.remoteUrl.isNotBlank()) settings.remoteUrl else "https://nesdemo.welshrd.com/"
+        val baseUrl = if (settings.remoteUrl.isNotBlank()) settings.remoteUrl else "${com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL}/"
         val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
         return "$cleanBase/api/auth/oidc/login"
     }

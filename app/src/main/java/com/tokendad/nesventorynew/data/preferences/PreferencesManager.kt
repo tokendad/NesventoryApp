@@ -29,17 +29,6 @@ data class ServerSettings(
     fun isConfigured(): Boolean = remoteUrl.isNotBlank() || localUrl.isNotBlank()
 }
 
-data class UserSession(
-    val accessToken: String = "",
-    val isLoggedIn: Boolean = false
-)
-
-data class SavedCredentials(
-    val username: String = "",
-    val password: String = "",
-    val isRemembered: Boolean = false
-)
-
 @Singleton
 class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -49,7 +38,6 @@ class PreferencesManager @Inject constructor(
         private val KEY_REMOTE_URL = stringPreferencesKey("remote_url")
         private val KEY_LOCAL_URL = stringPreferencesKey("local_url")
         private val KEY_LOCAL_SSID = stringPreferencesKey("local_ssid")
-        private val KEY_ACCESS_TOKEN = stringPreferencesKey("access_token")
         private val KEY_PRIORITIZE_LOCAL = androidx.datastore.preferences.core.booleanPreferencesKey("prioritize_local")
         private val KEY_THEME = stringPreferencesKey("app_theme")
         private val KEY_PRINT_METHOD = stringPreferencesKey("print_method")
@@ -58,7 +46,6 @@ class PreferencesManager @Inject constructor(
 
         // Credentials
         private val KEY_USERNAME = stringPreferencesKey("username")
-        private val KEY_PASSWORD = stringPreferencesKey("password")
         private val KEY_REMEMBER_CREDENTIALS = androidx.datastore.preferences.core.booleanPreferencesKey("remember_credentials")
     }
 
@@ -76,22 +63,6 @@ class PreferencesManager @Inject constructor(
         )
     }
 
-    val userSession: Flow<UserSession> = context.dataStore.data.map { preferences ->
-        val accessToken = preferences[KEY_ACCESS_TOKEN] ?: ""
-        UserSession(
-            accessToken = accessToken,
-            isLoggedIn = accessToken.isNotBlank()
-        )
-    }
-
-    val savedCredentials: Flow<SavedCredentials> = context.dataStore.data.map { preferences ->
-        SavedCredentials(
-            username = preferences[KEY_USERNAME] ?: "",
-            password = preferences[KEY_PASSWORD] ?: "",
-            isRemembered = preferences[KEY_REMEMBER_CREDENTIALS] ?: false
-        )
-    }
-
     suspend fun saveServerSettings(settings: ServerSettings) {
         context.dataStore.edit { preferences ->
             preferences[KEY_API_TOKEN] = settings.apiToken
@@ -106,30 +77,26 @@ class PreferencesManager @Inject constructor(
         }
     }
 
-    suspend fun saveCredentials(username: String, password: String, remember: Boolean) {
+    // Username-only storage (password moved to SecurePreferencesManager)
+    suspend fun saveUsername(username: String, remember: Boolean) {
         context.dataStore.edit { preferences ->
             if (remember) {
                 preferences[KEY_USERNAME] = username
-                preferences[KEY_PASSWORD] = password
                 preferences[KEY_REMEMBER_CREDENTIALS] = true
             } else {
                 preferences.remove(KEY_USERNAME)
-                preferences.remove(KEY_PASSWORD)
                 preferences[KEY_REMEMBER_CREDENTIALS] = false
             }
         }
     }
 
-    suspend fun saveAccessToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_ACCESS_TOKEN] = token
-        }
-    }
+    data class SavedUsername(val username: String = "", val isRemembered: Boolean = false)
 
-    suspend fun clearAccessToken() {
-        context.dataStore.edit { preferences ->
-            preferences.remove(KEY_ACCESS_TOKEN)
-        }
+    val savedUsername: Flow<SavedUsername> = context.dataStore.data.map { preferences ->
+        SavedUsername(
+            username = preferences[KEY_USERNAME] ?: "",
+            isRemembered = preferences[KEY_REMEMBER_CREDENTIALS] ?: false
+        )
     }
 
     suspend fun clearAll() {

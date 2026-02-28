@@ -20,6 +20,7 @@ navigationCompose = "2.8.5"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
 zxing = "3.5.3"
+security-crypto = "1.1.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,7 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 credentials-core = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 identity-googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
