@@ -38,7 +38,7 @@ class ItemDetailViewModel @Inject constructor(
     var successMessage by mutableStateOf<String?>(null)
     
     // Default to known base, update from prefs
-    var serverUrl by mutableStateOf("https://nesdemo.welshrd.com")
+    var serverUrl by mutableStateOf(com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL)
     private var printMethod by mutableStateOf("local")
     private var selectedModel by mutableStateOf(PrinterModel.D11_H)
     private var localDensity by mutableStateOf(3)
@@ -105,7 +105,7 @@ class ItemDetailViewModel @Inject constructor(
     private fun printLabelLocally() {
         val currentItem = item ?: return
 
-        if (bluetoothManager.connectionState.value != 2) { // 2 = Connected
+        if (bluetoothManager.connectionState.value != android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
         }
@@ -192,7 +192,9 @@ class ItemDetailViewModel @Inject constructor(
                 api.deleteItem(currentItem.id)
                 onSuccess()
             } catch (e: Exception) {
+                android.util.Log.w("ItemDetailViewModel", "Delete failed", e)
                 errorMessage = "Failed to delete item: ${e.localizedMessage}"
+            } finally {
                 isLoading = false
             }
         }

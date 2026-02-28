@@ -90,6 +90,10 @@ class MainViewModel @Inject constructor(
 
     /**
      * Generates PKCE parameters for an OIDC authorization URL.
+     * NOTE: The backend currently returns tokens directly via callback (not
+     * authorization codes), so the code_verifier is not exchanged yet. When the
+     * backend supports standard authorization-code exchange, the code_verifier
+     * stored in [pendingCodeVerifier] should be sent to the token endpoint.
      */
     fun buildOidcUrlWithPkce(baseAuthUrl: String): String {
         pendingOidcState = PkceUtil.generateState()

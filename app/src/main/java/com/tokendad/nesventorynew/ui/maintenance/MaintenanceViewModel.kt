@@ -76,7 +76,7 @@ class MaintenanceViewModel @Inject constructor(
             try {
                 availableItems = api.getItems()
             } catch (e: Exception) {
-                // Silently fail - items are just for the dropdown
+                android.util.Log.w("MaintenanceViewModel", "Failed to fetch items for dropdown", e)
             }
         }
     }

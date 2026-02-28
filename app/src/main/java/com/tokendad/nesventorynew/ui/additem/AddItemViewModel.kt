@@ -66,8 +66,8 @@ class AddItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = api.getLocations()
-            } catch (_: Exception) {
-                // Fail silently for dropdown, or maybe show error
+            } catch (e: Exception) {
+                android.util.Log.w("AddItemViewModel", "Failed to fetch locations", e)
             }
         }
     }
@@ -278,9 +278,7 @@ class AddItemViewModel @Inject constructor(
                         val body = MultipartBody.Part.createFormData("file", "item_photo.jpg", requestFile)
                         api.uploadItemPhoto(createdItem.id, body, isPrimary = true)
                     } catch (e: Exception) {
-                        // Log or handle photo upload failure, but don't fail the item creation
-                        // maybe show a toast? For now, we just proceed.
-                        e.printStackTrace()
+                        android.util.Log.w("AddItemViewModel", "Photo upload failed after item creation", e)
                     }
                 }
                 

@@ -14,6 +14,18 @@ An Android application for managing your NesVentory with AI-powered item detecti
     - **Insurance Info**: Record policy details and coverage for valuable items.
 - **Play Store Integrated**: Automated deployment workflows for internal testing.
 
+## Security
+
+NesventoryNew implements several layers of security hardening (Phase 7):
+
+- **Encrypted Credential Storage**: Access tokens and passwords are stored using Android's `EncryptedSharedPreferences` (AES-256-GCM). Non-sensitive settings remain in standard DataStore.
+- **Network Security Config**: Cleartext HTTP traffic is restricted to `localhost` and private LAN ranges (`10.x`, `172.16.x`, `192.168.x`) via `network_security_config.xml`. All other traffic requires HTTPS.
+- **OIDC PKCE Flow**: OAuth/OIDC authentication uses PKCE (S256) with state parameter validation to prevent token injection and CSRF attacks.
+- **Debug-Only Demo Credentials**: Demo login credentials are gated behind `BuildConfig.DEBUG` and are stripped from release builds.
+- **Sensitive Log Gating**: Potentially sensitive information (e.g., client IDs) is only logged in debug builds.
+
+For full details, see [`docs/Implementation/PHASE7_SECURITY_AND_BUGFIXES.md`](docs/Implementation/PHASE7_SECURITY_AND_BUGFIXES.md).
+
 ## Printer Support
 
 NesVentory now supports printing item labels directly to Niimbot portable thermal printers.

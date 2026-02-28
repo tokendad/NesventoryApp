@@ -101,7 +101,7 @@ class LocationDetailViewModel @Inject constructor(
     private fun printLabelLocally() {
         val currentLocation = location ?: return
 
-        if (bluetoothManager.connectionState.value != 2) {
+        if (bluetoothManager.connectionState.value != android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
         }
@@ -187,7 +187,9 @@ class LocationDetailViewModel @Inject constructor(
                 api.deleteLocation(currentLocation.id)
                 onSuccess()
             } catch (e: Exception) {
+                android.util.Log.w("LocationDetailViewModel", "Delete failed", e)
                 errorMessage = "Failed to delete location: ${e.localizedMessage}"
+            } finally {
                 isLoading = false
             }
         }

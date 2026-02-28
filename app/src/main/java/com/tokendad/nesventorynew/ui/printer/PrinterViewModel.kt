@@ -67,7 +67,7 @@ class PrinterViewModel @Inject constructor(
         private set
 
     // Server URL for QR codes
-    private var serverUrl by mutableStateOf("https://nesdemo.welshrd.com")
+    private var serverUrl by mutableStateOf(com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL)
 
     val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
 
@@ -93,18 +93,14 @@ class PrinterViewModel @Inject constructor(
 
     private fun loadSettings() {
         viewModelScope.launch {
-            preferencesManager.serverSettings.collect { settings ->
-                printMethod = settings.printMethod
-                // Load selected local printer model
-                PrinterModel.fromString(settings.localPrinterModel)?.let {
-                    selectedLocalModel = it
-                }
-                // Load local density and apply to config for UI display
-                config = config.copy(density = settings.localPrinterDensity)
-                // Load server URL for QR codes
-                if (settings.remoteUrl.isNotBlank()) {
-                    serverUrl = settings.remoteUrl.trimEnd('/')
-                }
+            val settings = preferencesManager.serverSettings.first()
+            printMethod = settings.printMethod
+            PrinterModel.fromString(settings.localPrinterModel)?.let {
+                selectedLocalModel = it
+            }
+            config = config.copy(density = settings.localPrinterDensity)
+            if (settings.remoteUrl.isNotBlank()) {
+                serverUrl = settings.remoteUrl.trimEnd('/')
             }
         }
     }

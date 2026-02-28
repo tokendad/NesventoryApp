@@ -56,10 +56,8 @@ object NetworkModule {
                 cachedLocalSsid = settings.localSsid
             }
         }
-        applicationScope.launch {
-            // Initialize token from encrypted storage
-            cachedToken = securePreferencesManager.getAccessToken()
-        }
+        // Load token synchronously to avoid race with first network request
+        cachedToken = securePreferencesManager.getAccessToken()
 
         return OkHttpClient.Builder()
             // 1. Host Selection Interceptor
@@ -103,12 +101,12 @@ object NetworkModule {
                 }
                 chain.proceed(requestBuilder.build())
             })
-            // 3. 401 Unauthorized Interceptor
+            // 3. 401 Unauthorized Interceptor (cache-only; actual clear deferred)
             .addInterceptor(Interceptor { chain ->
                 val response = chain.proceed(chain.request())
                 if (response.code == 401) {
-                    securePreferencesManager.clearAccessToken()
                     cachedToken = null
+                    applicationScope.launch { securePreferencesManager.clearAccessToken() }
                 }
                 response
             })

@@ -120,8 +120,8 @@ class EditItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 maintenanceTasks = api.getMaintenanceTasksForItem(id)
-            } catch (_: Exception) {
-                // Fail silently for secondary tabs
+            } catch (e: Exception) {
+                android.util.Log.w("EditItemViewModel", "Failed to fetch maintenance tasks", e)
             }
         }
     }
@@ -130,8 +130,8 @@ class EditItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = api.getLocations()
-            } catch (_: Exception) {
-                // Fail silently
+            } catch (e: Exception) {
+                android.util.Log.w("EditItemViewModel", "Failed to fetch locations", e)
             }
         }
     }
