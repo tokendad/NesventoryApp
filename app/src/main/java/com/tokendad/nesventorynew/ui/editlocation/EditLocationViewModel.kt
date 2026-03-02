@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.LocationCreate
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.LocationRepository
 import com.tokendad.nesventorynew.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class EditLocationViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val locationRepository: LocationRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -66,7 +66,7 @@ class EditLocationViewModel @Inject constructor(
     private fun fetchLocationCategories() {
         viewModelScope.launch {
             try {
-                locationCategories = api.getLocationCategories()
+                locationCategories = locationRepository.getLocationCategories()
             } catch (e: Exception) {
                 android.util.Log.w("EditLocationViewModel", "Failed to fetch location categories, using defaults", e)
             }
@@ -77,7 +77,7 @@ class EditLocationViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                val loc = api.getLocation(id)
+                val loc = locationRepository.getLocation(id)
                 name = loc.name
                 description = loc.description ?: ""
                 friendlyName = loc.friendly_name ?: ""
@@ -117,7 +117,7 @@ class EditLocationViewModel @Inject constructor(
     private fun fetchLocations() {
         viewModelScope.launch {
             try {
-                availableLocations = api.getLocations()
+                availableLocations = locationRepository.getLocations()
             } catch (e: Exception) {
                 android.util.Log.w("EditLocationViewModel", "Failed to fetch locations", e)
             }
@@ -164,7 +164,7 @@ class EditLocationViewModel @Inject constructor(
                         build_date = insuranceBuildDate.ifBlank { null }
                     )
                 )
-                api.updateLocation(id, updatedLocation)
+                locationRepository.updateLocation(id, updatedLocation)
                 onSuccess()
             } catch (e: Exception) {
                 errorMessage = "Failed to update location: ${e.localizedMessage}"

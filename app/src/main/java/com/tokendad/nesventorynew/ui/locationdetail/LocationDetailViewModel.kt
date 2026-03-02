@@ -8,26 +8,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.Location
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
-import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
-import com.tokendad.nesventorynew.ui.printer.LabelBitmapGenerator
-import com.tokendad.nesventorynew.ui.printer.NiimbotProtocol
+import com.tokendad.nesventorynew.data.repository.LocationRepository
+import com.tokendad.nesventorynew.data.repository.PrinterRepository
+import com.tokendad.nesventorynew.ui.printer.PrintJobExecutor
 import com.tokendad.nesventorynew.ui.printer.PrinterModel
-import com.tokendad.nesventorynew.ui.printer.ProtocolVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.delay
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class LocationDetailViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val locationRepository: LocationRepository,
+    private val printerRepository: PrinterRepository,
     private val preferencesManager: PreferencesManager,
-    private val bluetoothManager: BluetoothPrinterManager,
-    private val labelGenerator: LabelBitmapGenerator,
+    private val printJobExecutor: PrintJobExecutor,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -88,7 +85,7 @@ class LocationDetailViewModel @Inject constructor(
                     entity_type = "location",
                     quantity = 1
                 )
-                api.printLabel(request)
+                printerRepository.printLabel(request)
                 successMessage = "Print job sent to server!"
             } catch (e: Exception) {
                 errorMessage = "Server print failed: ${e.localizedMessage}"
@@ -101,7 +98,7 @@ class LocationDetailViewModel @Inject constructor(
     private fun printLabelLocally() {
         val currentLocation = location ?: return
 
-        if (bluetoothManager.connectionState.value != android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+        if (!printJobExecutor.isConnected()) {
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
         }
@@ -111,46 +108,15 @@ class LocationDetailViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                // Use locally stored settings (no API call needed for local printing)
-                val model = selectedModel
-                val density = localDensity
-                android.util.Log.d("LocationDetailViewModel", "Using Model: ${model.displayName} (${model.name}), Density: $density")
-
-                // Generate Bitmap with model-specific dimensions
-                // QR points to configured server's API endpoint
                 val qrUrl = "${serverUrl}/api/locations/${currentLocation.id}"
-                val bitmap = labelGenerator.generateLabel(
-                    width = model.width,
-                    height = model.defaultHeightPx,
-                    title = currentLocation.name,
-                    subtitle = currentLocation.id.toString().take(8),
+                printJobExecutor.printLabel(
+                    labelText = currentLocation.name,
+                    labelSubtitle = currentLocation.id.toString().take(8),
                     qrContent = qrUrl,
-                    iconType = "location"
+                    iconType = "location",
+                    model = selectedModel,
+                    density = localDensity
                 )
-                android.util.Log.d("LocationDetailViewModel", "Bitmap: ${bitmap.width}x${bitmap.height}")
-
-                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = density)
-
-                // Send connect packet
-                val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
-                if (!connectSuccess) throw Exception("Failed to send connect packet")
-                delay(500)
-
-                // Send packets with appropriate timing
-                // B1 uses 15ms between rows, others use 20ms
-                val rowDelay = if (model.protocol == ProtocolVariant.B1_CLASSIC) 15L else 20L
-
-                packets.forEachIndexed { index, packet ->
-                    if (!bluetoothManager.sendData(packet)) throw Exception("Failed to send packet $index")
-                    delay(rowDelay)
-                }
-
-                // Wait for print to complete (3 seconds as per backend)
-                delay(3000)
-                bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
-                delay(100)
-                bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
-
                 withContext(Dispatchers.Main) {
                     successMessage = "Label printed successfully!"
                 }
@@ -169,7 +135,7 @@ class LocationDetailViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                location = api.getLocation(id)
+                location = locationRepository.getLocation(id)
             } catch (e: Exception) {
                 errorMessage = "Failed to load location details: ${e.localizedMessage}"
             } finally {
@@ -184,7 +150,7 @@ class LocationDetailViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                api.deleteLocation(currentLocation.id)
+                locationRepository.deleteLocation(currentLocation.id)
                 onSuccess()
             } catch (e: Exception) {
                 android.util.Log.w("LocationDetailViewModel", "Delete failed", e)

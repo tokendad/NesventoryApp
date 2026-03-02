@@ -6,7 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Item
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -19,7 +20,8 @@ import kotlinx.coroutines.flow.first
 
 @HiltViewModel
 class ItemsViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val itemRepository: ItemRepository,
+    private val locationRepository: LocationRepository,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
@@ -64,8 +66,8 @@ class ItemsViewModel @Inject constructor(
             errorMessage = null
             try {
                 coroutineScope {
-                    val itemsDeferred = async { api.getItems() }
-                    val locationsDeferred = async { api.getLocations() }
+                    val itemsDeferred = async { itemRepository.getItems() }
+                    val locationsDeferred = async { locationRepository.getLocations() }
                     
                     items = itemsDeferred.await()
                     val locations = locationsDeferred.await()
@@ -87,7 +89,7 @@ class ItemsViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                api.deleteItem(itemId)
+                itemRepository.deleteItem(itemId)
                 fetchData()
             } catch (e: Exception) {
                 errorMessage = "Failed to delete item: ${e.localizedMessage}"

@@ -7,17 +7,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Item
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
-import com.tokendad.nesventorynew.ui.printer.BluetoothPrinterManager
-import com.tokendad.nesventorynew.ui.printer.LabelBitmapGenerator
-import com.tokendad.nesventorynew.ui.printer.NiimbotProtocol
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.PrinterRepository
+import com.tokendad.nesventorynew.ui.printer.PrintJobExecutor
 import com.tokendad.nesventorynew.ui.printer.PrinterModel
-import com.tokendad.nesventorynew.ui.printer.ProtocolVariant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.delay
 import java.util.UUID
 import javax.inject.Inject
 
@@ -25,10 +22,10 @@ import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val itemRepository: ItemRepository,
+    private val printerRepository: PrinterRepository,
     private val preferencesManager: PreferencesManager,
-    private val bluetoothManager: BluetoothPrinterManager,
-    private val labelGenerator: LabelBitmapGenerator,
+    private val printJobExecutor: PrintJobExecutor,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -92,7 +89,7 @@ class ItemDetailViewModel @Inject constructor(
                     entity_type = "item",
                     quantity = 1
                 )
-                api.printLabel(request)
+                printerRepository.printLabel(request)
                 successMessage = "Print job sent to server!"
             } catch (e: Exception) {
                 errorMessage = "Server print failed: ${e.localizedMessage}"
@@ -105,7 +102,7 @@ class ItemDetailViewModel @Inject constructor(
     private fun printLabelLocally() {
         val currentItem = item ?: return
 
-        if (bluetoothManager.connectionState.value != android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
+        if (!printJobExecutor.isConnected()) {
             errorMessage = "Printer not connected. Go to Printer Settings."
             return
         }
@@ -115,47 +112,15 @@ class ItemDetailViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                // Use locally stored settings (no API call needed for local printing)
-                val model = selectedModel
-                val density = localDensity
-                android.util.Log.d("ItemDetailViewModel", "Using Model: ${model.displayName} (${model.name}), Density: $density")
-
-                // Generate Bitmap with model-specific dimensions
-                // QR points to configured server's API endpoint
                 val qrUrl = "${serverUrl}/api/items/${currentItem.id}"
-                val bitmap = labelGenerator.generateLabel(
-                    width = model.width,
-                    height = model.defaultHeightPx,
-                    title = currentItem.name,
-                    subtitle = currentItem.id.toString().take(8), // Short ID
+                printJobExecutor.printLabel(
+                    labelText = currentItem.name,
+                    labelSubtitle = currentItem.id.toString().take(8),
                     qrContent = qrUrl,
-                    iconType = "box"
+                    iconType = "box",
+                    model = selectedModel,
+                    density = localDensity
                 )
-                android.util.Log.d("ItemDetailViewModel", "Bitmap: ${bitmap.width}x${bitmap.height}")
-
-                // Protocol Data
-                val packets = NiimbotProtocol.createPrintData(bitmap, model, density = density)
-
-                // Send connect packet
-                val connectSuccess = bluetoothManager.sendData(NiimbotProtocol.createConnectPacket())
-                if (!connectSuccess) throw Exception("Failed to send connect packet")
-                delay(500) // Wait for ack
-
-                // Send packets with appropriate timing
-                // B1 uses 15ms between rows, others use 20ms
-                val rowDelay = if (model.protocol == ProtocolVariant.B1_CLASSIC) 15L else 20L
-
-                packets.forEachIndexed { index, packet ->
-                    if (!bluetoothManager.sendData(packet)) throw Exception("Failed to send packet $index")
-                    delay(rowDelay)
-                }
-
-                // Wait for print to complete (3 seconds as per backend)
-                delay(3000)
-                bluetoothManager.sendData(NiimbotProtocol.createPrintEndPacket())
-                delay(100)
-                bluetoothManager.sendData(NiimbotProtocol.createHeartbeatPacket())
-
                 withContext(Dispatchers.Main) {
                     successMessage = "Label printed successfully!"
                 }
@@ -174,7 +139,7 @@ class ItemDetailViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                item = api.getItem(id)
+                item = itemRepository.getItem(id)
             } catch (e: Exception) {
                 errorMessage = "Failed to load item details: ${e.localizedMessage}"
             } finally {
@@ -189,7 +154,7 @@ class ItemDetailViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                api.deleteItem(currentItem.id)
+                itemRepository.deleteItem(currentItem.id)
                 onSuccess()
             } catch (e: Exception) {
                 android.util.Log.w("ItemDetailViewModel", "Delete failed", e)

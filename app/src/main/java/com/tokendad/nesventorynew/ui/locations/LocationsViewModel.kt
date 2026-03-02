@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.Location
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LocationsViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val locationRepository: LocationRepository,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
@@ -68,7 +68,7 @@ class LocationsViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                allLocations = api.getLocations()
+                allLocations = locationRepository.getLocations()
             } catch (e: Exception) {
                 errorMessage = "Failed to load locations: ${e.localizedMessage}"
             } finally {
@@ -100,7 +100,7 @@ class LocationsViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                api.deleteLocation(locationId)
+                locationRepository.deleteLocation(locationId)
                 fetchLocations()
             } catch (e: Exception) {
                 errorMessage = "Failed to delete location: ${e.localizedMessage}"

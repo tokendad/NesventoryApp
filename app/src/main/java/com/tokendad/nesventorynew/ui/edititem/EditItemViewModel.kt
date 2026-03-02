@@ -9,7 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.remote.ItemCreate
 import com.tokendad.nesventorynew.data.remote.Location
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.LocationRepository
+import com.tokendad.nesventorynew.data.repository.MaintenanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -20,7 +22,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class EditItemViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val itemRepository: ItemRepository,
+    private val locationRepository: LocationRepository,
+    private val maintenanceRepository: MaintenanceRepository,
     private val preferencesManager: PreferencesManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -95,7 +99,7 @@ class EditItemViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                val item = api.getItem(id)
+                val item = itemRepository.getItem(id)
                 itemMedia = item.photos
                 name = item.name
                 description = item.description ?: ""
@@ -119,7 +123,7 @@ class EditItemViewModel @Inject constructor(
     private fun fetchMaintenanceTasks(id: UUID) {
         viewModelScope.launch {
             try {
-                maintenanceTasks = api.getMaintenanceTasksForItem(id)
+                maintenanceTasks = maintenanceRepository.getMaintenanceTasksForItem(id)
             } catch (e: Exception) {
                 android.util.Log.w("EditItemViewModel", "Failed to fetch maintenance tasks", e)
             }
@@ -129,7 +133,7 @@ class EditItemViewModel @Inject constructor(
     private fun fetchLocations() {
         viewModelScope.launch {
             try {
-                availableLocations = api.getLocations()
+                availableLocations = locationRepository.getLocations()
             } catch (e: Exception) {
                 android.util.Log.w("EditItemViewModel", "Failed to fetch locations", e)
             }
@@ -160,7 +164,7 @@ class EditItemViewModel @Inject constructor(
                     retailer = retailer.ifBlank { null },
                     location_id = selectedLocationId
                 )
-                api.updateItem(id, updatedItem)
+                itemRepository.updateItem(id, updatedItem)
                 onSuccess()
             } catch (e: Exception) {
                 errorMessage = "Failed to update item: ${e.localizedMessage}"
@@ -185,7 +189,7 @@ class EditItemViewModel @Inject constructor(
                     "estimatedValue" to estimatedValue
                 )
 
-                val result = api.enrichItem(id)
+                val result = itemRepository.enrichItem(id)
                 val enriched = result.enriched_data.firstOrNull()
                 if (enriched != null) {
                     // Update local state with enriched data
@@ -215,7 +219,7 @@ class EditItemViewModel @Inject constructor(
                     completed = !task.completed,
                     completed_date = if (!task.completed) currentDate else null
                 )
-                api.updateMaintenanceTask(task.id, update)
+                maintenanceRepository.updateMaintenanceTask(task.id, update)
                 itemId?.let { fetchMaintenanceTasks(it) }
             } catch (e: Exception) {
                 errorMessage = "Failed to update task: ${e.localizedMessage}"
@@ -228,7 +232,7 @@ class EditItemViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                api.deleteItemPhoto(id, photoId)
+                itemRepository.deleteItemPhoto(id, photoId)
                 fetchItem(id)
             } catch (e: Exception) {
                 errorMessage = "Failed to delete photo: ${e.localizedMessage}"

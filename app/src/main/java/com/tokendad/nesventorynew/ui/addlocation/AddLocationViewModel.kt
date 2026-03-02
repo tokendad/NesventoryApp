@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.Location
 import com.tokendad.nesventorynew.data.remote.LocationCreate
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.LocationRepository
 import com.tokendad.nesventorynew.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddLocationViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val locationRepository: LocationRepository
 ) : ViewModel() {
 
     var name by mutableStateOf("")
@@ -43,7 +43,7 @@ class AddLocationViewModel @Inject constructor(
     private fun fetchLocations() {
         viewModelScope.launch {
             try {
-                availableLocations = api.getLocations()
+                availableLocations = locationRepository.getLocations()
             } catch (e: Exception) {
                 android.util.Log.w("AddLocationViewModel", "Failed to fetch locations", e)
             }
@@ -53,7 +53,7 @@ class AddLocationViewModel @Inject constructor(
     private fun fetchLocationCategories() {
         viewModelScope.launch {
             try {
-                locationCategories = api.getLocationCategories()
+                locationCategories = locationRepository.getLocationCategories()
             } catch (e: Exception) {
                 android.util.Log.w("AddLocationViewModel", "Failed to fetch location categories, using defaults", e)
             }
@@ -81,7 +81,7 @@ class AddLocationViewModel @Inject constructor(
                     estimated_property_value = estimatedPropertyValue.ifBlank { null },
                     location_category = locationCategory
                 )
-                api.createLocation(newLocation)
+                locationRepository.createLocation(newLocation)
                 onSuccess()
             } catch (e: Exception) {
                 errorMessage = "Failed to create location: ${e.localizedMessage}"

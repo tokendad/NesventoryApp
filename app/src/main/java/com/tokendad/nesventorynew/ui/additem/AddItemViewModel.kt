@@ -11,7 +11,8 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.remote.DetectedItem
 import com.tokendad.nesventorynew.data.remote.ItemCreate
 import com.tokendad.nesventorynew.data.remote.Location
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,7 +26,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddItemViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val itemRepository: ItemRepository,
+    private val locationRepository: LocationRepository
 ) : ViewModel() {
 
     var name by mutableStateOf("")
@@ -65,7 +67,7 @@ class AddItemViewModel @Inject constructor(
     private fun fetchLocations() {
         viewModelScope.launch {
             try {
-                availableLocations = api.getLocations()
+                availableLocations = locationRepository.getLocations()
             } catch (e: Exception) {
                 android.util.Log.w("AddItemViewModel", "Failed to fetch locations", e)
             }
@@ -81,7 +83,7 @@ class AddItemViewModel @Inject constructor(
             showBarcodeDialog = false
             try {
                 val request = com.tokendad.nesventorynew.data.remote.BarcodeLookupRequest(barcodeInput)
-                val result = api.lookupBarcode(request)
+                val result = itemRepository.lookupBarcode(request)
                 
                 if (result.found) {
                     name = result.name ?: name
@@ -135,7 +137,7 @@ class AddItemViewModel @Inject constructor(
                 val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
                 val body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile)
                 
-                val result = api.detectItems(body, usePlugins)
+                val result = itemRepository.detectItems(body, usePlugins)
                 
                 withContext(Dispatchers.Main) {
                     if (result.items.isNotEmpty()) {
@@ -223,7 +225,7 @@ class AddItemViewModel @Inject constructor(
                     val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
                     val body = MultipartBody.Part.createFormData("file", "barcode_scan.jpg", requestFile)
                     
-                    val scanResult = api.scanBarcode(body)
+                    val scanResult = itemRepository.scanBarcode(body)
                     
                     withContext(Dispatchers.Main) {
                         if (scanResult.found && !scanResult.upc.isNullOrBlank()) {
@@ -269,14 +271,14 @@ class AddItemViewModel @Inject constructor(
                     retailer = retailer.ifBlank { null },
                     location_id = selectedLocationId
                 )
-                val createdItem = api.createItem(newItemRequest)
+                val createdItem = itemRepository.createItem(newItemRequest)
                 
                 // Upload photo if available
                 imageBytes?.let { bytes ->
                     try {
                         val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
                         val body = MultipartBody.Part.createFormData("file", "item_photo.jpg", requestFile)
-                        api.uploadItemPhoto(createdItem.id, body, isPrimary = true)
+                        itemRepository.uploadItemPhoto(createdItem.id, body, isPrimary = true)
                     } catch (e: Exception) {
                         android.util.Log.w("AddItemViewModel", "Photo upload failed after item creation", e)
                     }

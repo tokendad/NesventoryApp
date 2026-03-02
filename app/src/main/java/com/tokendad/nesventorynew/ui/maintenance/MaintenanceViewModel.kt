@@ -9,7 +9,8 @@ import com.tokendad.nesventorynew.data.remote.Item
 import com.tokendad.nesventorynew.data.remote.MaintenanceTask
 import com.tokendad.nesventorynew.data.remote.MaintenanceTaskCreate
 import com.tokendad.nesventorynew.data.remote.MaintenanceTaskUpdate
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.MaintenanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -20,7 +21,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MaintenanceViewModel @Inject constructor(
-    private val api: NesVentoryApi
+    private val maintenanceRepository: MaintenanceRepository,
+    private val itemRepository: ItemRepository
 ) : ViewModel() {
 
     var tasks by mutableStateOf<List<MaintenanceTask>>(emptyList())
@@ -62,7 +64,7 @@ class MaintenanceViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                tasks = api.getMaintenanceTasks()
+                tasks = maintenanceRepository.getMaintenanceTasks()
             } catch (e: Exception) {
                 errorMessage = "Failed to load maintenance tasks: ${e.localizedMessage}"
             } finally {
@@ -74,7 +76,7 @@ class MaintenanceViewModel @Inject constructor(
     private fun fetchItems() {
         viewModelScope.launch {
             try {
-                availableItems = api.getItems()
+                availableItems = itemRepository.getItems()
             } catch (e: Exception) {
                 android.util.Log.w("MaintenanceViewModel", "Failed to fetch items for dropdown", e)
             }
@@ -91,7 +93,7 @@ class MaintenanceViewModel @Inject constructor(
                         currentDate
                     } else null
                 )
-                api.updateMaintenanceTask(task.id, update)
+                maintenanceRepository.updateMaintenanceTask(task.id, update)
                 fetchTasks()
             } catch (e: Exception) {
                 errorMessage = "Failed to update task: ${e.localizedMessage}"
@@ -118,7 +120,7 @@ class MaintenanceViewModel @Inject constructor(
                     frequency = newTaskFrequency,
                     color = newTaskColor
                 )
-                api.createMaintenanceTask(taskCreate)
+                maintenanceRepository.createMaintenanceTask(taskCreate)
                 successMessage = "Task created successfully"
                 resetCreateForm()
                 showCreateDialog = false
@@ -134,7 +136,7 @@ class MaintenanceViewModel @Inject constructor(
     fun deleteTask(task: MaintenanceTask) {
         viewModelScope.launch {
             try {
-                api.deleteMaintenanceTask(task.id)
+                maintenanceRepository.deleteMaintenanceTask(task.id)
                 successMessage = "Task deleted"
                 taskToDelete = null
                 fetchTasks()

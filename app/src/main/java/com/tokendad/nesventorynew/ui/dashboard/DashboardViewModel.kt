@@ -10,7 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
 import com.tokendad.nesventorynew.data.preferences.ServerSettings
 import com.tokendad.nesventorynew.data.remote.Item
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.ItemRepository
+import com.tokendad.nesventorynew.data.repository.SystemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val api: NesVentoryApi,
+    private val itemRepository: ItemRepository,
+    private val systemRepository: SystemRepository,
     private val preferencesManager: PreferencesManager,
     private val okHttpClient: OkHttpClient,
     @ApplicationContext private val context: Context
@@ -119,15 +121,15 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Fetch Status
-                val status = api.getStatus()
-                val media = api.getMediaStats()
+                val status = systemRepository.getStatus()
+                val media = systemRepository.getMediaStats()
                 statusMessage = "Server Version: ${status.version ?: "Unknown"}"
                 itemStats = "Total Media Files: ${media.total_count}"
                 connectionStatus = "Connected (Remote)"
 
                 // Fetch Recent Items
                 isItemsLoading = true
-                val allItems = api.getItems()
+                val allItems = itemRepository.getItems()
                 // Sort by created_at descending (assuming ISO 8601 string format)
                 recentItems = allItems.sortedByDescending { it.created_at }
                     .take(5)
@@ -149,7 +151,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             isItemsLoading = true
             try {
-                api.deleteItem(itemId)
+                itemRepository.deleteItem(itemId)
                 loadDashboardData()
             } catch (e: Exception) {
                 android.util.Log.w("DashboardViewModel", "Failed to delete item", e)
@@ -255,7 +257,7 @@ class DashboardViewModel @Inject constructor(
     fun testAIConnection() {
         viewModelScope.launch {
             try {
-                val response = api.testAIConnection()
+                val response = systemRepository.testAIConnection()
                 aiStatus = response.overall_success
                 aiStatusMessage = response.summary
             } catch (e: Exception) {

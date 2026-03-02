@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventorynew.data.preferences.PreferencesManager
-import com.tokendad.nesventorynew.data.remote.NesVentoryApi
+import com.tokendad.nesventorynew.data.repository.PrinterRepository
 import com.tokendad.nesventorynew.data.remote.PrinterConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PrinterViewModel @Inject constructor(
 
-    private val api: NesVentoryApi,
+    private val printerRepository: PrinterRepository,
 
     private val preferencesManager: PreferencesManager,
 
@@ -145,8 +145,8 @@ class PrinterViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             try {
-                config = api.getPrinterConfig()
-                val modelsResponse = api.getPrinterModels()
+                config = printerRepository.getPrinterConfig()
+                val modelsResponse = printerRepository.getPrinterModels()
                 serverPrinterModels = modelsResponse.models
             } catch (e: Exception) {
                 errorMessage = "Failed to load printer config: ${e.localizedMessage}"
@@ -190,7 +190,7 @@ class PrinterViewModel @Inject constructor(
 
                 // Only update server config if in server mode
                 if (printMethod == "server") {
-                    config = api.updatePrinterConfig(config)
+                    config = printerRepository.updatePrinterConfig(config)
                 }
 
                 successMessage = "Printer configuration saved successfully!"
@@ -228,7 +228,7 @@ class PrinterViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                val result = api.testPrinterConnection(config)
+                val result = printerRepository.testPrinterConnection(config)
                 if (result.success) {
                     successMessage = "Server printer test passed: ${result.message}"
                 } else {
@@ -248,7 +248,7 @@ class PrinterViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                val result = api.printTestLabel()
+                val result = printerRepository.printTestLabel()
                 successMessage = result.message ?: "Test label printed successfully!"
             } catch (e: Exception) {
                 errorMessage = "Test label print failed: ${e.localizedMessage}"
