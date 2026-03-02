@@ -228,7 +228,7 @@ interface NesVentoryApi {
     suspend fun getSystemPrinters(): SystemPrintersResponse
 
     @POST("api/printer/system/set-default")
-    suspend fun setDefaultSystemPrinter(@Body request: Map<String, String>): Map<String, Any>
+    suspend fun setDefaultSystemPrinter(@Body request: Map<String, String>): StatusResponse
 
     /**
      * Media Management

@@ -44,8 +44,8 @@ class AddLocationViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = api.getLocations()
-            } catch (_: Exception) {
-                // Fail silently
+            } catch (e: Exception) {
+                android.util.Log.w("AddLocationViewModel", "Failed to fetch locations", e)
             }
         }
     }
@@ -54,8 +54,8 @@ class AddLocationViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 locationCategories = api.getLocationCategories()
-            } catch (_: Exception) {
-                // Fall back to defaults silently
+            } catch (e: Exception) {
+                android.util.Log.w("AddLocationViewModel", "Failed to fetch location categories, using defaults", e)
             }
         }
     }

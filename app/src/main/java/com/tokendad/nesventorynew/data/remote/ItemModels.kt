@@ -110,9 +110,15 @@ data class Document(
 // --- AI / New Feature Models ---
 
 data class AIStatusResponse(
-    val gemini_configured: Boolean,
-    val openai_configured: Boolean,
-    val plugins_configured: Int
+    // Legacy Android fields (kept for backward compatibility)
+    val gemini_configured: Boolean = false,
+    val openai_configured: Boolean = false,
+    val plugins_configured: Int = 0,
+    // Upstream API fields (v6.11.x)
+    val enabled: Boolean = false,
+    val model: String? = null,
+    val plugins_enabled: Boolean = false,
+    val plugin_count: Int = 0
 )
 
 data class DataTagInfo(

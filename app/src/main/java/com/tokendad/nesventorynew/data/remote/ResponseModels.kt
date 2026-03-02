@@ -14,10 +14,17 @@ data class StatusResponse(
  * Response from GET /api/media/stats
  */
 data class MediaStatsResponse(
+    // Legacy Android fields
     val total_count: Int = 0,
     val total_size: Long = 0,
     val photo_count: Int = 0,
-    val document_count: Int = 0
+    val document_count: Int = 0,
+    // Upstream API fields (v6.11.x)
+    val total_photos: Int = 0,
+    val total_videos: Int = 0,
+    val total_storage_bytes: Long = 0,
+    val total_storage_mb: Double = 0.0,
+    val directories: List<String> = emptyList()
 )
 
 /**

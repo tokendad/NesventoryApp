@@ -28,7 +28,7 @@ class ItemsViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
     
     // Default to the known base URL, but update from prefs
-    var serverUrl by mutableStateOf("https://nesdemo.welshrd.com") 
+    var serverUrl by mutableStateOf(com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL) 
     
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)

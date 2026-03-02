@@ -14,6 +14,7 @@ import com.tokendad.nesventorynew.data.remote.NesVentoryApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -37,7 +38,7 @@ class DashboardViewModel @Inject constructor(
     var connectionStatus by mutableStateOf("Unknown")
     
     // Server Settings
-    var remoteUrl by mutableStateOf("https://nesdemo.welshrd.com/")
+    var remoteUrl by mutableStateOf(com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL + "/")
     var availableSsids by mutableStateOf<List<String>>(emptyList())
     
     var theme by mutableStateOf("system")
@@ -150,8 +151,8 @@ class DashboardViewModel @Inject constructor(
             try {
                 api.deleteItem(itemId)
                 loadDashboardData()
-            } catch (_: Exception) {
-                // error message or toast
+            } catch (e: Exception) {
+                android.util.Log.w("DashboardViewModel", "Failed to delete item", e)
             } finally {
                 isItemsLoading = false
             }
@@ -185,8 +186,9 @@ class DashboardViewModel @Inject constructor(
 
     private fun saveSettings() {
         viewModelScope.launch {
+            val current = preferencesManager.serverSettings.first()
             preferencesManager.saveServerSettings(
-                ServerSettings(
+                current.copy(
                     remoteUrl = remoteUrl,
                     localUrl = localUrl,
                     localSsid = localSsid,
@@ -238,7 +240,8 @@ class DashboardViewModel @Inject constructor(
                         val success = response.isSuccessful
                         response.close()
                         withContext(Dispatchers.Main) { localStatus = success }
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        android.util.Log.w("DashboardViewModel", "Local server connectivity test failed", e)
                         withContext(Dispatchers.Main) { localStatus = false }
                     }
                 }
