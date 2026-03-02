@@ -34,11 +34,25 @@ interface NesVentoryApi {
     ): LoginResponse
 
     /**
+     * Root /token fallback for mobile compatibility with upstream auth behavior.
+     * Some server versions use root /token instead of /api/token.
+     */
+    @FormUrlEncoded
+    @POST("token")
+    suspend fun loginFallback(
+        @Field("username") username: String,
+        @Field("password") password: String
+    ): LoginResponse
+
+    /**
      * Google OAuth authentication endpoint.
      * Exchanges Google ID token for NesVentory access token.
+     *
+     * Returns [retrofit2.Response] so callers can inspect HTTP status, headers
+     * (especially Set-Cookie) and the parsed body independently.
      */
     @POST("api/auth/google")
-    suspend fun loginWithGoogle(@Body request: GoogleAuthRequest): GoogleAuthResponse
+    suspend fun loginWithGoogle(@Body request: GoogleAuthRequest): retrofit2.Response<GoogleAuthResponse>
 
     /**
      * Check if Google OAuth is enabled on the server.
@@ -185,6 +199,36 @@ interface NesVentoryApi {
 
     @POST("api/printer/test-connection")
     suspend fun testPrinterConnection(@Body config: PrinterConfig): PrinterTestResult
+
+    @POST("api/printer/print-test-label")
+    suspend fun printTestLabel(): PrintLabelResponse
+
+    /**
+     * Printer Profile Management
+     */
+    @GET("api/printer/profiles")
+    suspend fun getPrinterProfiles(): PrinterProfilesResponse
+
+    @POST("api/printer/profiles")
+    suspend fun createPrinterProfile(@Body profile: PrinterProfile): PrinterProfile
+
+    @DELETE("api/printer/profiles/{profileId}")
+    suspend fun deletePrinterProfile(@Path("profileId") profileId: String)
+
+    @GET("api/printer/config/active")
+    suspend fun getActivePrinterConfig(): PrinterConfig
+
+    @POST("api/printer/config/activate/{profileId}")
+    suspend fun activatePrinterProfile(@Path("profileId") profileId: String): PrinterConfig
+
+    /**
+     * System Printer Management (CUPS)
+     */
+    @GET("api/printer/system/list")
+    suspend fun getSystemPrinters(): SystemPrintersResponse
+
+    @POST("api/printer/system/set-default")
+    suspend fun setDefaultSystemPrinter(@Body request: Map<String, String>): Map<String, Any>
 
     /**
      * Media Management

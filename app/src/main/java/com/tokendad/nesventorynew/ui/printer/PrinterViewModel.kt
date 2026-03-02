@@ -69,7 +69,7 @@ class PrinterViewModel @Inject constructor(
     // Server URL for QR codes
     private var serverUrl by mutableStateOf(com.tokendad.nesventorynew.util.Constants.DEFAULT_REMOTE_URL)
 
-    val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp")
+    val supportedInterfaces = listOf("bluetooth", "usb", "serial", "tcp", "cups")
 
 
 
@@ -228,17 +228,30 @@ class PrinterViewModel @Inject constructor(
             errorMessage = null
             successMessage = null
             try {
-                // Since there's no direct 'test print' endpoint, we verify connection first
-                api.updatePrinterConfig(config) // Ensure server has latest config
-                // Then try to get status as a 'test'
-                val status = api.getPrinterStatus()
-                if (status.connected) {
-                    successMessage = "Server-side printer connected! ${status.message ?: ""}"
+                val result = api.testPrinterConnection(config)
+                if (result.success) {
+                    successMessage = "Server printer test passed: ${result.message}"
                 } else {
-                    errorMessage = "Server-side printer connection failed: ${status.message ?: "Unknown error"}"
+                    errorMessage = "Server printer test failed: ${result.message}"
                 }
             } catch (e: Exception) {
                 errorMessage = "Server test failed: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun printTestLabel() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            successMessage = null
+            try {
+                val result = api.printTestLabel()
+                successMessage = result.message ?: "Test label printed successfully!"
+            } catch (e: Exception) {
+                errorMessage = "Test label print failed: ${e.localizedMessage}"
             } finally {
                 isLoading = false
             }

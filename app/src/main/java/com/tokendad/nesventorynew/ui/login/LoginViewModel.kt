@@ -106,12 +106,16 @@ class LoginViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                // We pass username and password as direct fields
-                // to match the @FormUrlEncoded requirement in NesVentoryApi
-                val response = api.login(
-                    username = username,
-                    password = password
-                )
+                val response = try {
+                    api.login(username = username, password = password)
+                } catch (e: retrofit2.HttpException) {
+                    if (e.code() == 404) {
+                        // Fallback to root /token for older server versions
+                        api.loginFallback(username = username, password = password)
+                    } else {
+                        throw e
+                    }
+                }
 
                 // Save the token to DataStore for persistent session management
                 securePreferencesManager.saveAccessToken(response.access_token)
@@ -128,7 +132,6 @@ class LoginViewModel @Inject constructor(
                 // Trigger navigation to Dashboard
                 onLoginSuccess()
             } catch (e: Exception) {
-                // This will catch 401 Unauthorized, 404, or Network timeouts
                 errorMessage = "Login failed: ${e.localizedMessage ?: "Invalid credentials"}"
                 e.printStackTrace()
             } finally {
@@ -265,14 +268,68 @@ class LoginViewModel @Inject constructor(
 
     /**
      * Exchange Google ID token for NesVentory access token.
+     *
+     * The backend may deliver the access token in one of two ways:
+     *   1. JSON body field – "access_token" / "accessToken" / "token"
+     *   2. Set-Cookie header – "access_token=<jwt>" (cookie-based web flow)
+     *
+     * This method tries the body first, then falls back to the cookie.
      */
     private suspend fun exchangeGoogleToken(idToken: String, onSuccess: () -> Unit) {
         try {
+            android.util.Log.d("LoginViewModel", "Exchanging Google token with backend...")
             val response = api.loginWithGoogle(GoogleAuthRequest(credential = idToken))
 
-            // Save the access token
-            securePreferencesManager.saveAccessToken(response.access_token)
-            NetworkModule.updateCachedToken(response.access_token)
+            val code = response.code()
+            android.util.Log.d("LoginViewModel", "Google auth response: HTTP $code")
+
+            // ── Handle non-2xx responses ──────────────────────────────
+            if (!response.isSuccessful) {
+                val errorBody = response.errorBody()?.string()
+                android.util.Log.e("LoginViewModel", "Google auth error: HTTP $code — $errorBody")
+                errorMessage = when (code) {
+                    403 -> "Account pending admin approval"
+                    401 -> "Google authentication rejected by server"
+                    409 -> "Account already exists with different login method"
+                    else -> "Authentication failed (HTTP $code)"
+                }
+                return
+            }
+
+            // ── Try to obtain the access token ───────────────────────
+            val body = response.body()
+            android.util.Log.d("LoginViewModel",
+                "Response body — access_token null: ${body?.access_token == null}, " +
+                "token_type: ${body?.token_type}, is_new_user: ${body?.is_new_user}")
+
+            var accessToken = body?.access_token
+
+            // Fallback: extract token from Set-Cookie header.
+            // Some backend versions use cookie-based auth for the Google
+            // endpoint (web-first design) — the token lives in a cookie
+            // rather than (or in addition to) the JSON body.
+            if (accessToken.isNullOrBlank()) {
+                accessToken = extractTokenFromCookies(response.headers())
+                if (!accessToken.isNullOrBlank()) {
+                    android.util.Log.d("LoginViewModel",
+                        "Extracted access token from Set-Cookie header (length: ${accessToken.length})")
+                }
+            }
+
+            if (accessToken.isNullOrBlank()) {
+                // Log the raw headers so the next debug session has data
+                android.util.Log.e("LoginViewModel",
+                    "Google auth: HTTP 200 but no access token in body or cookies. " +
+                    "Headers: ${response.headers()}")
+                errorMessage = "Authentication failed: No access token received from server. " +
+                    "Please check that your server version supports mobile Google Sign-In."
+                return
+            }
+
+            // ── Persist token and update runtime cache ───────────────
+            android.util.Log.d("LoginViewModel", "Saving access token (length: ${accessToken.length})")
+            securePreferencesManager.saveAccessToken(accessToken)
+            NetworkModule.updateCachedToken(accessToken)
 
             // Clear any saved password credentials (using Google now)
             preferencesManager.saveUsername("", false)
@@ -282,6 +339,7 @@ class LoginViewModel @Inject constructor(
             onSuccess()
 
         } catch (e: Exception) {
+            android.util.Log.e("LoginViewModel", "exchangeGoogleToken failed", e)
             val errorMsg = e.localizedMessage ?: "Authentication failed"
             errorMessage = when {
                 errorMsg.contains("pending", ignoreCase = true) ->
@@ -291,8 +349,40 @@ class LoginViewModel @Inject constructor(
                 else ->
                     "Google Sign-In failed: $errorMsg"
             }
-            e.printStackTrace()
         }
+    }
+
+    /**
+     * Attempt to extract an access/session token from Set-Cookie headers.
+     *
+     * Backends that emphasise cookie-based auth (common in web-first FastAPI
+     * deployments) set the token via `Set-Cookie: access_token=<jwt>; ...`
+     * instead of (or alongside) the JSON body.
+     */
+    private fun extractTokenFromCookies(headers: okhttp3.Headers): String? {
+        val cookieHeaders = headers.values("Set-Cookie")
+        for (cookie in cookieHeaders) {
+            // Each Set-Cookie value looks like:
+            //   access_token=eyJhbG...; Path=/; HttpOnly; SameSite=Lax
+            val attributes = cookie.split(";").map { it.trim() }
+            val nameValue = attributes.firstOrNull() ?: continue
+            val eqIdx = nameValue.indexOf('=')
+            if (eqIdx <= 0) continue
+
+            val name  = nameValue.substring(0, eqIdx).trim()
+            val value = nameValue.substring(eqIdx + 1).trim()
+                .removeSurrounding("\"")  // strip optional quotes
+
+            if (name.equals("access_token", ignoreCase = true) ||
+                name.equals("session", ignoreCase = true) ||
+                name.equals("token", ignoreCase = true)) {
+                // Ignore deletion cookies
+                if (value.isNotBlank() && value != "deleted" && value != "null") {
+                    return value
+                }
+            }
+        }
+        return null
     }
 
     suspend fun getSsoUrl(): String {

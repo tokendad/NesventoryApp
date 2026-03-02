@@ -109,6 +109,15 @@ fun PrinterSettingsScreen(
                     onOptionSelected = viewModel::onInterfaceChange
                 )
 
+                // CUPS helper text
+                if (viewModel.config.interface_type == "cups") {
+                    Text(
+                        "CUPS prints to any system printer configured on the server. Enter the CUPS printer name as the address.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 NesTextField(
                     value = viewModel.config.address ?: "",
                     onValueChange = viewModel::onAddressChange,
@@ -118,6 +127,11 @@ fun PrinterSettingsScreen(
                 NesSecondaryButton(
                     text = "Test Connection",
                     onClick = { viewModel.printTest() }
+                )
+
+                NesSecondaryButton(
+                    text = "Print Test Label",
+                    onClick = { viewModel.printTestLabel() }
                 )
 
             } else {
