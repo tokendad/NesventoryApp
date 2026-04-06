@@ -54,6 +54,15 @@ The project uses GitHub Actions for CI/CD:
 - **Deploy to Play Store**: Manually triggered workflow to build and upload the app to the Internal Testing track.
 - **Release Management**: (Coming soon) Automated versioning and release notes.
 
+
+## Server API
+
+This app connects to a self-hosted [NesVentory](https://github.com/tokendad/NesVentory) server via its REST API.
+
+- **API Contract**: [docs/API-CONTRACT.md](https://github.com/tokendad/NesVentory/blob/main/docs/API-CONTRACT.md) — field reference, breaking-change policy, and change log
+- **Live spec**: `/api/openapi.json` on your running server (also at `/api/docs`)
+- **API change notifications**: tracked as issues in this repo tagged "API Update"
+
 ## License
 
 This project is licensed under the terms of the MIT license.
