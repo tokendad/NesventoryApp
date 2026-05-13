@@ -32,6 +32,7 @@ import com.tokendad.nesventory.ui.locationdetail.LocationDetailScreen
 import com.tokendad.nesventory.ui.main.MainScreen
 import com.tokendad.nesventory.ui.login.LoginScreen
 import com.tokendad.nesventory.ui.profile.ProfileScreen
+import com.tokendad.nesventory.ui.server.GDriveBackupScreen
 import com.tokendad.nesventory.ui.theme.NesventoryTheme
 import com.tokendad.nesventory.ui.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -169,6 +170,8 @@ class MainActivity : ComponentActivity() {
                                 onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
                                 onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
                                 onPrinterSettingsClick = { navController.navigate(Routes.PRINTER_SETTINGS) },
+                                onGDriveBackupClick = { navController.navigate(Routes.GDRIVE_BACKUP) },
+                                isLoggedIn = uiState.isLoggedIn,
                                 onExit = { navController.popBackStack() }
                             )
                         }
@@ -294,6 +297,12 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
+
+                        composable(Routes.GDRIVE_BACKUP) {
+                            GDriveBackupScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
                         }
                     }
                 }
@@ -309,6 +318,7 @@ object Routes {
     const val LOGIN = "login"
     const val SERVER_SETTINGS = "server_settings"
     const val PRINTER_SETTINGS = "printer_settings"
+    const val GDRIVE_BACKUP = "gdrive_backup"
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val EDIT_ITEM = "edit_item/{itemId}"

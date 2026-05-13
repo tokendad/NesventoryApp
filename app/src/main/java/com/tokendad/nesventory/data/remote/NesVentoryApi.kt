@@ -180,6 +180,24 @@ interface NesVentoryApi {
     @DELETE("api/tags/{id}")
     suspend fun deleteTag(@Path("id") id: UUID): Response<Unit>
 
+    @GET("api/gdrive/status")
+    suspend fun getGDriveStatus(): GDriveStatus
+
+    @POST("api/gdrive/connect")
+    suspend fun connectGDrive(): GDriveConnectResponse
+
+    @DELETE("api/gdrive/disconnect")
+    suspend fun disconnectGDrive(): Response<Unit>
+
+    @POST("api/gdrive/backup")
+    suspend fun triggerGDriveBackup(): GDriveBackupResult
+
+    @GET("api/gdrive/backups")
+    suspend fun listGDriveBackups(): List<GDriveBackup>
+
+    @DELETE("api/gdrive/backups/{backup_id}")
+    suspend fun deleteGDriveBackup(@Path("backup_id") backupId: String): Response<Unit>
+
     @GET("api/users/me")
     suspend fun getMyProfile(): UserProfile
 

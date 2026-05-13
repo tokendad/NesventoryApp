@@ -79,6 +79,8 @@ fun ServerScreen(
     onDismissPermissionRationale: () -> Unit,
     onRequestSsidScan: () -> Unit,
     onPrinterSettingsClick: () -> Unit,
+    onGDriveBackupClick: () -> Unit,
+    isLoggedIn: Boolean,
     onExit: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -222,6 +224,24 @@ fun ServerScreen(
                     text = "Configure Printer",
                     onClick = onPrinterSettingsClick
                 )
+            }
+
+            NesSectionCard(
+                title = "Backups",
+                icon = Icons.Default.Cloud
+            ) {
+                NesSecondaryButton(
+                    text = "Google Drive Backup",
+                    onClick = onGDriveBackupClick,
+                    enabled = isLoggedIn
+                )
+                if (!isLoggedIn) {
+                    Text(
+                        text = "Login required to manage cloud backups.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // Local Network Section
