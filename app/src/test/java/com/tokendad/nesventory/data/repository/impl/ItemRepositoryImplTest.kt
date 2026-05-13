@@ -1,6 +1,8 @@
 package com.tokendad.nesventory.data.repository.impl
 
 import com.tokendad.nesventory.data.remote.Item
+import com.tokendad.nesventory.data.remote.BulkDeleteRequest
+import com.tokendad.nesventory.data.remote.BulkOperationResponse
 import com.tokendad.nesventory.data.remote.NesVentoryApi
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -61,5 +63,17 @@ class ItemRepositoryImplTest {
         } catch (e: IllegalStateException) {
             assertEquals("boom", e.message)
         }
+    }
+
+    @Test
+    fun `bulkDeleteItems delegates to api`() = runTest {
+        val request = BulkDeleteRequest(item_ids = listOf(UUID.randomUUID(), UUID.randomUUID()))
+        val expected = BulkOperationResponse(success_count = 2, failed_count = 0, errors = emptyList())
+        coEvery { api.bulkDeleteItems(request) } returns expected
+
+        val actual = repository.bulkDeleteItems(request)
+
+        assertEquals(expected, actual)
+        coVerify(exactly = 1) { api.bulkDeleteItems(request) }
     }
 }

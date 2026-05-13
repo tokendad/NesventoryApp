@@ -2,6 +2,8 @@ package com.tokendad.nesventory.ui.locationdetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -173,6 +175,24 @@ fun DetailsTab(location: Location, serverUrl: String) {
                         .height(250.dp),
                     contentScale = ContentScale.Crop
                 )
+            }
+        }
+
+        if (location.location_photos.size > 1) {
+            NesSectionCard(title = "Photos", icon = Icons.Default.PhotoLibrary) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                    items(location.location_photos) { photo ->
+                        val imageUrl = PhotoUrlValidator.buildPhotoUrl(photo.path, serverUrl)
+                        ElevatedCard(modifier = Modifier.size(width = 120.dp, height = 90.dp)) {
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = photo.filename,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                }
             }
         }
 

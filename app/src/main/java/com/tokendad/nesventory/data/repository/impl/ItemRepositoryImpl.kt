@@ -3,6 +3,10 @@ package com.tokendad.nesventory.data.repository.impl
 import com.tokendad.nesventory.data.remote.BarcodeLookupRequest
 import com.tokendad.nesventory.data.remote.BarcodeLookupResult
 import com.tokendad.nesventory.data.remote.BarcodeScanResult
+import com.tokendad.nesventory.data.remote.BulkDeleteRequest
+import com.tokendad.nesventory.data.remote.BulkOperationResponse
+import com.tokendad.nesventory.data.remote.BulkUpdateLocationRequest
+import com.tokendad.nesventory.data.remote.BulkUpdateTagsRequest
 import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.data.remote.DataTagInfo
 import com.tokendad.nesventory.data.remote.DetectionResult
@@ -45,6 +49,15 @@ class ItemRepositoryImpl @Inject constructor(
     override suspend fun updateItem(id: UUID, item: ItemUpdate): Item = api.updateItem(id, item)
 
     override suspend fun deleteItem(id: UUID) = api.deleteItem(id)
+
+    override suspend fun bulkDeleteItems(request: BulkDeleteRequest): BulkOperationResponse =
+        api.bulkDeleteItems(request)
+
+    override suspend fun bulkUpdateItemTags(request: BulkUpdateTagsRequest): BulkOperationResponse =
+        api.bulkUpdateItemTags(request)
+
+    override suspend fun bulkUpdateItemLocation(request: BulkUpdateLocationRequest): BulkOperationResponse =
+        api.bulkUpdateItemLocation(request)
 
     override suspend fun getItemCollections(itemId: UUID): List<Collection> = api.getItemCollections(itemId)
 

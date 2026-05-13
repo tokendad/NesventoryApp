@@ -31,6 +31,7 @@ import com.tokendad.nesventory.ui.itemdetail.ItemDetailScreen
 import com.tokendad.nesventory.ui.locationdetail.LocationDetailScreen
 import com.tokendad.nesventory.ui.main.MainScreen
 import com.tokendad.nesventory.ui.login.LoginScreen
+import com.tokendad.nesventory.ui.profile.ProfileScreen
 import com.tokendad.nesventory.ui.theme.NesventoryTheme
 import com.tokendad.nesventory.ui.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -200,6 +201,9 @@ class MainActivity : ComponentActivity() {
                                 onEditLocationClick = { locationId ->
                                     navController.navigate(Routes.editLocation(locationId.toString()))
                                 },
+                                onProfileClick = {
+                                    navController.navigate(Routes.PROFILE)
+                                },
                                 onServerSettingsClick = {
                                     navController.navigate(Routes.SERVER_SETTINGS)
                                 },
@@ -284,6 +288,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             }
+
+                        composable(Routes.PROFILE) {
+                            ProfileScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
                         }
                     }
                 }
@@ -304,6 +314,7 @@ object Routes {
     const val EDIT_ITEM = "edit_item/{itemId}"
     const val ADD_LOCATION = "add_location"
     const val EDIT_LOCATION = "edit_location/{locationId}"
+    const val PROFILE = "profile"
     const val ITEM_DETAILS = "item_details/{itemId}"
     const val LOCATION_DETAILS = "location_details/{locationId}"
 

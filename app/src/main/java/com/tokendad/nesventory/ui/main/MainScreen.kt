@@ -30,6 +30,7 @@ fun MainScreen(
     onEditItemClick: (UUID) -> Unit,
     onAddLocationClick: () -> Unit,
     onEditLocationClick: (UUID) -> Unit,
+    onProfileClick: () -> Unit,
     onServerSettingsClick: () -> Unit,
     onPrinterSettingsClick: () -> Unit,
     onExit: () -> Unit
@@ -88,6 +89,7 @@ fun MainScreen(
                     viewModel = dashboardViewModel,
                     onItemClick = onItemClick,
                     onEditItemClick = onEditItemClick,
+                    onProfileClick = onProfileClick,
                     onServerSettingsClick = onServerSettingsClick,
                     onExit = onExit
                 )

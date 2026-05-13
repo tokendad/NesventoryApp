@@ -1,6 +1,7 @@
 package com.tokendad.nesventory.ui.edititem
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -23,10 +24,12 @@ import com.tokendad.nesventory.ui.components.NesDropdown
 import com.tokendad.nesventory.ui.components.NesEmptyState
 import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSecondaryButton
+import com.tokendad.nesventory.ui.components.NesTagChip
 import com.tokendad.nesventory.ui.components.NesTextField
 import com.tokendad.nesventory.ui.maintenance.MaintenanceTaskRow
 import com.tokendad.nesventory.ui.theme.NesSpacing
 import com.tokendad.nesventory.util.PhotoUrlValidator
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +85,7 @@ fun EditItemScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
     val highlightColor = Color(0xFFFF0000)
@@ -212,6 +216,60 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
                 },
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        val selectedTags = viewModel.selectedTags
+        val addableTags = viewModel.unselectedTags
+        var selectedTagId by remember(addableTags) {
+            mutableStateOf<UUID?>(addableTags.firstOrNull()?.id)
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)) {
+            Text("Tags", style = MaterialTheme.typography.titleSmall)
+            if (selectedTags.isEmpty()) {
+                Text(
+                    text = "No tags assigned",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                ) {
+                    selectedTags.forEach { tag ->
+                        NesTagChip(
+                            tag = tag,
+                            onDelete = { viewModel.removeTag(tag.id) }
+                        )
+                    }
+                }
+            }
+            if (addableTags.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)) {
+                    val selectedTagName = addableTags.firstOrNull { it.id == selectedTagId }?.name ?: ""
+                    NesDropdown(
+                        label = "Add Tag",
+                        options = addableTags.map { it.name },
+                        selectedOption = selectedTagName,
+                        onOptionSelected = { selectedName ->
+                            selectedTagId = addableTags.firstOrNull { it.name == selectedName }?.id
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    NesSecondaryButton(
+                        text = "Add",
+                        onClick = {
+                            selectedTagId?.let {
+                                viewModel.addTag(it)
+                                selectedTagId = viewModel.unselectedTags.firstOrNull()?.id
+                            }
+                        },
+                        enabled = selectedTagId != null,
+                        fullWidth = false
+                    )
+                }
+            }
         }
 
         // Price, Value, Date

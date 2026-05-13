@@ -3,9 +3,13 @@ package com.tokendad.nesventory.data.repository
 import com.tokendad.nesventory.data.remote.BarcodeLookupRequest
 import com.tokendad.nesventory.data.remote.BarcodeLookupResult
 import com.tokendad.nesventory.data.remote.BarcodeScanResult
+import com.tokendad.nesventory.data.remote.BulkOperationResponse
 import com.tokendad.nesventory.data.remote.DataTagInfo
 import com.tokendad.nesventory.data.remote.DetectionResult
 import com.tokendad.nesventory.data.remote.Document
+import com.tokendad.nesventory.data.remote.BulkDeleteRequest
+import com.tokendad.nesventory.data.remote.BulkUpdateLocationRequest
+import com.tokendad.nesventory.data.remote.BulkUpdateTagsRequest
 import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.ItemCreate
@@ -29,6 +33,9 @@ interface ItemRepository {
     suspend fun createItem(item: ItemCreate): Item
     suspend fun updateItem(id: UUID, item: ItemUpdate): Item
     suspend fun deleteItem(id: UUID)
+    suspend fun bulkDeleteItems(request: BulkDeleteRequest): BulkOperationResponse
+    suspend fun bulkUpdateItemTags(request: BulkUpdateTagsRequest): BulkOperationResponse
+    suspend fun bulkUpdateItemLocation(request: BulkUpdateLocationRequest): BulkOperationResponse
     suspend fun getItemCollections(itemId: UUID): List<Collection>
     suspend fun enrichItem(id: UUID): ItemEnrichmentResult
     suspend fun detectItems(file: MultipartBody.Part, usePlugins: Boolean = true): DetectionResult

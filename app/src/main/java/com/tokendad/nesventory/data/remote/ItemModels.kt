@@ -25,7 +25,8 @@ data class Item(
     val updated_at: String,
     val photos: List<Photo> = emptyList(),
     val custom_fields: Map<String, Any>? = null,
-    val warranties: List<Warranty> = emptyList()
+    val warranties: List<Warranty> = emptyList(),
+    val tags: List<Tag> = emptyList()
 )
 
 data class Photo(
@@ -57,7 +58,8 @@ data class ItemCreate(
     val associated_user_id: UUID? = null,
     val contact_info: ContactInfo? = null,
     val location_id: UUID? = null,
-    val warranties: List<WarrantyCreate>? = null
+    val warranties: List<WarrantyCreate>? = null,
+    val tag_ids: List<UUID>? = null
 )
 
 data class ItemUpdate(
@@ -78,7 +80,8 @@ data class ItemUpdate(
     val associated_user_id: UUID? = null,
     val contact_info: ContactInfo? = null,
     val location_id: UUID? = null,
-    val warranties: List<WarrantyCreate>? = null
+    val warranties: List<WarrantyCreate>? = null,
+    val tag_ids: List<UUID>? = null
 )
 
 data class ContactInfo(

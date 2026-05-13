@@ -27,6 +27,7 @@ import com.tokendad.nesventory.ui.components.NesErrorState
 import com.tokendad.nesventory.ui.components.NesListItemCard
 import com.tokendad.nesventory.ui.components.NesLoadingState
 import com.tokendad.nesventory.ui.components.NesSectionCard
+import com.tokendad.nesventory.ui.components.NesTagChip
 import com.tokendad.nesventory.ui.theme.NesSpacing
 import com.tokendad.nesventory.util.CurrencyFormatter
 import com.tokendad.nesventory.util.DateFormatter
@@ -312,6 +313,19 @@ fun DetailsTab(item: Item, serverUrl: String, itemCollections: List<Collection>)
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if (item.tags.isNotEmpty()) {
+            NesSectionCard(title = "Tags", icon = Icons.Default.LocalOffer) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                ) {
+                    item.tags.forEach { tag ->
+                        NesTagChip(tag = tag)
                     }
                 }
             }

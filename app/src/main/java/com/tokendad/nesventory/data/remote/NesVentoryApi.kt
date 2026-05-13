@@ -7,6 +7,7 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
@@ -155,11 +156,41 @@ interface NesVentoryApi {
     @DELETE("api/items/{id}")
     suspend fun deleteItem(@Path("id") id: UUID)
 
+    @POST("api/items/bulk-delete")
+    suspend fun bulkDeleteItems(@Body request: BulkDeleteRequest): BulkOperationResponse
+
+    @POST("api/items/bulk-update-tags")
+    suspend fun bulkUpdateItemTags(@Body request: BulkUpdateTagsRequest): BulkOperationResponse
+
+    @POST("api/items/bulk-update-location")
+    suspend fun bulkUpdateItemLocation(@Body request: BulkUpdateLocationRequest): BulkOperationResponse
+
     /**
      * Update an Item
      */
     @PUT("api/items/{id}")
     suspend fun updateItem(@Path("id") id: UUID, @Body item: ItemUpdate): Item
+
+    @GET("api/tags/")
+    suspend fun getTags(): List<Tag>
+
+    @POST("api/tags/")
+    suspend fun createTag(@Body tag: TagCreate): Tag
+
+    @DELETE("api/tags/{id}")
+    suspend fun deleteTag(@Path("id") id: UUID): Response<Unit>
+
+    @GET("api/users/me")
+    suspend fun getMyProfile(): UserProfile
+
+    @PATCH("api/users/{user_id}")
+    suspend fun updateProfile(
+        @Path("user_id") userId: UUID,
+        @Body update: UserProfileUpdate
+    ): UserProfile
+
+    @POST("api/users/me/set-password")
+    suspend fun setPassword(@Body request: SetPasswordRequest): StatusResponse
 
     /**
      * Enrich Item details via AI
@@ -274,6 +305,21 @@ interface NesVentoryApi {
         @Path("item_id") itemId: UUID,
         @Path("document_id") documentId: UUID
     )
+
+    @Multipart
+    @POST("api/locations/{location_id}/photos")
+    suspend fun uploadLocationPhoto(
+        @Path("location_id") locationId: UUID,
+        @Part file: MultipartBody.Part,
+        @Part("is_primary") isPrimary: Boolean = false,
+        @Part("photo_type") photoType: String? = null
+    ): LocationPhoto
+
+    @DELETE("api/locations/{location_id}/photos/{photo_id}")
+    suspend fun deleteLocationPhoto(
+        @Path("location_id") locationId: UUID,
+        @Path("photo_id") photoId: UUID
+    ): Response<Unit>
 
     /**
      * Get Location Categories

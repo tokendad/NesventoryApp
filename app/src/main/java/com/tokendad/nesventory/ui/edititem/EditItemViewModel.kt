@@ -9,12 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.ContactInfo
 import com.tokendad.nesventory.data.remote.MaintenanceTask
+import com.tokendad.nesventory.data.remote.Tag
 import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.remote.Photo
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.data.repository.MaintenanceRepository
+import com.tokendad.nesventory.data.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,6 +28,7 @@ class EditItemViewModel @Inject constructor(
     private val itemRepository: ItemRepository,
     private val locationRepository: LocationRepository,
     private val maintenanceRepository: MaintenanceRepository,
+    private val tagRepository: TagRepository,
     private val preferencesManager: PreferencesManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -49,7 +52,10 @@ class EditItemViewModel @Inject constructor(
     val livingTypeOptions = listOf("person", "pet", "plant")
     
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
+    var availableTags by mutableStateOf<List<Tag>>(emptyList())
+    var itemTagIds by mutableStateOf<Set<UUID>>(emptySet())
     var itemId: UUID? = null
+    private var tagsInitialized by mutableStateOf(false)
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -89,6 +95,7 @@ class EditItemViewModel @Inject constructor(
             fetchItem(itemId!!)
         }
         fetchLocations()
+        fetchTags()
         loadSettings()
     }
 
@@ -105,6 +112,22 @@ class EditItemViewModel @Inject constructor(
             }
         }
     }
+
+    private fun fetchTags() {
+        viewModelScope.launch {
+            try {
+                availableTags = tagRepository.getTags()
+            } catch (e: Exception) {
+                android.util.Log.w("EditItemViewModel", "Failed to fetch tags", e)
+            }
+        }
+    }
+
+    val selectedTags: List<Tag>
+        get() = availableTags.filter { itemTagIds.contains(it.id) }
+
+    val unselectedTags: List<Tag>
+        get() = availableTags.filterNot { itemTagIds.contains(it.id) }
 
     // ... (existing fetchItem, fetchMaintenanceTasks, fetchLocations, updateItem)
 
@@ -145,6 +168,8 @@ class EditItemViewModel @Inject constructor(
                 contactPhone = item.contact_info?.phone ?: ""
                 contactEmail = item.contact_info?.email ?: ""
                 contactNotes = item.contact_info?.notes ?: ""
+                itemTagIds = item.tags.map { it.id }.toSet()
+                tagsInitialized = true
             } catch (e: Exception) {
                 errorMessage = "Failed to load item: ${e.localizedMessage}"
             } finally {
@@ -192,6 +217,16 @@ class EditItemViewModel @Inject constructor(
         }
     }
 
+    fun addTag(tagId: UUID) {
+        itemTagIds = itemTagIds + tagId
+        tagsInitialized = true
+    }
+
+    fun removeTag(tagId: UUID) {
+        itemTagIds = itemTagIds - tagId
+        tagsInitialized = true
+    }
+
     fun updateItem(onSuccess: () -> Unit) {
         if (name.isBlank()) {
             errorMessage = "Name is required"
@@ -229,7 +264,8 @@ class EditItemViewModel @Inject constructor(
                     ).takeIf {
                         isLiving && (contactPhone.isNotBlank() || contactEmail.isNotBlank() || contactNotes.isNotBlank())
                     },
-                    location_id = selectedLocationId
+                    location_id = selectedLocationId,
+                    tag_ids = if (tagsInitialized) itemTagIds.toList() else null
                 )
                 itemRepository.updateItem(id, updatedItem)
                 onSuccess()

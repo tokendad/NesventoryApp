@@ -10,6 +10,7 @@ import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.data.repository.MaintenanceRepository
+import com.tokendad.nesventory.data.repository.TagRepository
 import com.tokendad.nesventory.testutil.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,6 +37,7 @@ class EditItemViewModelTest {
     private val itemRepository = mockk<ItemRepository>(relaxed = true)
     private val locationRepository = mockk<LocationRepository>(relaxed = true)
     private val maintenanceRepository = mockk<MaintenanceRepository>(relaxed = true)
+    private val tagRepository = mockk<TagRepository>(relaxed = true)
     private val preferencesManager = mockk<PreferencesManager>()
 
     private lateinit var viewModel: EditItemViewModel
@@ -46,10 +48,12 @@ class EditItemViewModelTest {
             ServerSettings(remoteUrl = "https://example.com")
         )
         coEvery { locationRepository.getLocations() } returns emptyList()
+        coEvery { tagRepository.getTags() } returns emptyList()
         viewModel = EditItemViewModel(
             itemRepository = itemRepository,
             locationRepository = locationRepository,
             maintenanceRepository = maintenanceRepository,
+            tagRepository = tagRepository,
             preferencesManager = preferencesManager,
             savedStateHandle = SavedStateHandle()
         )
@@ -111,6 +115,8 @@ class EditItemViewModelTest {
         viewModel.estimatedValue = "35.00"
         viewModel.retailer = "Store"
         viewModel.isLiving = false
+        val tagId = UUID.randomUUID()
+        viewModel.addTag(tagId)
 
         val payloadSlot = slot<ItemUpdate>()
         coEvery { itemRepository.updateItem(itemId, capture(payloadSlot)) } returns Item(
@@ -136,6 +142,7 @@ class EditItemViewModelTest {
         assertEquals("35.00", payload.estimated_value)
         assertEquals("Store", payload.retailer)
         assertEquals(false, payload.is_living)
+        assertEquals(listOf(tagId), payload.tag_ids)
         coVerify(exactly = 1) { itemRepository.updateItem(itemId, any()) }
     }
 }

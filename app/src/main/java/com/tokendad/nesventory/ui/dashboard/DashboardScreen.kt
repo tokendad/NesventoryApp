@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Inventory2
@@ -54,6 +55,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onItemClick: (UUID) -> Unit,
     onEditItemClick: (UUID) -> Unit,
+    onProfileClick: () -> Unit,
     onServerSettingsClick: () -> Unit = {},
     onExit: () -> Unit = {}
 ) {
@@ -63,6 +65,9 @@ fun DashboardScreen(
                 TopAppBar(
                     title = { Text("NesVentory", style = MaterialTheme.typography.titleMedium) },
                     actions = {
+                        IconButton(onClick = onProfileClick) {
+                            Icon(Icons.Default.AccountCircle, contentDescription = "Profile")
+                        }
                         IconButton(onClick = onServerSettingsClick) {
                             Icon(Icons.Default.Settings, contentDescription = "Server Settings")
                         }

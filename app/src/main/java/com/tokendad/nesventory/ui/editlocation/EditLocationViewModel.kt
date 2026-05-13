@@ -1,22 +1,32 @@
 package com.tokendad.nesventory.ui.editlocation
 
+import android.content.ContentResolver
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.Location
+import com.tokendad.nesventory.data.remote.LocationPhoto
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.UUID
 import javax.inject.Inject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 @HiltViewModel
 class EditLocationViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
+    private val preferencesManager: PreferencesManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -47,10 +57,12 @@ class EditLocationViewModel @Inject constructor(
 
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     var locationCategories by mutableStateOf<List<String>>(RoomCategories.defaultCategories)
+    var locationPhotos by mutableStateOf<List<LocationPhoto>>(emptyList())
     var locationId: UUID? = null
 
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    var serverUrl by mutableStateOf(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL)
 
     init {
         val idString: String? = savedStateHandle["locationId"]
@@ -60,6 +72,21 @@ class EditLocationViewModel @Inject constructor(
         }
         fetchLocations()
         fetchLocationCategories()
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            val initial = preferencesManager.serverSettings.first()
+            if (initial.remoteUrl.isNotBlank()) {
+                serverUrl = initial.remoteUrl.trimEnd('/')
+            }
+            preferencesManager.serverSettings.collect { settings ->
+                if (settings.remoteUrl.isNotBlank()) {
+                    serverUrl = settings.remoteUrl.trimEnd('/')
+                }
+            }
+        }
     }
 
     private fun fetchLocationCategories() {
@@ -86,6 +113,7 @@ class EditLocationViewModel @Inject constructor(
                 isPrimaryLocation = loc.is_primary_location
                 isContainer = loc.is_container
                 locationCategory = loc.location_category
+                locationPhotos = loc.location_photos
 
                 // Load insurance info
                 loc.insurance_info?.let { info ->
@@ -107,6 +135,49 @@ class EditLocationViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 errorMessage = "Failed to load location: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun uploadPhoto(contentResolver: ContentResolver, uri: Uri) {
+        val id = locationId ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val imageBytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (imageBytes == null || imageBytes.isEmpty()) {
+                    errorMessage = "Unable to read selected image"
+                    return@launch
+                }
+                val requestFile = imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, imageBytes.size)
+                val body = MultipartBody.Part.createFormData("file", "location_photo.jpg", requestFile)
+                locationRepository.uploadLocationPhoto(
+                    locationId = id,
+                    file = body,
+                    isPrimary = locationPhotos.isEmpty()
+                )
+                fetchLocation(id)
+            } catch (e: Exception) {
+                errorMessage = "Failed to upload photo: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun deletePhoto(photoId: UUID) {
+        val id = locationId ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                locationRepository.deleteLocationPhoto(id, photoId)
+                locationPhotos = locationPhotos.filterNot { it.id == photoId }
+            } catch (e: Exception) {
+                errorMessage = "Failed to delete photo: ${e.localizedMessage}"
             } finally {
                 isLoading = false
             }
