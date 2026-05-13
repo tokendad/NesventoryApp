@@ -40,6 +40,11 @@ val InfoDark = Color(0xFF4FC3F7)          // Light Blue 300
 val InfoContainerDark = Color(0xFF01579B) // Light Blue 900
 val OnInfoDark = Color(0xFF000000)
 
+// Living item accent colors
+val PersonAccent = Color(0xFF6750A4)
+val PetAccent = Color(0xFF7D5260)
+val PlantAccent = Color(0xFF4CAF50)
+
 /**
  * Extended colors for NesVentory that complement Material 3.
  *

@@ -6,6 +6,7 @@ import com.tokendad.nesventory.data.remote.BarcodeScanResult
 import com.tokendad.nesventory.data.remote.DataTagInfo
 import com.tokendad.nesventory.data.remote.DetectionResult
 import com.tokendad.nesventory.data.remote.Document
+import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.ItemCreate
 import com.tokendad.nesventory.data.remote.ItemEnrichmentResult
@@ -28,6 +29,7 @@ interface ItemRepository {
     suspend fun createItem(item: ItemCreate): Item
     suspend fun updateItem(id: UUID, item: ItemUpdate): Item
     suspend fun deleteItem(id: UUID)
+    suspend fun getItemCollections(itemId: UUID): List<Collection>
     suspend fun enrichItem(id: UUID): ItemEnrichmentResult
     suspend fun detectItems(file: MultipartBody.Part, usePlugins: Boolean = true): DetectionResult
     suspend fun scanBarcode(file: MultipartBody.Part): BarcodeScanResult

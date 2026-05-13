@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.Photo
 import com.tokendad.nesventory.ui.components.NesCard
@@ -28,9 +30,10 @@ import com.tokendad.nesventory.ui.components.NesSectionCard
 import com.tokendad.nesventory.ui.theme.NesSpacing
 import com.tokendad.nesventory.util.CurrencyFormatter
 import com.tokendad.nesventory.util.DateFormatter
+import com.tokendad.nesventory.util.ColorUtils
 import com.tokendad.nesventory.util.PhotoUrlValidator
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ItemDetailScreen(
     onBackClick: () -> Unit,
@@ -146,7 +149,7 @@ fun ItemDetailScreen(
                 }
                 item != null -> {
                     when (selectedTab) {
-                        0 -> DetailsTab(item, viewModel.serverUrl)
+                        0 -> DetailsTab(item, viewModel.serverUrl, viewModel.itemCollections)
                         1 -> MediaTab(item.photos, viewModel.serverUrl)
                     }
                 }
@@ -156,7 +159,8 @@ fun ItemDetailScreen(
 }
 
 @Composable
-fun DetailsTab(item: Item, serverUrl: String) {
+@OptIn(ExperimentalLayoutApi::class)
+fun DetailsTab(item: Item, serverUrl: String, itemCollections: List<Collection>) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -184,21 +188,59 @@ fun DetailsTab(item: Item, serverUrl: String) {
         // Basic Info
         NesCard {
             Text(text = item.name, style = MaterialTheme.typography.headlineSmall)
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+            ) {
+                if (item.is_living) {
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                when (item.relationship_type?.lowercase()) {
+                                    "pet" -> "Living: Pet"
+                                    "plant" -> "Living: Plant"
+                                    else -> "Living: Person"
+                                }
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Default.Favorite, contentDescription = null, Modifier.size(16.dp)) }
+                    )
+                }
                 item.brand?.let {
                     AssistChip(
-                        onClick = {}, 
+                        onClick = {},
                         label = { Text("Brand: $it") },
-                        leadingIcon = { Icon(Icons.Default.Label, contentDescription = null, Modifier.size(16.dp)) }
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null, Modifier.size(16.dp)) }
                     )
                 }
                 item.model_number?.let {
                     AssistChip(
-                        onClick = {}, 
+                        onClick = {},
                         label = { Text("Model: $it") },
                         leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, Modifier.size(16.dp)) }
                     )
+                }
+            }
+        }
+
+        if (item.is_living) {
+            NesSectionCard(title = "Living Details", icon = Icons.Default.Person) {
+                item.relationship_type?.takeIf { it.isNotBlank() }?.let {
+                    DetailRow("Type", it.replaceFirstChar { c -> c.uppercase() })
+                }
+                item.birthdate?.takeIf { it.isNotBlank() }?.let {
+                    DetailRow("Birthdate", DateFormatter.formatDate(it))
+                }
+                item.contact_info?.phone?.takeIf { it.isNotBlank() }?.let {
+                    DetailRow("Phone", it)
+                }
+                item.contact_info?.email?.takeIf { it.isNotBlank() }?.let {
+                    DetailRow("Email", it)
+                }
+                item.contact_info?.notes?.takeIf { it.isNotBlank() }?.let {
+                    DetailRow("Notes", it)
                 }
             }
         }
@@ -244,32 +286,60 @@ fun DetailsTab(item: Item, serverUrl: String) {
                     DetailRow("Retailer", it)
                 }
             }
+        }
 
-            if (item.warranties.isNotEmpty()) {
-                NesSectionCard(title = "Warranties", icon = Icons.Default.VerifiedUser) {
-                    Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
-                        item.warranties.forEach { warranty ->
-                            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier.padding(NesSpacing.md),
-                                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
-                                ) {
-                                    Text(
-                                        text = formatWarrantyType(warranty.type),
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                    warranty.provider?.takeIf { it.isNotBlank() }?.let {
-                                        Text("Provider: $it", style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    warranty.expiration_date?.takeIf { it.isNotBlank() }?.let {
-                                        Text("Expires: ${DateFormatter.formatDate(it)}", style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    warranty.notes?.takeIf { it.isNotBlank() }?.let {
-                                        Text(it, style = MaterialTheme.typography.bodySmall)
-                                    }
+        if (item.warranties.isNotEmpty()) {
+            NesSectionCard(title = "Warranties", icon = Icons.Default.VerifiedUser) {
+                Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                    item.warranties.forEach { warranty ->
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(NesSpacing.md),
+                                verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                            ) {
+                                Text(
+                                    text = formatWarrantyType(warranty.type),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                warranty.provider?.takeIf { it.isNotBlank() }?.let {
+                                    Text("Provider: $it", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                warranty.expiration_date?.takeIf { it.isNotBlank() }?.let {
+                                    Text("Expires: ${DateFormatter.formatDate(it)}", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                warranty.notes?.takeIf { it.isNotBlank() }?.let {
+                                    Text(it, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if (itemCollections.isNotEmpty()) {
+            NesSectionCard(title = "Collections", icon = Icons.Default.Collections) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                ) {
+                    itemCollections.forEach { collection ->
+                        val baseColor = ColorUtils.parseHexColor(collection.color)
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(collection.name) },
+                            leadingIcon = {
+                                if (!collection.icon.isNullOrBlank()) {
+                                    Text(collection.icon, style = MaterialTheme.typography.labelMedium)
+                                } else {
+                                    Icon(Icons.Default.Collections, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = baseColor?.copy(alpha = 0.18f)
+                                    ?: MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        )
                     }
                 }
             }

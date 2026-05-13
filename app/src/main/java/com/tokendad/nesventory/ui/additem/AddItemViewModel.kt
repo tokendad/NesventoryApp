@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventory.data.remote.ContactInfo
 import com.tokendad.nesventory.data.remote.DetectedItem
 import com.tokendad.nesventory.data.remote.ItemCreate
 import com.tokendad.nesventory.data.remote.Location
@@ -40,8 +41,15 @@ class AddItemViewModel @Inject constructor(
     var estimatedValue by mutableStateOf("")
     var retailer by mutableStateOf("")
     var selectedLocationId by mutableStateOf<UUID?>(null)
+    var isLiving by mutableStateOf(false)
+    var relationshipType by mutableStateOf("person")
+    var birthdate by mutableStateOf("")
+    var contactPhone by mutableStateOf("")
+    var contactEmail by mutableStateOf("")
+    var contactNotes by mutableStateOf("")
     var selectedPhotoType by mutableStateOf("default")
     val photoTypeOptions = listOf("default", "data_tag", "receipt", "warranty", "optional", "profile")
+    val livingTypeOptions = listOf("person", "pet", "plant")
     
     // Barcode Lookup
     var barcodeInput by mutableStateOf("")
@@ -70,9 +78,33 @@ class AddItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = locationRepository.getLocations()
+                if (isLiving && selectedLocationId != null && !isHomeLocation(selectedLocationId)) {
+                    selectedLocationId = homeLocations().firstOrNull()?.id
+                }
             } catch (e: Exception) {
                 android.util.Log.w("AddItemViewModel", "Failed to fetch locations", e)
             }
+        }
+    }
+
+    fun homeLocations(): List<Location> =
+        availableLocations.filter { it.location_category.equals("Home", ignoreCase = true) }
+
+    private fun isHomeLocation(locationId: UUID?): Boolean =
+        homeLocations().any { it.id == locationId }
+
+    fun onLivingChanged(enabled: Boolean) {
+        isLiving = enabled
+        if (enabled) {
+            if (!isHomeLocation(selectedLocationId)) {
+                selectedLocationId = homeLocations().firstOrNull()?.id
+            }
+        } else {
+            relationshipType = "person"
+            birthdate = ""
+            contactPhone = ""
+            contactEmail = ""
+            contactNotes = ""
         }
     }
     
@@ -256,6 +288,10 @@ class AddItemViewModel @Inject constructor(
             errorMessage = "Name is required"
             return
         }
+        if (isLiving && !isHomeLocation(selectedLocationId)) {
+            errorMessage = "Living items must be assigned to a Home location"
+            return
+        }
 
         viewModelScope.launch {
             isLoading = true
@@ -272,6 +308,16 @@ class AddItemViewModel @Inject constructor(
                     estimated_value = estimatedValue.ifBlank { null },
                     retailer = retailer.ifBlank { null },
                     upc = barcodeInput.ifBlank { null },
+                    is_living = isLiving,
+                    relationship_type = relationshipType.takeIf { isLiving },
+                    birthdate = birthdate.ifBlank { null }.takeIf { isLiving },
+                    contact_info = ContactInfo(
+                        phone = contactPhone.ifBlank { null },
+                        email = contactEmail.ifBlank { null },
+                        notes = contactNotes.ifBlank { null }
+                    ).takeIf {
+                        isLiving && (contactPhone.isNotBlank() || contactEmail.isNotBlank() || contactNotes.isNotBlank())
+                    },
                     location_id = selectedLocationId
                 )
                 val createdItem = itemRepository.createItem(newItemRequest)

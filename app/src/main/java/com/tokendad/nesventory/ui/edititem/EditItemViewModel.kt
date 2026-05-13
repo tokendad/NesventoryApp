@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
+import com.tokendad.nesventory.data.remote.ContactInfo
 import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.repository.ItemRepository
@@ -40,6 +41,13 @@ class EditItemViewModel @Inject constructor(
     var estimatedValue by mutableStateOf("")
     var retailer by mutableStateOf("")
     var selectedLocationId by mutableStateOf<UUID?>(null)
+    var isLiving by mutableStateOf(false)
+    var relationshipType by mutableStateOf("person")
+    var birthdate by mutableStateOf("")
+    var contactPhone by mutableStateOf("")
+    var contactEmail by mutableStateOf("")
+    var contactNotes by mutableStateOf("")
+    val livingTypeOptions = listOf("person", "pet", "plant")
     
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     var itemId: UUID? = null
@@ -118,6 +126,12 @@ class EditItemViewModel @Inject constructor(
                 estimatedValue = item.estimated_value ?: ""
                 retailer = item.retailer ?: ""
                 selectedLocationId = item.location_id
+                isLiving = item.is_living
+                relationshipType = item.relationship_type ?: "person"
+                birthdate = item.birthdate ?: ""
+                contactPhone = item.contact_info?.phone ?: ""
+                contactEmail = item.contact_info?.email ?: ""
+                contactNotes = item.contact_info?.notes ?: ""
             } catch (e: Exception) {
                 errorMessage = "Failed to load item: ${e.localizedMessage}"
             } finally {
@@ -141,15 +155,43 @@ class EditItemViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 availableLocations = locationRepository.getLocations()
+                if (isLiving && selectedLocationId != null && !isHomeLocation(selectedLocationId)) {
+                    selectedLocationId = homeLocations().firstOrNull()?.id
+                }
             } catch (e: Exception) {
                 android.util.Log.w("EditItemViewModel", "Failed to fetch locations", e)
             }
         }
     }
 
+    fun homeLocations(): List<Location> =
+        availableLocations.filter { it.location_category.equals("Home", ignoreCase = true) }
+
+    private fun isHomeLocation(locationId: UUID?): Boolean =
+        homeLocations().any { it.id == locationId }
+
+    fun onLivingChanged(enabled: Boolean) {
+        isLiving = enabled
+        if (enabled) {
+            if (!isHomeLocation(selectedLocationId)) {
+                selectedLocationId = homeLocations().firstOrNull()?.id
+            }
+        } else {
+            relationshipType = "person"
+            birthdate = ""
+            contactPhone = ""
+            contactEmail = ""
+            contactNotes = ""
+        }
+    }
+
     fun updateItem(onSuccess: () -> Unit) {
         if (name.isBlank()) {
             errorMessage = "Name is required"
+            return
+        }
+        if (isLiving && !isHomeLocation(selectedLocationId)) {
+            errorMessage = "Living items must be assigned to a Home location"
             return
         }
 
@@ -170,6 +212,16 @@ class EditItemViewModel @Inject constructor(
                     estimated_value = estimatedValue.ifBlank { null },
                     retailer = retailer.ifBlank { null },
                     upc = null,
+                    is_living = isLiving,
+                    relationship_type = relationshipType.takeIf { isLiving },
+                    birthdate = birthdate.ifBlank { null }.takeIf { isLiving },
+                    contact_info = ContactInfo(
+                        phone = contactPhone.ifBlank { null },
+                        email = contactEmail.ifBlank { null },
+                        notes = contactNotes.ifBlank { null }
+                    ).takeIf {
+                        isLiving && (contactPhone.isNotBlank() || contactEmail.isNotBlank() || contactNotes.isNotBlank())
+                    },
                     location_id = selectedLocationId
                 )
                 itemRepository.updateItem(id, updatedItem)

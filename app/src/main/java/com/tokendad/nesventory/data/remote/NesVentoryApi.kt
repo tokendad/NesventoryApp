@@ -12,6 +12,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.Response
 import java.util.UUID
 
 // Data model for the Token response
@@ -166,6 +167,9 @@ interface NesVentoryApi {
     @POST("api/items/{id}/enrich")
     suspend fun enrichItem(@Path("id") id: UUID): ItemEnrichmentResult
 
+    @GET("api/items/{id}/collections")
+    suspend fun getItemCollections(@Path("id") itemId: UUID): List<Collection>
+
     /**
      * Maintenance Tasks
      */
@@ -306,4 +310,47 @@ interface NesVentoryApi {
      */
     @PUT("api/locations/{id}")
     suspend fun updateLocation(@Path("id") id: UUID, @Body location: LocationUpdate): Location
+
+    @GET("api/collections/")
+    suspend fun getCollections(): List<Collection>
+
+    @POST("api/collections/")
+    suspend fun createCollection(@Body request: CollectionCreate): Collection
+
+    @GET("api/collections/tree")
+    suspend fun getCollectionsTree(): List<Collection>
+
+    @GET("api/collections/{id}")
+    suspend fun getCollection(@Path("id") id: UUID): Collection
+
+    @PUT("api/collections/{id}")
+    suspend fun updateCollection(@Path("id") id: UUID, @Body request: CollectionUpdate): Collection
+
+    @DELETE("api/collections/{id}")
+    suspend fun deleteCollection(@Path("id") id: UUID): Response<Unit>
+
+    @GET("api/collections/{id}/items")
+    suspend fun getCollectionItems(@Path("id") id: UUID): List<Item>
+
+    @POST("api/collections/{id}/items")
+    suspend fun addItemsToCollection(
+        @Path("id") collectionId: UUID,
+        @Body request: AddItemsToCollectionRequest
+    ): StatusResponse
+
+    @DELETE("api/collections/{id}/items/{item_id}")
+    suspend fun removeItemFromCollection(
+        @Path("id") collectionId: UUID,
+        @Path("item_id") itemId: UUID
+    ): Response<Unit>
+
+    @GET("api/collections/{id}/children")
+    suspend fun getCollectionChildren(@Path("id") id: UUID): List<Collection>
+
+    @Multipart
+    @POST("api/collections/{id}/cover-image")
+    suspend fun uploadCollectionCoverImage(
+        @Path("id") collectionId: UUID,
+        @Part file: MultipartBody.Part
+    ): Collection
 }

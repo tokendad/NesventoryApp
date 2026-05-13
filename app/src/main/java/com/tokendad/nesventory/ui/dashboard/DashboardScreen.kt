@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -53,6 +54,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onItemClick: (UUID) -> Unit,
     onEditItemClick: (UUID) -> Unit,
+    onServerSettingsClick: () -> Unit = {},
     onExit: () -> Unit = {}
 ) {
     Scaffold(
@@ -61,6 +63,9 @@ fun DashboardScreen(
                 TopAppBar(
                     title = { Text("NesVentory", style = MaterialTheme.typography.titleMedium) },
                     actions = {
+                        IconButton(onClick = onServerSettingsClick) {
+                            Icon(Icons.Default.Settings, contentDescription = "Server Settings")
+                        }
                         IconButton(onClick = onExit) {
                             Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
                         }

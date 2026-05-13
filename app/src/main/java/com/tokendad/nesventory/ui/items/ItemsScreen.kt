@@ -11,17 +11,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +54,9 @@ import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSearchField
 import com.tokendad.nesventory.ui.theme.NesSize
 import com.tokendad.nesventory.ui.theme.NesSpacing
+import com.tokendad.nesventory.ui.theme.PersonAccent
+import com.tokendad.nesventory.ui.theme.PetAccent
+import com.tokendad.nesventory.ui.theme.PlantAccent
 import com.tokendad.nesventory.util.PhotoUrlValidator
 import java.util.UUID
 
@@ -76,6 +86,38 @@ fun ItemsScreen(
                     placeholder = "Search items...",
                     modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 )
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = NesSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                ) {
+                    FilterChip(
+                        selected = viewModel.livingTypeFilter == null,
+                        onClick = { viewModel.onLivingFilterChange(null) },
+                        label = { Text("All") }
+                    )
+                    FilterChip(
+                        selected = viewModel.livingTypeFilter == LivingItemType.PERSON,
+                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PERSON) },
+                        label = { Text("People") }
+                    )
+                    FilterChip(
+                        selected = viewModel.livingTypeFilter == LivingItemType.PET,
+                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PET) },
+                        label = { Text("Pets") }
+                    )
+                    FilterChip(
+                        selected = viewModel.livingTypeFilter == LivingItemType.PLANT,
+                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PLANT) },
+                        label = { Text("Plants") }
+                    )
+                    FilterChip(
+                        selected = viewModel.livingTypeFilter == LivingItemType.NON_LIVING,
+                        onClick = { viewModel.onLivingFilterChange(LivingItemType.NON_LIVING) },
+                        label = { Text("Non-living") }
+                    )
+                }
             }
         },
         floatingActionButton = {
@@ -162,6 +204,8 @@ fun ItemRow(
     onDelete: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val livingType = LivingItemType.from(item.is_living, item.relationship_type)
+    val isLiving = livingType != LivingItemType.NON_LIVING
 
     NesListItemCard(
         onClick = onClick
@@ -177,7 +221,7 @@ fun ItemRow(
 
             Card(
                 modifier = Modifier.size(NesSize.thumbnailSmall),
-                shape = MaterialTheme.shapes.small
+                shape = if (isLiving) CircleShape else MaterialTheme.shapes.small
             ) {
                 if (imageUrl != null) {
                     AsyncImage(
@@ -192,9 +236,19 @@ fun ItemRow(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Inventory2,
+                            imageVector = when (livingType) {
+                                LivingItemType.PERSON -> Icons.Default.Person
+                                LivingItemType.PET -> Icons.Default.Pets
+                                LivingItemType.PLANT -> Icons.Default.Eco
+                                LivingItemType.NON_LIVING -> Icons.Outlined.Inventory2
+                            },
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline,
+                            tint = when (livingType) {
+                                LivingItemType.PERSON -> PersonAccent
+                                LivingItemType.PET -> PetAccent
+                                LivingItemType.PLANT -> PlantAccent
+                                LivingItemType.NON_LIVING -> MaterialTheme.colorScheme.outline
+                            },
                             modifier = Modifier.size(NesSize.iconSmall)
                         )
                     }
@@ -208,6 +262,24 @@ fun ItemRow(
                     text = item.name,
                     style = MaterialTheme.typography.titleSmall
                 )
+                if (isLiving) {
+                    val label = when (livingType) {
+                        LivingItemType.PERSON -> "Person"
+                        LivingItemType.PET -> "Pet"
+                        LivingItemType.PLANT -> "Plant"
+                        LivingItemType.NON_LIVING -> "Item"
+                    }
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when (livingType) {
+                            LivingItemType.PERSON -> PersonAccent
+                            LivingItemType.PET -> PetAccent
+                            LivingItemType.PLANT -> PlantAccent
+                            LivingItemType.NON_LIVING -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
                 Text(
                     text = locationName ?: "No Location",
                     style = MaterialTheme.typography.bodySmall,

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,7 +19,7 @@ import com.tokendad.nesventory.ui.dashboard.DashboardViewModel
 import com.tokendad.nesventory.ui.items.ItemsScreen
 import com.tokendad.nesventory.ui.locations.LocationsScreen
 import com.tokendad.nesventory.ui.maintenance.MaintenanceScreen
-import com.tokendad.nesventory.ui.server.ServerScreen
+import com.tokendad.nesventory.ui.collections.CollectionsScreen
 import java.util.UUID
 
 @Composable
@@ -30,6 +30,7 @@ fun MainScreen(
     onEditItemClick: (UUID) -> Unit,
     onAddLocationClick: () -> Unit,
     onEditLocationClick: (UUID) -> Unit,
+    onServerSettingsClick: () -> Unit,
     onPrinterSettingsClick: () -> Unit,
     onExit: () -> Unit
 ) {
@@ -68,14 +69,14 @@ fun MainScreen(
                     NavigationBarItem(
                         selected = selectedTab == 3,
                         onClick = { selectedTab = 3 },
-                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
-                        label = { Text("Maint", style = MaterialTheme.typography.labelSmall) }
+                        icon = { Icon(Icons.Default.Collections, contentDescription = "Collections") },
+                        label = { Text("Collections", style = MaterialTheme.typography.labelSmall) }
                     )
                     NavigationBarItem(
                         selected = selectedTab == 4,
                         onClick = { selectedTab = 4 },
-                        icon = { Icon(Icons.Default.Info, contentDescription = "Server") },
-                        label = { Text("Server", style = MaterialTheme.typography.labelSmall) }
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Maint") },
+                        label = { Text("Maint", style = MaterialTheme.typography.labelSmall) }
                     )
                 }
             }
@@ -87,6 +88,7 @@ fun MainScreen(
                     viewModel = dashboardViewModel,
                     onItemClick = onItemClick,
                     onEditItemClick = onEditItemClick,
+                    onServerSettingsClick = onServerSettingsClick,
                     onExit = onExit
                 )
                 1 -> ItemsScreen(
@@ -101,31 +103,8 @@ fun MainScreen(
                     onEditLocationClick = onEditLocationClick,
                     onExit = onExit
                 )
-                3 -> MaintenanceScreen(
-                    onExit = onExit
-                )
-                4 -> ServerScreen(
-                    remoteUrl = dashboardViewModel.remoteUrl,
-                    onRemoteUrlChange = { dashboardViewModel.onRemoteUrlChange(it) },
-                    localUrl = dashboardViewModel.localUrl,
-                    onLocalUrlChange = { dashboardViewModel.onLocalUrlChange(it) },
-                    localSsid = dashboardViewModel.localSsid,
-                    onLocalSsidChange = { dashboardViewModel.onLocalSsidChange(it) },
-                    availableSsids = dashboardViewModel.availableSsids,
-                    prioritizeLocal = dashboardViewModel.prioritizeLocal,
-                    onPrioritizeLocalChange = { dashboardViewModel.onPrioritizeLocalChange(it) },
-                    remoteStatus = dashboardViewModel.remoteStatus,
-                    localStatus = dashboardViewModel.localStatus,
-                    aiStatus = dashboardViewModel.aiStatus,
-                    aiStatusMessage = dashboardViewModel.aiStatusMessage,
-                    theme = dashboardViewModel.theme,
-                    onThemeChange = { dashboardViewModel.onThemeChange(it) },
-                    onTestConnection = { dashboardViewModel.testAndSaveConnection() },
-                    onTestAIConnection = { dashboardViewModel.testAIConnection() },
-                    showPermissionRationale = dashboardViewModel.showPermissionRationale,
-                    onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
-                    onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
-                    onPrinterSettingsClick = onPrinterSettingsClick,
+                3 -> CollectionsScreen()
+                4 -> MaintenanceScreen(
                     onExit = onExit
                 )
             }

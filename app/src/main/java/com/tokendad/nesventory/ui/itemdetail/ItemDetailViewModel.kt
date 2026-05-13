@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.PrinterRepository
@@ -31,6 +32,7 @@ class ItemDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     var item by mutableStateOf<Item?>(null)
+    var itemCollections by mutableStateOf<List<Collection>>(emptyList())
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
@@ -151,6 +153,8 @@ class ItemDetailViewModel @Inject constructor(
             errorMessage = null
             try {
                 item = itemRepository.getItem(id)
+                itemCollections = runCatching { itemRepository.getItemCollections(id) }
+                    .getOrDefault(emptyList())
             } catch (e: Exception) {
                 errorMessage = "Failed to load item details: ${e.localizedMessage}"
             } finally {

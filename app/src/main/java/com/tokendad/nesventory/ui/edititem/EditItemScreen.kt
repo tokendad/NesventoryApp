@@ -135,6 +135,57 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
             )
         }
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Living Item", style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = viewModel.isLiving,
+                onCheckedChange = viewModel::onLivingChanged
+            )
+        }
+
+        if (viewModel.isLiving) {
+            NesDropdown(
+                label = "Living Type",
+                options = viewModel.livingTypeOptions,
+                selectedOption = viewModel.relationshipType,
+                onOptionSelected = { viewModel.relationshipType = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+            NesTextField(
+                value = viewModel.birthdate,
+                onValueChange = { viewModel.birthdate = it },
+                label = "Birthdate (YYYY-MM-DD)",
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NesTextField(
+                    value = viewModel.contactPhone,
+                    onValueChange = { viewModel.contactPhone = it },
+                    label = "Contact Phone",
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+                NesTextField(
+                    value = viewModel.contactEmail,
+                    onValueChange = { viewModel.contactEmail = it },
+                    label = "Contact Email",
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodySmall
+                )
+            }
+            NesTextField(
+                value = viewModel.contactNotes,
+                onValueChange = { viewModel.contactNotes = it },
+                label = "Contact Notes",
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodySmall
+            )
+        }
+
         // Retailer & Location
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NesTextField(
@@ -146,15 +197,16 @@ fun DetailsTab(viewModel: EditItemViewModel, onItemUpdated: () -> Unit) {
             )
             
             // Location Selector
-            val selectedLocationName = viewModel.availableLocations
+            val locationOptions = if (viewModel.isLiving) viewModel.homeLocations() else viewModel.availableLocations
+            val selectedLocationName = locationOptions
                 .find { it.id == viewModel.selectedLocationId }?.name ?: ""
 
             NesDropdown(
                 label = "Location",
-                options = viewModel.availableLocations.map { it.name },
+                options = locationOptions.map { it.name },
                 selectedOption = selectedLocationName,
                 onOptionSelected = { name ->
-                    viewModel.availableLocations.find { it.name == name }?.let {
+                    locationOptions.find { it.name == name }?.let {
                         viewModel.selectedLocationId = it.id
                     }
                 },

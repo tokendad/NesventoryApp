@@ -5,6 +5,7 @@ import com.tokendad.nesventory.data.repository.impl.LocationRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.MaintenanceRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.PrinterRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.SystemRepositoryImpl
+import com.tokendad.nesventory.data.repository.impl.CollectionRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -34,4 +35,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSystemRepository(impl: SystemRepositoryImpl): SystemRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCollectionRepository(impl: CollectionRepositoryImpl): CollectionRepository
 }

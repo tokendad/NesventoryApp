@@ -28,6 +28,7 @@ class ItemsViewModel @Inject constructor(
     var items by mutableStateOf<List<Item>>(emptyList())
     var locationNames by mutableStateOf<Map<UUID, String>>(emptyMap())
     var searchQuery by mutableStateOf("")
+    var livingTypeFilter by mutableStateOf<LivingItemType?>(null)
     
     // Default to the known base URL, but update from prefs
     var serverUrl by mutableStateOf(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL) 
@@ -36,14 +37,30 @@ class ItemsViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
 
     val filteredItems: List<Item>
-        get() = if (searchQuery.isBlank()) {
-            items
-        } else {
-            items.filter { 
+        get() {
+            val livingFiltered = when (livingTypeFilter) {
+                LivingItemType.PERSON -> items.filter {
+                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PERSON
+                }
+                LivingItemType.PET -> items.filter {
+                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PET
+                }
+                LivingItemType.PLANT -> items.filter {
+                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PLANT
+                }
+                LivingItemType.NON_LIVING -> items.filter { !it.is_living }
+                null -> items
+            }
+
+            return if (searchQuery.isBlank()) {
+                livingFiltered
+            } else {
+                livingFiltered.filter {
                 it.name.contains(searchQuery, ignoreCase = true) ||
                 (it.brand?.contains(searchQuery, ignoreCase = true) == true)
             }
         }
+    }
 
     init {
         fetchData()
@@ -69,8 +86,20 @@ class ItemsViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
+                val (isLiving, relationshipType) = when (livingTypeFilter) {
+                    LivingItemType.PET -> true to "pet"
+                    LivingItemType.PLANT -> true to "plant"
+                    LivingItemType.NON_LIVING -> false to null
+                    LivingItemType.PERSON -> true to null
+                    null -> null to null
+                }
                 coroutineScope {
-                    val itemsDeferred = async { itemRepository.getItems() }
+                    val itemsDeferred = async {
+                        itemRepository.getItems(
+                            isLiving = isLiving,
+                            relationshipType = relationshipType
+                        )
+                    }
                     val locationsDeferred = async { locationRepository.getLocations() }
                     
                     items = itemsDeferred.await()
@@ -87,6 +116,11 @@ class ItemsViewModel @Inject constructor(
     
     fun onSearchQueryChange(query: String) {
         searchQuery = query
+    }
+
+    fun onLivingFilterChange(filter: LivingItemType?) {
+        livingTypeFilter = filter
+        fetchData()
     }
 
     fun deleteItem(itemId: UUID) {

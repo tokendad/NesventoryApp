@@ -200,6 +200,9 @@ class MainActivity : ComponentActivity() {
                                 onEditLocationClick = { locationId ->
                                     navController.navigate(Routes.editLocation(locationId.toString()))
                                 },
+                                onServerSettingsClick = {
+                                    navController.navigate(Routes.SERVER_SETTINGS)
+                                },
                                 onPrinterSettingsClick = {
                                     navController.navigate(Routes.PRINTER_SETTINGS)
                                 },

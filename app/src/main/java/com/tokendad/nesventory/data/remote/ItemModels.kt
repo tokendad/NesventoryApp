@@ -14,6 +14,12 @@ data class Item(
     val estimated_value: String? = null,
     val retailer: String? = null,
     val upc: String? = null,
+    val is_living: Boolean = false,
+    val birthdate: String? = null,
+    val relationship_type: String? = null,
+    val is_current_user: Boolean = false,
+    val associated_user_id: UUID? = null,
+    val contact_info: ContactInfo? = null,
     val location_id: UUID? = null,
     val created_at: String,
     val updated_at: String,
@@ -44,6 +50,12 @@ data class ItemCreate(
     val estimated_value: String? = null,
     val retailer: String? = null,
     val upc: String? = null,
+    val is_living: Boolean = false,
+    val birthdate: String? = null,
+    val relationship_type: String? = null,
+    val is_current_user: Boolean = false,
+    val associated_user_id: UUID? = null,
+    val contact_info: ContactInfo? = null,
     val location_id: UUID? = null,
     val warranties: List<WarrantyCreate>? = null
 )
@@ -59,8 +71,23 @@ data class ItemUpdate(
     val estimated_value: String? = null,
     val retailer: String? = null,
     val upc: String? = null,
+    val is_living: Boolean? = null,
+    val birthdate: String? = null,
+    val relationship_type: String? = null,
+    val is_current_user: Boolean? = null,
+    val associated_user_id: UUID? = null,
+    val contact_info: ContactInfo? = null,
     val location_id: UUID? = null,
     val warranties: List<WarrantyCreate>? = null
+)
+
+data class ContactInfo(
+    val phone: String? = null,
+    val email: String? = null,
+    val address: String? = null,
+    val emergency_contact_name: String? = null,
+    val emergency_contact_phone: String? = null,
+    val notes: String? = null
 )
 
 data class Warranty(
