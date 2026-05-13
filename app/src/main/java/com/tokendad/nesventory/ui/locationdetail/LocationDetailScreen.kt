@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.InsuranceInfo
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.remote.PolicyHolder

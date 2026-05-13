@@ -21,7 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.ui.addlocation.LocationCategorySelector
 import com.tokendad.nesventory.ui.components.NesDropdown
 import com.tokendad.nesventory.ui.components.NesEmptyState
@@ -46,6 +46,13 @@ fun EditLocationScreen(
     ) { uri ->
         if (uri != null) {
             viewModel.uploadPhoto(context.contentResolver, uri)
+        }
+    }
+    val paintLabelPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.parsePaintLabel(context.contentResolver, uri)
         }
     }
 
@@ -78,7 +85,15 @@ fun EditLocationScreen(
                 .fillMaxSize()
         ) {
             when (selectedTab) {
-                0 -> GeneralTab(viewModel, onLocationUpdated)
+                0 -> GeneralTab(
+                    viewModel = viewModel,
+                    onLocationUpdated = onLocationUpdated,
+                    onParsePaintLabel = {
+                        paintLabelPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                )
                 1 -> MediaTab(
                     viewModel = viewModel,
                     onAddPhoto = {
@@ -94,7 +109,11 @@ fun EditLocationScreen(
 }
 
 @Composable
-fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) {
+fun GeneralTab(
+    viewModel: EditLocationViewModel,
+    onLocationUpdated: () -> Unit,
+    onParsePaintLabel: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -205,6 +224,27 @@ fun GeneralTab(viewModel: EditLocationViewModel, onLocationUpdated: () -> Unit) 
             minLines = 2,
             textStyle = MaterialTheme.typography.bodySmall
         )
+
+        HorizontalDivider()
+        Text("Paint Info", style = MaterialTheme.typography.titleSmall)
+        NesSecondaryButton(
+            text = if (viewModel.isParsingPaintLabel) "Reading Label..." else "Parse Paint Label",
+            onClick = onParsePaintLabel,
+            enabled = !viewModel.isParsingPaintLabel,
+            fullWidth = false
+        )
+        viewModel.pendingPaintInfo?.let { paint ->
+            Text(
+                text = buildString {
+                    append("Vendor: ${paint.vendor ?: "-"}")
+                    append("\nColor: ${paint.color_name ?: "-"}")
+                    append("\nCode: ${paint.color_code ?: "-"}")
+                    append("\nHex: ${paint.hex_color ?: "-"}")
+                    append("\nFinish: ${paint.finish ?: "-"}")
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         viewModel.errorMessage?.let {
             Text(

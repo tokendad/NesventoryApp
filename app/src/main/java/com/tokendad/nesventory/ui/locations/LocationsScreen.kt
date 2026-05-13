@@ -42,11 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.ui.components.NesEmptyState
 import com.tokendad.nesventory.ui.components.NesListItemCard
 import com.tokendad.nesventory.ui.components.NesLoadingState
+import com.tokendad.nesventory.ui.components.NesOfflineBanner
 import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSearchField
 import com.tokendad.nesventory.ui.theme.NesSize
@@ -69,6 +70,7 @@ fun LocationsScreen(
     val displayedLocations by viewModel.displayedLocations.collectAsStateWithLifecycle()
     val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -99,6 +101,11 @@ fun LocationsScreen(
                     placeholder = "Search locations...",
                     modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 )
+                if (isOffline) {
+                    NesOfflineBanner(
+                        modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
+                    )
+                }
             }
         },
         floatingActionButton = {

@@ -87,7 +87,9 @@ interface NesVentoryApi {
         @Query("is_living") isLiving: Boolean? = null,
         @Query("relationship_type") relationshipType: String? = null,
         @Query("collection_id") collectionId: UUID? = null,
-        @Query("collection_id_recursive") collectionIdRecursive: Boolean? = null
+        @Query("collection_id_recursive") collectionIdRecursive: Boolean? = null,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
     ): List<Item>
 
     /**
@@ -127,6 +129,12 @@ interface NesVentoryApi {
         @Part file: MultipartBody.Part,
         @Part("use_plugins") usePlugins: Boolean = true
     ): DataTagInfo
+
+    @Multipart
+    @POST("api/ai/parse-paint-label")
+    suspend fun parsePaintLabel(
+        @Part file: MultipartBody.Part
+    ): PaintInfo
 
     /**
      * Scan Barcode from Image
@@ -380,7 +388,10 @@ interface NesVentoryApi {
      * Get Locations List
      */
     @GET("api/locations/")
-    suspend fun getLocations(): List<Location>
+    suspend fun getLocations(
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): List<Location>
 
     /**
      * Create a new Location

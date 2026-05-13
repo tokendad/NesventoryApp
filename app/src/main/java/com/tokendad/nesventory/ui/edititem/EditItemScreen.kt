@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.ui.components.NesCard
 import com.tokendad.nesventory.ui.components.NesDropdown
 import com.tokendad.nesventory.ui.components.NesEmptyState

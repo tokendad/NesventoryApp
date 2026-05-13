@@ -11,7 +11,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -29,11 +31,29 @@ object NetworkModule {
     
     private val BASE_URL = "${Constants.DEFAULT_REMOTE_URL}/"
 
-    @Volatile private var cachedToken: String? = null
-    @Volatile private var cachedRemoteUrl: String = ""
-    @Volatile private var cachedLocalUrl: String = ""
-    @Volatile private var cachedPrioritizeLocal: Boolean = false
-    @Volatile private var cachedLocalSsid: String = ""
+    @Volatile private var cachedNetworkState = NetworkState(
+        profileId = null,
+        remoteUrl = "",
+        localUrl = "",
+        prioritizeLocal = false,
+        localSsid = "",
+        token = null
+    )
+    
+    private data class NetworkState(
+        val profileId: String?,
+        val remoteUrl: String,
+        val localUrl: String,
+        val prioritizeLocal: Boolean,
+        val localSsid: String,
+        val token: String?
+    )
+
+    private data class RequestAuthContext(
+        val profileId: String?,
+        val token: String?,
+        val usedLegacyToken: Boolean
+    )
 
     @Provides
     @Singleton
@@ -74,30 +94,65 @@ object NetworkModule {
         forbiddenEventBus: ForbiddenEventBus,
         applicationScope: CoroutineScope
     ): OkHttpClient {
-        // Cache settings and token via background coroutines (no runBlocking)
+        val initialState = runBlocking {
+            val profileList = preferencesManager.serverProfiles.first()
+            val active = profileList.activeProfile
+            var resolvedToken = when {
+                active != null -> securePreferencesManager.getAccessToken(active.id)
+                profileList.profiles.isEmpty() -> securePreferencesManager.getAccessToken()
+                else -> null
+            }
+            if (active == null && profileList.profiles.isNotEmpty()) {
+                resolvedToken = null
+            }
+            NetworkState(
+                profileId = active?.id,
+                remoteUrl = active?.remoteUrl.orEmpty(),
+                localUrl = active?.localUrl.orEmpty(),
+                prioritizeLocal = active?.prioritizeLocal ?: false,
+                localSsid = active?.localSsid.orEmpty(),
+                token = resolvedToken
+            )
+        }
+        cachedNetworkState = initialState
+
+        // Keep settings and token in sync with profile changes.
         applicationScope.launch {
-            preferencesManager.serverSettings.collect { settings ->
-                cachedRemoteUrl = settings.remoteUrl
-                cachedLocalUrl = settings.localUrl
-                cachedPrioritizeLocal = settings.prioritizeLocal
-                cachedLocalSsid = settings.localSsid
+            preferencesManager.serverProfiles.collect { profileList ->
+                val active = profileList.activeProfile
+                var resolvedToken = when {
+                    active != null -> securePreferencesManager.getAccessToken(active.id)
+                    profileList.profiles.isEmpty() -> securePreferencesManager.getAccessToken()
+                    else -> null
+                }
+                if (active == null && profileList.profiles.isNotEmpty()) {
+                    // Never use a token from a different profile context.
+                    resolvedToken = null
+                }
+                cachedNetworkState = NetworkState(
+                    profileId = active?.id,
+                    remoteUrl = active?.remoteUrl.orEmpty(),
+                    localUrl = active?.localUrl.orEmpty(),
+                    prioritizeLocal = active?.prioritizeLocal ?: false,
+                    localSsid = active?.localSsid.orEmpty(),
+                    token = resolvedToken
+                )
             }
         }
-        // Load token synchronously to avoid race with first network request
-        cachedToken = securePreferencesManager.getAccessToken()
 
         return OkHttpClient.Builder()
             // 1. Host Selection Interceptor
             .addInterceptor(Interceptor { chain ->
                 var request = chain.request()
+                val networkState = cachedNetworkState
                 val currentHost = request.url.host
                 val placeholderHost = "nesdemo.welshrd.com"
                 
                 if (currentHost == placeholderHost) {
-                    val targetUrlStr = if (cachedRemoteUrl.isNotBlank()) {
-                        cachedRemoteUrl
-                    } else if (cachedLocalUrl.isNotBlank()) {
-                        cachedLocalUrl
+                    val targetUrlStr = if (networkState.remoteUrl.isNotBlank()) {
+                        networkState.remoteUrl
+                    } else if (networkState.localUrl.isNotBlank()) {
+                        networkState.localUrl
                     } else {
                         null
                     }
@@ -119,13 +174,24 @@ object NetworkModule {
                         }
                     }
                 }
+                request = request.newBuilder()
+                    .tag(
+                        RequestAuthContext::class.java,
+                        RequestAuthContext(
+                            profileId = networkState.profileId,
+                            token = networkState.token,
+                            usedLegacyToken = networkState.profileId == null && !networkState.token.isNullOrBlank()
+                        )
+                    )
+                    .build()
                 chain.proceed(request)
             })
             // 2. Auth Header Interceptor (reads cached token - no blocking)
             .addInterceptor(Interceptor { chain ->
                 val originalRequest = chain.request()
                 val requestBuilder = originalRequest.newBuilder()
-                val token = cachedToken
+                val authContext = originalRequest.tag(RequestAuthContext::class.java)
+                val token = authContext?.token
                 if (!token.isNullOrBlank()) {
                     requestBuilder.addHeader("Authorization", "Bearer $token")
                 }
@@ -133,10 +199,27 @@ object NetworkModule {
             })
             // 3. 401 Unauthorized Interceptor (cache-only; actual clear deferred)
             .addInterceptor(Interceptor { chain ->
-                val response = chain.proceed(chain.request())
+                val request = chain.request()
+                val response = chain.proceed(request)
                 if (response.code == 401) {
-                    cachedToken = null
-                    applicationScope.launch { securePreferencesManager.clearAccessToken() }
+                    val authContext = request.tag(RequestAuthContext::class.java)
+                    val requestProfileId = authContext?.profileId
+                    applicationScope.launch {
+                        when {
+                            requestProfileId != null -> {
+                                securePreferencesManager.deleteAccessToken(requestProfileId)
+                                if (cachedNetworkState.profileId == requestProfileId) {
+                                    cachedNetworkState = cachedNetworkState.copy(token = null)
+                                }
+                            }
+                            authContext?.usedLegacyToken == true -> {
+                                securePreferencesManager.clearAccessToken()
+                                if (cachedNetworkState.profileId == null) {
+                                    cachedNetworkState = cachedNetworkState.copy(token = null)
+                                }
+                            }
+                        }
+                    }
                 }
                 response
             })
@@ -168,6 +251,10 @@ object NetworkModule {
      * Updates the cached token. Called after login/logout.
      */
     fun updateCachedToken(token: String?) {
-        cachedToken = token
+        cachedNetworkState = cachedNetworkState.copy(token = token)
+    }
+
+    fun updateCachedToken(profileId: String?, token: String?) {
+        cachedNetworkState = cachedNetworkState.copy(profileId = profileId, token = token)
     }
 }

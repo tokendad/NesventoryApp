@@ -2,23 +2,31 @@ package com.tokendad.nesventory.ui.items
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.BulkDeleteRequest
 import com.tokendad.nesventory.data.remote.BulkUpdateLocationRequest
 import com.tokendad.nesventory.data.remote.BulkUpdateTagsRequest
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.remote.Tag
+import com.tokendad.nesventory.data.network.ConnectivityRepository
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.data.repository.TagRepository
+import com.tokendad.nesventory.data.repository.impl.ItemPagingSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -28,11 +36,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class ItemsViewModel @Inject constructor(
     private val itemRepository: ItemRepository,
     private val locationRepository: LocationRepository,
     private val tagRepository: TagRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val connectivityRepository: ConnectivityRepository
 ) : ViewModel() {
 
     private val _items = MutableStateFlow<List<Item>>(emptyList())
@@ -71,6 +81,10 @@ class ItemsViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+    private val _pagingRefreshSignal = MutableStateFlow(0)
+
     val filteredItems: StateFlow<List<Item>> = combine(
         _items,
         _searchQuery,
@@ -107,9 +121,33 @@ class ItemsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val pagedItems = combine(_searchQuery, _livingTypeFilter, _pagingRefreshSignal) { query, livingFilter, _ ->
+        query to livingFilter
+    }.flatMapLatest { (query, livingFilter) ->
+        val (isLiving, relationshipType) = when (livingFilter) {
+            LivingItemType.PET -> true to "pet"
+            LivingItemType.PLANT -> true to "plant"
+            LivingItemType.NON_LIVING -> false to null
+            LivingItemType.PERSON -> true to null
+            null -> null to null
+        }
+        Pager(PagingConfig(pageSize = 30)) {
+            ItemPagingSource(
+                repository = itemRepository,
+                search = query.takeIf { it.isNotBlank() },
+                locationId = null,
+                isLiving = isLiving,
+                relationshipType = relationshipType,
+                collectionId = null,
+                collectionIdRecursive = null
+            )
+        }.flow
+    }.cachedIn(viewModelScope)
+
     init {
         fetchData()
         loadServerUrl()
+        observeConnectivity()
     }
     
     private fun loadServerUrl() {
@@ -122,6 +160,14 @@ class ItemsViewModel @Inject constructor(
                 if (settings.remoteUrl.isNotBlank()) {
                     _serverUrl.value = settings.remoteUrl.trimEnd('/')
                 }
+            }
+        }
+    }
+
+    private fun observeConnectivity() {
+        viewModelScope.launch {
+            connectivityRepository.isConnected.collect { connected ->
+                _isOffline.value = !connected
             }
         }
     }
@@ -215,6 +261,7 @@ class ItemsViewModel @Inject constructor(
             try {
                 itemRepository.deleteItem(itemId)
                 fetchData()
+                refreshPagedItems()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to delete item: ${e.localizedMessage}"
             } finally {
@@ -230,6 +277,7 @@ class ItemsViewModel @Inject constructor(
             try {
                 itemRepository.bulkDeleteItems(BulkDeleteRequest(item_ids = _selectedItemIds.value.toList()))
                 fetchData()
+                refreshPagedItems()
                 clearSelection()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to delete selected items: ${e.localizedMessage}"
@@ -251,6 +299,7 @@ class ItemsViewModel @Inject constructor(
                     )
                 )
                 fetchData()
+                refreshPagedItems()
                 clearSelection()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to move selected items: ${e.localizedMessage}"
@@ -273,6 +322,7 @@ class ItemsViewModel @Inject constructor(
                     )
                 )
                 fetchData()
+                refreshPagedItems()
                 clearSelection()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to update tags for selected items: ${e.localizedMessage}"
@@ -280,5 +330,9 @@ class ItemsViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+
+    private fun refreshPagedItems() {
+        _pagingRefreshSignal.value = _pagingRefreshSignal.value + 1
     }
 }

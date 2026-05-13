@@ -35,6 +35,8 @@ import com.tokendad.nesventory.ui.profile.ProfileScreen
 import com.tokendad.nesventory.ui.server.AdminLogsScreen
 import com.tokendad.nesventory.ui.server.GDriveBackupScreen
 import com.tokendad.nesventory.ui.server.ImportScreen
+import com.tokendad.nesventory.ui.server.ServerProfileDetailScreen
+import com.tokendad.nesventory.ui.server.ServerProfilesScreen
 import com.tokendad.nesventory.ui.theme.NesventoryTheme
 import com.tokendad.nesventory.ui.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -173,6 +175,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissPermissionRationale = { dashboardViewModel.dismissPermissionRationale() },
                                 onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
                                 onPrinterSettingsClick = { navController.navigate(Routes.PRINTER_SETTINGS) },
+                                onServerProfilesClick = { navController.navigate(Routes.SERVER_PROFILES) },
                                 onGDriveBackupClick = { navController.navigate(Routes.GDRIVE_BACKUP) },
                                 onImportToolsClick = { navController.navigate(Routes.IMPORT_TOOLS) },
                                 onAdminLogsClick = { navController.navigate(Routes.ADMIN_LOGS) },
@@ -328,12 +331,39 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+
+                        composable(Routes.SERVER_PROFILES) {
+                            ServerProfilesScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onAddProfile = { navController.navigate(Routes.ADD_SERVER_PROFILE) },
+                                onEditProfile = { profileId ->
+                                    navController.navigate(Routes.editServerProfile(profileId))
+                                }
+                            )
                         }
-                    }
+
+                        composable(Routes.ADD_SERVER_PROFILE) {
+                            ServerProfileDetailScreen(
+                                profileId = null,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Routes.EDIT_SERVER_PROFILE,
+                            arguments = listOf(navArgument("profileId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            ServerProfileDetailScreen(
+                                profileId = backStackEntry.arguments?.getString("profileId"),
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+                        }
                 }
             }
         }
     }
+}
 }
 
 /**
@@ -346,6 +376,9 @@ object Routes {
     const val GDRIVE_BACKUP = "gdrive_backup"
     const val IMPORT_TOOLS = "import_tools"
     const val ADMIN_LOGS = "admin_logs"
+    const val SERVER_PROFILES = "server_profiles"
+    const val ADD_SERVER_PROFILE = "add_server_profile"
+    const val EDIT_SERVER_PROFILE = "edit_server_profile/{profileId}"
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val EDIT_ITEM = "edit_item/{itemId}"
@@ -359,4 +392,5 @@ object Routes {
     fun editItem(itemId: String) = "edit_item/$itemId"
     fun locationDetails(locationId: String) = "location_details/$locationId"
     fun editLocation(locationId: String) = "edit_location/$locationId"
+    fun editServerProfile(profileId: String) = "edit_server_profile/$profileId"
 }

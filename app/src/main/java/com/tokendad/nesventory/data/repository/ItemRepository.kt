@@ -27,7 +27,9 @@ interface ItemRepository {
         isLiving: Boolean? = null,
         relationshipType: String? = null,
         collectionId: UUID? = null,
-        collectionIdRecursive: Boolean? = null
+        collectionIdRecursive: Boolean? = null,
+        page: Int? = null,
+        limit: Int? = null
     ): List<Item>
     suspend fun getItem(id: UUID): Item
     suspend fun createItem(item: ItemCreate): Item

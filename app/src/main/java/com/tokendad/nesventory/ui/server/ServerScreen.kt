@@ -79,6 +79,7 @@ fun ServerScreen(
     onDismissPermissionRationale: () -> Unit,
     onRequestSsidScan: () -> Unit,
     onPrinterSettingsClick: () -> Unit,
+    onServerProfilesClick: () -> Unit,
     onGDriveBackupClick: () -> Unit,
     onImportToolsClick: () -> Unit,
     onAdminLogsClick: () -> Unit,
@@ -226,6 +227,16 @@ fun ServerScreen(
                 NesPrimaryButton(
                     text = "Configure Printer",
                     onClick = onPrinterSettingsClick
+                )
+            }
+
+            NesSectionCard(
+                title = "Connection Profiles",
+                icon = Icons.Default.Cloud
+            ) {
+                NesSecondaryButton(
+                    text = "Manage Server Profiles",
+                    onClick = onServerProfilesClick
                 )
             }
 

@@ -118,8 +118,13 @@ class LoginViewModel @Inject constructor(
                 }
 
                 // Save the token to DataStore for persistent session management
-                securePreferencesManager.saveAccessToken(response.access_token)
-                NetworkModule.updateCachedToken(response.access_token)
+                val activeProfileId = preferencesManager.serverProfiles.first().activeProfileId
+                if (activeProfileId != null) {
+                    securePreferencesManager.saveAccessToken(activeProfileId, response.access_token)
+                } else {
+                    securePreferencesManager.saveAccessToken(response.access_token)
+                }
+                NetworkModule.updateCachedToken(activeProfileId, response.access_token)
 
                 // Save username to DataStore, password to encrypted storage
                 preferencesManager.saveUsername(username, rememberCredentials)
@@ -328,8 +333,13 @@ class LoginViewModel @Inject constructor(
 
             // ── Persist token and update runtime cache ───────────────
             android.util.Log.d("LoginViewModel", "Saving access token (length: ${accessToken.length})")
-            securePreferencesManager.saveAccessToken(accessToken)
-            NetworkModule.updateCachedToken(accessToken)
+            val activeProfileId = preferencesManager.serverProfiles.first().activeProfileId
+            if (activeProfileId != null) {
+                securePreferencesManager.saveAccessToken(activeProfileId, accessToken)
+            } else {
+                securePreferencesManager.saveAccessToken(accessToken)
+            }
+            NetworkModule.updateCachedToken(activeProfileId, accessToken)
 
             // Clear any saved password credentials (using Google now)
             preferencesManager.saveUsername("", false)

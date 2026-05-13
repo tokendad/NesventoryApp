@@ -26,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.ui.components.NesLoadingState
 import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSectionCard

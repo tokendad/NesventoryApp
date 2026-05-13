@@ -31,8 +31,22 @@ class SecurePreferencesManager @Inject constructor(
 
     fun getAccessToken(): String? = prefs.getString(KEY_ACCESS_TOKEN, null)
 
+    fun saveAccessToken(profileId: String, token: String) {
+        prefs.edit()
+            .putString(profileTokenKey(profileId), token)
+            .putString(KEY_ACCESS_TOKEN, token)
+            .apply()
+    }
+
+    fun getAccessToken(profileId: String): String? =
+        prefs.getString(profileTokenKey(profileId), null)
+
     fun clearAccessToken() {
         prefs.edit().remove(KEY_ACCESS_TOKEN).apply()
+    }
+
+    fun deleteAccessToken(profileId: String) {
+        prefs.edit().remove(profileTokenKey(profileId)).apply()
     }
 
     fun savePassword(password: String) {
@@ -52,5 +66,8 @@ class SecurePreferencesManager @Inject constructor(
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_PASSWORD = "saved_password"
+        private const val KEY_ACCESS_TOKEN_PREFIX = "access_token_profile_"
     }
+
+    private fun profileTokenKey(profileId: String): String = "$KEY_ACCESS_TOKEN_PREFIX$profileId"
 }

@@ -58,11 +58,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import androidx.paging.compose.collectAsLazyPagingItems
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.ui.components.NesEmptyState
 import com.tokendad.nesventory.ui.components.NesListItemCard
 import com.tokendad.nesventory.ui.components.NesLoadingState
+import com.tokendad.nesventory.ui.components.NesOfflineBanner
 import com.tokendad.nesventory.ui.components.NesDropdown
 import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSearchField
@@ -96,6 +98,9 @@ fun ItemsScreen(
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedItemIds by viewModel.selectedItemIds.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
+    val pagedItems = viewModel.pagedItems.collectAsLazyPagingItems()
+    val usePagedList = selectedTagId == null && !isSelectionMode
 
     var showMoveDialog by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
@@ -297,6 +302,11 @@ fun ItemsScreen(
                         )
                     }
                 }
+                if (isOffline) {
+                    NesOfflineBanner(
+                        modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
+                    )
+                }
             }
         },
         floatingActionButton = {
@@ -319,7 +329,7 @@ fun ItemsScreen(
                     NesLoadingState(message = "Loading items...")
                 }
             }
-            filteredItems.isEmpty() -> {
+            (!usePagedList && filteredItems.isEmpty()) || (usePagedList && pagedItems.itemCount == 0) -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -356,20 +366,39 @@ fun ItemsScreen(
                     contentPadding = PaddingValues(NesSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
                 ) {
-                    items(filteredItems) { item ->
-                        val locationName = item.location_id?.let { locationNames[it] }
-                        ItemRow(
-                            item = item,
-                            locationName = locationName,
-                            serverUrl = serverUrl,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = selectedItemIds.contains(item.id),
-                            onClick = { onItemClick(item.id) },
-                            onLongPress = { viewModel.enterSelectionMode(item.id) },
-                            onToggleSelection = { viewModel.toggleSelection(item.id) },
-                            onEdit = { onEditItemClick(item.id) },
-                            onDelete = { viewModel.deleteItem(item.id) }
-                        )
+                    if (usePagedList) {
+                        items(pagedItems.itemCount) { index ->
+                            val item = pagedItems[index] ?: return@items
+                            val locationName = item.location_id?.let { locationNames[it] }
+                            ItemRow(
+                                item = item,
+                                locationName = locationName,
+                                serverUrl = serverUrl,
+                                isSelectionMode = isSelectionMode,
+                                isSelected = selectedItemIds.contains(item.id),
+                                onClick = { onItemClick(item.id) },
+                                onLongPress = { viewModel.enterSelectionMode(item.id) },
+                                onToggleSelection = { viewModel.toggleSelection(item.id) },
+                                onEdit = { onEditItemClick(item.id) },
+                                onDelete = { viewModel.deleteItem(item.id) }
+                            )
+                        }
+                    } else {
+                        items(filteredItems) { item ->
+                            val locationName = item.location_id?.let { locationNames[it] }
+                            ItemRow(
+                                item = item,
+                                locationName = locationName,
+                                serverUrl = serverUrl,
+                                isSelectionMode = isSelectionMode,
+                                isSelected = selectedItemIds.contains(item.id),
+                                onClick = { onItemClick(item.id) },
+                                onLongPress = { viewModel.enterSelectionMode(item.id) },
+                                onToggleSelection = { viewModel.toggleSelection(item.id) },
+                                onEdit = { onEditItemClick(item.id) },
+                                onDelete = { viewModel.deleteItem(item.id) }
+                            )
+                        }
                     }
                 }
             }

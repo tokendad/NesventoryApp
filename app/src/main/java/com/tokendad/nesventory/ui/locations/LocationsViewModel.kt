@@ -2,15 +2,23 @@ package com.tokendad.nesventory.ui.locations
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
+import com.tokendad.nesventory.data.network.ConnectivityRepository
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.repository.LocationRepository
+import com.tokendad.nesventory.data.repository.impl.LocationPagingSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -18,9 +26,11 @@ import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class LocationsViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val connectivityRepository: ConnectivityRepository
 ) : ViewModel() {
 
     private val _allLocations = MutableStateFlow<List<Location>>(emptyList())
@@ -39,6 +49,10 @@ class LocationsViewModel @Inject constructor(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+    private val _pagingRefreshSignal = MutableStateFlow(0)
 
     val currentParent: StateFlow<Location?> = combine(_allLocations, _currentParentId) { all, parentId ->
         all.find { it.id == parentId }
@@ -63,9 +77,16 @@ class LocationsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val pagedLocations = _pagingRefreshSignal.flatMapLatest {
+        Pager(PagingConfig(pageSize = 30)) {
+            LocationPagingSource(locationRepository)
+        }.flow
+    }.cachedIn(viewModelScope)
+
     init {
         fetchLocations()
         loadSettings()
+        observeConnectivity()
     }
 
     private fun loadSettings() {
@@ -78,6 +99,14 @@ class LocationsViewModel @Inject constructor(
                 if (settings.remoteUrl.isNotBlank()) {
                     _serverUrl.value = settings.remoteUrl.trimEnd('/')
                 }
+            }
+        }
+    }
+
+    private fun observeConnectivity() {
+        viewModelScope.launch {
+            connectivityRepository.isConnected.collect { connected ->
+                _isOffline.value = !connected
             }
         }
     }
@@ -121,11 +150,16 @@ class LocationsViewModel @Inject constructor(
             try {
                 locationRepository.deleteLocation(locationId)
                 fetchLocations()
+                refreshPagedLocations()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to delete location: ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    private fun refreshPagedLocations() {
+        _pagingRefreshSignal.value = _pagingRefreshSignal.value + 1
     }
 }

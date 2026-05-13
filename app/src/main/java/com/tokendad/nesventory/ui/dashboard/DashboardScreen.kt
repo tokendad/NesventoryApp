@@ -39,7 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.ui.components.NesEmptyState
 import com.tokendad.nesventory.ui.components.NesLoadingState

@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,7 +41,7 @@ class MainViewModel @Inject constructor(
     private val _pendingRoute = MutableStateFlow<String?>(null)
     val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
     val forbiddenEvents = forbiddenEventBus.events
-    private val _authToken = MutableStateFlow(securePreferencesManager.getAccessToken())
+    private val _authToken = MutableStateFlow<String?>(null)
     private val _userRole = MutableStateFlow<String?>(null)
     private val _isAdmin = MutableStateFlow(false)
 
@@ -70,6 +73,7 @@ class MainViewModel @Inject constructor(
 
     init {
         refreshAuthState()
+        observeActiveProfileChanges()
     }
 
     fun setPendingRoute(route: String) {
@@ -82,8 +86,12 @@ class MainViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
+            val activeProfileId = preferencesManager.serverProfiles.first().activeProfileId
+            if (activeProfileId != null) {
+                securePreferencesManager.deleteAccessToken(activeProfileId)
+            }
             securePreferencesManager.clearAccessToken()
-            NetworkModule.updateCachedToken(null)
+            NetworkModule.updateCachedToken(activeProfileId, null)
             _authToken.value = null
             _userRole.value = null
             _isAdmin.value = false
@@ -92,8 +100,13 @@ class MainViewModel @Inject constructor(
 
     fun handleOidcToken(token: String) {
         viewModelScope.launch {
-            securePreferencesManager.saveAccessToken(token)
-            NetworkModule.updateCachedToken(token)
+            val activeProfileId = preferencesManager.serverProfiles.first().activeProfileId
+            if (activeProfileId != null) {
+                securePreferencesManager.saveAccessToken(activeProfileId, token)
+            } else {
+                securePreferencesManager.saveAccessToken(token)
+            }
+            NetworkModule.updateCachedToken(activeProfileId, token)
             _authToken.value = token
             refreshUserRole()
         }
@@ -101,14 +114,35 @@ class MainViewModel @Inject constructor(
 
     fun refreshAuthState() {
         viewModelScope.launch {
-            val token = securePreferencesManager.getAccessToken()
-            _authToken.value = token
-            if (token.isNullOrBlank()) {
-                _userRole.value = null
-                _isAdmin.value = false
-            } else {
-                refreshUserRole()
-            }
+            refreshAuthStateForActiveProfile()
+        }
+    }
+
+    private fun observeActiveProfileChanges() {
+        viewModelScope.launch {
+            preferencesManager.serverProfiles
+                .map { it.activeProfileId }
+                .distinctUntilChanged()
+                .collect {
+                    refreshAuthStateForActiveProfile()
+                }
+        }
+    }
+
+    private suspend fun refreshAuthStateForActiveProfile() {
+        val profileList = preferencesManager.serverProfiles.first()
+        val activeProfileId = profileList.activeProfileId
+        val token = when {
+            activeProfileId != null -> securePreferencesManager.getAccessToken(activeProfileId)
+            profileList.profiles.isEmpty() -> securePreferencesManager.getAccessToken()
+            else -> null
+        }
+        _authToken.value = token
+        if (token.isNullOrBlank()) {
+            _userRole.value = null
+            _isAdmin.value = false
+        } else {
+            refreshUserRole()
         }
     }
 

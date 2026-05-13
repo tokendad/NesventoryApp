@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.remote.LocationPhoto
+import com.tokendad.nesventory.data.remote.PaintInfoCreate
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,9 +59,12 @@ class EditLocationViewModel @Inject constructor(
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     var locationCategories by mutableStateOf<List<String>>(RoomCategories.defaultCategories)
     var locationPhotos by mutableStateOf<List<LocationPhoto>>(emptyList())
+    var existingPaintInfo by mutableStateOf<List<PaintInfoCreate>>(emptyList())
+    var pendingPaintInfo by mutableStateOf<PaintInfoCreate?>(null)
     var locationId: UUID? = null
 
     var isLoading by mutableStateOf(false)
+    var isParsingPaintLabel by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var serverUrl by mutableStateOf(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL)
 
@@ -114,6 +118,19 @@ class EditLocationViewModel @Inject constructor(
                 isContainer = loc.is_container
                 locationCategory = loc.location_category
                 locationPhotos = loc.location_photos
+                existingPaintInfo = loc.paint_info.map {
+                    PaintInfoCreate(
+                        vendor = it.vendor,
+                        color_name = it.color_name,
+                        color_code = it.color_code,
+                        hex_color = it.hex_color,
+                        finish = it.finish,
+                        room = it.room,
+                        notes = it.notes,
+                        photo_id = it.photo_id
+                    )
+                }
+                pendingPaintInfo = null
 
                 // Load insurance info
                 loc.insurance_info?.let { info ->
@@ -184,6 +201,37 @@ class EditLocationViewModel @Inject constructor(
         }
     }
 
+    fun parsePaintLabel(contentResolver: ContentResolver, uri: Uri) {
+        viewModelScope.launch {
+            isParsingPaintLabel = true
+            errorMessage = null
+            try {
+                val imageBytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (imageBytes == null || imageBytes.isEmpty()) {
+                    errorMessage = "Unable to read selected image"
+                    return@launch
+                }
+                val requestFile = imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, imageBytes.size)
+                val body = MultipartBody.Part.createFormData("file", "paint_label.jpg", requestFile)
+                val parsed = locationRepository.parsePaintLabel(body)
+                pendingPaintInfo = PaintInfoCreate(
+                    vendor = parsed.vendor,
+                    color_name = parsed.color_name,
+                    color_code = parsed.color_code,
+                    hex_color = parsed.hex_color,
+                    finish = parsed.finish,
+                    room = parsed.room,
+                    notes = parsed.notes,
+                    photo_id = parsed.photo_id
+                )
+            } catch (e: Exception) {
+                errorMessage = "Could not read paint label: ${e.localizedMessage}"
+            } finally {
+                isParsingPaintLabel = false
+            }
+        }
+    }
+
     private fun fetchLocations() {
         viewModelScope.launch {
             try {
@@ -216,6 +264,11 @@ class EditLocationViewModel @Inject constructor(
                     is_container = isContainer,
                     estimated_property_value = estimatedPropertyValue.ifBlank { null },
                     location_category = locationCategory,
+                    paint_info = when {
+                        pendingPaintInfo != null -> existingPaintInfo + pendingPaintInfo!!
+                        existingPaintInfo.isNotEmpty() -> existingPaintInfo
+                        else -> null
+                    },
                     insurance_info = com.tokendad.nesventory.data.remote.InsuranceInfo(
                         company_name = companyName.ifBlank { null },
                         company_address = companyAddress.ifBlank { null },

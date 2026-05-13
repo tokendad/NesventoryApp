@@ -1,5 +1,7 @@
 package com.tokendad.nesventory.data.repository
 
+import com.tokendad.nesventory.data.network.ConnectivityRepository
+import com.tokendad.nesventory.data.network.ConnectivityRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.ItemRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.LocationRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.MaintenanceRepositoryImpl
@@ -19,6 +21,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindConnectivityRepository(impl: ConnectivityRepositoryImpl): ConnectivityRepository
+
 
     @Binds
     @Singleton

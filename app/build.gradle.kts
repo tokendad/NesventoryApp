@@ -103,6 +103,13 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.security.crypto)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    implementation(libs.paging.runtime)
+    implementation(libs.paging.compose)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
 
     // Hilt core and compiler
     implementation(libs.hilt.android)
@@ -128,6 +135,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Zxing
     implementation(libs.zxing.core)
