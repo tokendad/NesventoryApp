@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tokendad.nesventorynew"
+    namespace = "com.tokendad.nesventory"
     compileSdk = 36
 
     val versionFile = rootProject.file("VERSION")
@@ -19,6 +19,8 @@ android {
         targetSdk = 36
         versionCode = (System.getenv("VERSION_CODE")?.toIntOrNull() ?: 5)
         versionName = versionText
+        buildConfigField("String", "DEFAULT_REMOTE_URL", "\"https://nesdemo.welshrd.com\"")
+        buildConfigField("String", "DEFAULT_LOCAL_URL", "\"http://192.168.1.100:8000\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,7 +37,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             // This links the release build to the signing config above
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(

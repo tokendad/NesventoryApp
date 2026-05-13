@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <!--
-        Cleartext (HTTP) is permitted to support user-configured LAN servers
-        that may not have TLS certificates. The OkHttp Host Selection Interceptor
-        rewrites URLs at runtime, so static domain filtering is not feasible.
-        Remote server connections should always use HTTPS.
+        Cleartext (HTTP) stays enabled so user-configured LAN IPs continue to work.
+        Runtime enforcement in NetworkModule only permits HTTP for localhost/private
+        network hosts and rejects non-LAN cleartext targets.
     -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>

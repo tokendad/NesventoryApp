@@ -1,4 +1,4 @@
-# NesventoryNew
+# Nesventory
 
 An Android application for managing your NesVentory with AI-powered item detection.
 
@@ -16,7 +16,7 @@ An Android application for managing your NesVentory with AI-powered item detecti
 
 ## Security
 
-NesventoryNew implements several layers of security hardening (Phase 7):
+Nesventory implements several layers of security hardening (Phase 7):
 
 - **Encrypted Credential Storage**: Access tokens and passwords are stored using Android's `EncryptedSharedPreferences` (AES-256-GCM). Non-sensitive settings remain in standard DataStore.
 - **Network Security Config**: Cleartext HTTP traffic is restricted to `localhost` and private LAN ranges (`10.x`, `172.16.x`, `192.168.x`) via `network_security_config.xml`. All other traffic requires HTTPS.

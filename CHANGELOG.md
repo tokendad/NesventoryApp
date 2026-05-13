@@ -33,10 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PrintJobExecutor extraction (B2):** The `printLabelLocally()` duplication across three ViewModels was not extracted in this phase. Deferred to Phase 8 (Architecture Refactor) where it will be addressed alongside the repository layer introduction.
 
 #### New Files
-- `app/src/main/java/com/tokendad/nesventorynew/data/preferences/SecurePreferencesManager.kt`
-- `app/src/main/java/com/tokendad/nesventorynew/util/PkceUtil.kt`
-- `app/src/main/java/com/tokendad/nesventorynew/util/Constants.kt`
-- `app/src/main/java/com/tokendad/nesventorynew/data/remote/ResponseModels.kt`
+- `app/src/main/java/com/tokendad/nesventory/data/preferences/SecurePreferencesManager.kt`
+- `app/src/main/java/com/tokendad/nesventory/util/PkceUtil.kt`
+- `app/src/main/java/com/tokendad/nesventory/util/Constants.kt`
+- `app/src/main/java/com/tokendad/nesventory/data/remote/ResponseModels.kt`
 - `app/src/main/res/xml/network_security_config.xml`
 
 ## [1.3.0] - 2026-01-17
@@ -51,4 +51,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Android 13+ Bluetooth support and UI updates.
 - Dashboard Wi-Fi scanning fixes.
 - Resolved build warnings and lint errors.
-

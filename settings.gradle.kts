@@ -19,6 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NesventoryNew"
+rootProject.name = "Nesventory"
 include(":app")
- 

@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew connectedAndroidTest
 
 # Run a single test class
-./gradlew test --tests "com.tokendad.nesventorynew.ExampleTest"
+./gradlew test --tests "com.tokendad.nesventory.ExampleTest"
 
 # Clean build
 ./gradlew clean
@@ -26,12 +26,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-NesventoryNew is a Kotlin Android app using Jetpack Compose, Hilt DI, and MVVM architecture. It manages inventory items with AI-powered detection and supports Niimbot Bluetooth label printers.
+Nesventory is a Kotlin Android app using Jetpack Compose, Hilt DI, and MVVM architecture. It manages inventory items with AI-powered detection and supports Niimbot Bluetooth label printers.
 
 ### Package Structure
 
 ```
-com.tokendad.nesventorynew/
+com.tokendad.nesventory/
 ├── NesVentoryApplication.kt    # Hilt root (@HiltAndroidApp)
 ├── MainActivity.kt             # Single activity with NavHost
 ├── MainViewModel.kt            # Auth state, OIDC handling
