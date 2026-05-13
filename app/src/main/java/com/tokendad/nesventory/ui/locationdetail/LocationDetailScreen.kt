@@ -1,5 +1,6 @@
 package com.tokendad.nesventory.ui.locationdetail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +26,7 @@ import com.tokendad.nesventory.ui.components.NesSectionCard
 import com.tokendad.nesventory.ui.theme.NesSpacing
 import com.tokendad.nesventory.util.RoomCategories
 import com.tokendad.nesventory.util.CurrencyFormatter
+import com.tokendad.nesventory.util.ColorUtils
 import com.tokendad.nesventory.util.DateFormatter
 import com.tokendad.nesventory.util.PhotoUrlValidator
 
@@ -228,6 +230,47 @@ fun DetailsTab(location: Location, serverUrl: String) {
                 }
                 location.estimated_value_with_items?.let {
                     DetailRow("Value with Items", CurrencyFormatter.format(it), true)
+                }
+            }
+
+            if (location.paint_info.isNotEmpty()) {
+                NesSectionCard(title = "Paint Info", icon = Icons.Default.Palette) {
+                    Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                        location.paint_info.forEach { paint ->
+                            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier.padding(NesSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ColorUtils.parseHexColor(paint.hex_color)?.let { swatch ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .background(swatch, shape = MaterialTheme.shapes.small)
+                                            )
+                                        }
+                                        Text(
+                                            text = paint.color_name ?: "Unlabeled color",
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                    }
+                                    paint.vendor?.takeIf { it.isNotBlank() }?.let {
+                                        Text("Vendor: $it", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    paint.color_code?.takeIf { it.isNotBlank() }?.let {
+                                        Text("Code: $it", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    paint.finish?.takeIf { it.isNotBlank() }?.let {
+                                        Text("Finish: $it", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

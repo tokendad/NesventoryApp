@@ -18,7 +18,8 @@ data class Location(
     val created_at: String,
     val updated_at: String,
     val location_photos: List<LocationPhoto> = emptyList(),
-    val location_category: String? = null
+    val location_category: String? = null,
+    val paint_info: List<PaintInfo> = emptyList()
 )
 
 data class InsuranceInfo(
@@ -47,7 +48,9 @@ data class LocationPhoto(
     val location_id: UUID,
     val filename: String,
     val path: String,
-    val is_primary: Boolean,
+    val thumbnail_path: String? = null,
+    val is_primary: Boolean = false,
+    val photo_type: String? = null,
     val uploaded_at: String
 )
 
@@ -61,5 +64,42 @@ data class LocationCreate(
     val is_container: Boolean = false,
     val estimated_property_value: String? = null,
     val insurance_info: InsuranceInfo? = null,
-    val location_category: String? = null
+    val location_category: String? = null,
+    val paint_info: List<PaintInfoCreate>? = null
+)
+
+data class LocationUpdate(
+    val name: String? = null,
+    val description: String? = null,
+    val friendly_name: String? = null,
+    val address: String? = null,
+    val parent_id: UUID? = null,
+    val is_primary_location: Boolean? = null,
+    val is_container: Boolean? = null,
+    val estimated_property_value: String? = null,
+    val insurance_info: InsuranceInfo? = null,
+    val location_category: String? = null,
+    val paint_info: List<PaintInfoCreate>? = null
+)
+
+data class PaintInfo(
+    val vendor: String? = null,
+    val color_name: String? = null,
+    val color_code: String? = null,
+    val hex_color: String? = null,
+    val finish: String? = null,
+    val room: String? = null,
+    val notes: String? = null,
+    val photo_id: UUID? = null
+)
+
+data class PaintInfoCreate(
+    val vendor: String? = null,
+    val color_name: String? = null,
+    val color_code: String? = null,
+    val hex_color: String? = null,
+    val finish: String? = null,
+    val room: String? = null,
+    val notes: String? = null,
+    val photo_id: UUID? = null
 )

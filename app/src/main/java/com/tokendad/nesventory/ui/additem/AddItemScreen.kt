@@ -175,6 +175,14 @@ fun AddItemScreen(
                 )
             }
 
+            NesDropdown(
+                label = "Upload Photo Type",
+                options = viewModel.photoTypeOptions,
+                selectedOption = viewModel.selectedPhotoType,
+                onOptionSelected = { viewModel.selectedPhotoType = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             NesInlineLoading(isLoading = viewModel.isLoading)
             if (viewModel.isLoading) {
                 Text("Analyzing...", style = MaterialTheme.typography.labelSmall)

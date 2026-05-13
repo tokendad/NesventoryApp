@@ -11,6 +11,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 import java.util.UUID
 
 // Data model for the Token response
@@ -77,7 +78,14 @@ interface NesVentoryApi {
      */
 
     @GET("api/items/")
-    suspend fun getItems(): List<Item>
+    suspend fun getItems(
+        @Query("search") search: String? = null,
+        @Query("location_id") locationId: UUID? = null,
+        @Query("is_living") isLiving: Boolean? = null,
+        @Query("relationship_type") relationshipType: String? = null,
+        @Query("collection_id") collectionId: UUID? = null,
+        @Query("collection_id_recursive") collectionIdRecursive: Boolean? = null
+    ): List<Item>
 
     /**
      * Create a new Item
@@ -150,7 +158,7 @@ interface NesVentoryApi {
      * Update an Item
      */
     @PUT("api/items/{id}")
-    suspend fun updateItem(@Path("id") id: UUID, @Body item: ItemCreate): Item
+    suspend fun updateItem(@Path("id") id: UUID, @Body item: ItemUpdate): Item
 
     /**
      * Enrich Item details via AI
@@ -297,5 +305,5 @@ interface NesVentoryApi {
      * Update a Location
      */
     @PUT("api/locations/{id}")
-    suspend fun updateLocation(@Path("id") id: UUID, @Body location: LocationCreate): Location
+    suspend fun updateLocation(@Path("id") id: UUID, @Body location: LocationUpdate): Location
 }

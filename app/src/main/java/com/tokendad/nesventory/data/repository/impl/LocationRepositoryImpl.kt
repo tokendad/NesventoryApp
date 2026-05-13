@@ -2,6 +2,7 @@ package com.tokendad.nesventory.data.repository.impl
 
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.remote.LocationCreate
+import com.tokendad.nesventory.data.remote.LocationUpdate
 import com.tokendad.nesventory.data.remote.NesVentoryApi
 import com.tokendad.nesventory.data.repository.LocationRepository
 import java.util.UUID
@@ -17,7 +18,7 @@ class LocationRepositoryImpl @Inject constructor(
 
     override suspend fun createLocation(location: LocationCreate): Location = api.createLocation(location)
 
-    override suspend fun updateLocation(id: UUID, location: LocationCreate): Location =
+    override suspend fun updateLocation(id: UUID, location: LocationUpdate): Location =
         api.updateLocation(id, location)
 
     override suspend fun deleteLocation(id: UUID) = api.deleteLocation(id)

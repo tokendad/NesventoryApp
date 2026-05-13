@@ -204,7 +204,7 @@ fun DetailsTab(item: Item, serverUrl: String) {
         }
 
         // Description & Serial
-        if (!item.description.isNullOrBlank() || !item.serial_number.isNullOrBlank()) {
+        if (!item.description.isNullOrBlank() || !item.serial_number.isNullOrBlank() || !item.upc.isNullOrBlank()) {
             NesSectionCard(title = "About", icon = Icons.Default.Description) {
                 if (!item.description.isNullOrBlank()) {
                     Text(text = item.description, style = MaterialTheme.typography.bodyMedium)
@@ -214,6 +214,15 @@ fun DetailsTab(item: Item, serverUrl: String) {
                     Row {
                         Text("Serial Number: ", style = MaterialTheme.typography.labelMedium)
                         Text(item.serial_number, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                item.upc?.takeIf { it.isNotBlank() }?.let {
+                    if (!item.description.isNullOrBlank() || !item.serial_number.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(NesSpacing.sm))
+                    }
+                    Row {
+                        Text("UPC: ", style = MaterialTheme.typography.labelMedium)
+                        Text(it, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -233,6 +242,35 @@ fun DetailsTab(item: Item, serverUrl: String) {
                 }
                 item.retailer?.let {
                     DetailRow("Retailer", it)
+                }
+            }
+
+            if (item.warranties.isNotEmpty()) {
+                NesSectionCard(title = "Warranties", icon = Icons.Default.VerifiedUser) {
+                    Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
+                        item.warranties.forEach { warranty ->
+                            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier.padding(NesSpacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+                                ) {
+                                    Text(
+                                        text = formatWarrantyType(warranty.type),
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    warranty.provider?.takeIf { it.isNotBlank() }?.let {
+                                        Text("Provider: $it", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    warranty.expiration_date?.takeIf { it.isNotBlank() }?.let {
+                                        Text("Expires: ${DateFormatter.formatDate(it)}", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    warranty.notes?.takeIf { it.isNotBlank() }?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -270,6 +308,14 @@ fun DetailRow(label: String, value: String, isHighlight: Boolean = false) {
         )
     }
 }
+
+private fun formatWarrantyType(type: String): String =
+    type.replace('_', ' ')
+        .split(' ')
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
 
 @Composable
 fun MediaTab(photos: List<Photo>, serverUrl: String) {

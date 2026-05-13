@@ -13,11 +13,13 @@ data class Item(
     val purchase_date: String? = null,
     val estimated_value: String? = null,
     val retailer: String? = null,
+    val upc: String? = null,
     val location_id: UUID? = null,
     val created_at: String,
     val updated_at: String,
     val photos: List<Photo> = emptyList(),
-    val custom_fields: Map<String, Any>? = null
+    val custom_fields: Map<String, Any>? = null,
+    val warranties: List<Warranty> = emptyList()
 )
 
 data class Photo(
@@ -25,7 +27,9 @@ data class Photo(
     val item_id: UUID,
     val filename: String,
     val path: String,
-    val is_primary: Boolean,
+    val thumbnail_path: String? = null,
+    val is_primary: Boolean = false,
+    val photo_type: String? = null,
     val uploaded_at: String
 )
 
@@ -39,7 +43,42 @@ data class ItemCreate(
     val purchase_date: String? = null,
     val estimated_value: String? = null,
     val retailer: String? = null,
-    val location_id: UUID? = null
+    val upc: String? = null,
+    val location_id: UUID? = null,
+    val warranties: List<WarrantyCreate>? = null
+)
+
+data class ItemUpdate(
+    val name: String? = null,
+    val description: String? = null,
+    val brand: String? = null,
+    val model_number: String? = null,
+    val serial_number: String? = null,
+    val purchase_price: String? = null,
+    val purchase_date: String? = null,
+    val estimated_value: String? = null,
+    val retailer: String? = null,
+    val upc: String? = null,
+    val location_id: UUID? = null,
+    val warranties: List<WarrantyCreate>? = null
+)
+
+data class Warranty(
+    val type: String,
+    val provider: String? = null,
+    val policy_number: String? = null,
+    val duration_months: Int? = null,
+    val expiration_date: String? = null,
+    val notes: String? = null
+)
+
+data class WarrantyCreate(
+    val type: String,
+    val provider: String? = null,
+    val policy_number: String? = null,
+    val duration_months: Int? = null,
+    val expiration_date: String? = null,
+    val notes: String? = null
 )
 
 data class DetectionResult(

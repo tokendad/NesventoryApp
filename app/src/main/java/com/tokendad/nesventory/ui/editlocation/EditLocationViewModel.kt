@@ -7,7 +7,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.remote.Location
-import com.tokendad.nesventory.data.remote.LocationCreate
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.util.RoomCategories
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -136,7 +135,7 @@ class EditLocationViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                val updatedLocation = LocationCreate(
+                val updatedLocation = com.tokendad.nesventory.data.remote.LocationUpdate(
                     name = name,
                     description = description.ifBlank { null },
                     friendly_name = friendlyName.ifBlank { null },

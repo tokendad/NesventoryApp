@@ -9,6 +9,7 @@ import com.tokendad.nesventory.data.remote.Document
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.ItemCreate
 import com.tokendad.nesventory.data.remote.ItemEnrichmentResult
+import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.NesVentoryApi
 import com.tokendad.nesventory.data.remote.Photo
 import com.tokendad.nesventory.data.repository.ItemRepository
@@ -20,13 +21,27 @@ class ItemRepositoryImpl @Inject constructor(
     private val api: NesVentoryApi
 ) : ItemRepository {
 
-    override suspend fun getItems(): List<Item> = api.getItems()
+    override suspend fun getItems(
+        search: String?,
+        locationId: UUID?,
+        isLiving: Boolean?,
+        relationshipType: String?,
+        collectionId: UUID?,
+        collectionIdRecursive: Boolean?
+    ): List<Item> = api.getItems(
+        search = search,
+        locationId = locationId,
+        isLiving = isLiving,
+        relationshipType = relationshipType,
+        collectionId = collectionId,
+        collectionIdRecursive = collectionIdRecursive
+    )
 
     override suspend fun getItem(id: UUID): Item = api.getItem(id)
 
     override suspend fun createItem(item: ItemCreate): Item = api.createItem(item)
 
-    override suspend fun updateItem(id: UUID, item: ItemCreate): Item = api.updateItem(id, item)
+    override suspend fun updateItem(id: UUID, item: ItemUpdate): Item = api.updateItem(id, item)
 
     override suspend fun deleteItem(id: UUID) = api.deleteItem(id)
 

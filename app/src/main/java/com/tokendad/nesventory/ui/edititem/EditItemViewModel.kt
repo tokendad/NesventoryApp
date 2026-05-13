@@ -7,7 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
-import com.tokendad.nesventory.data.remote.ItemCreate
+import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.LocationRepository
@@ -159,7 +159,7 @@ class EditItemViewModel @Inject constructor(
             isLoading = true
             errorMessage = null
             try {
-                val updatedItem = ItemCreate(
+                val updatedItem = ItemUpdate(
                     name = name,
                     description = description.ifBlank { null },
                     brand = brand.ifBlank { null },
@@ -169,6 +169,7 @@ class EditItemViewModel @Inject constructor(
                     purchase_date = purchaseDate.ifBlank { null },
                     estimated_value = estimatedValue.ifBlank { null },
                     retailer = retailer.ifBlank { null },
+                    upc = null,
                     location_id = selectedLocationId
                 )
                 itemRepository.updateItem(id, updatedItem)

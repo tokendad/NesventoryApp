@@ -284,6 +284,22 @@ fun MediaTab(viewModel: EditItemViewModel, serverUrl: String) {
                             Text("Primary", modifier = Modifier.padding(horizontal = 4.dp), style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                    photo.photo_type?.takeIf { it.isNotBlank() }?.let { type ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(4.dp),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = type.replace('_', ' '),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
                 }
             }
         }

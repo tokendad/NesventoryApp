@@ -9,16 +9,24 @@ import com.tokendad.nesventory.data.remote.Document
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.ItemCreate
 import com.tokendad.nesventory.data.remote.ItemEnrichmentResult
+import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.Photo
 import okhttp3.MultipartBody
 import java.util.UUID
 
 @Suppress("unused")
 interface ItemRepository {
-    suspend fun getItems(): List<Item>
+    suspend fun getItems(
+        search: String? = null,
+        locationId: UUID? = null,
+        isLiving: Boolean? = null,
+        relationshipType: String? = null,
+        collectionId: UUID? = null,
+        collectionIdRecursive: Boolean? = null
+    ): List<Item>
     suspend fun getItem(id: UUID): Item
     suspend fun createItem(item: ItemCreate): Item
-    suspend fun updateItem(id: UUID, item: ItemCreate): Item
+    suspend fun updateItem(id: UUID, item: ItemUpdate): Item
     suspend fun deleteItem(id: UUID)
     suspend fun enrichItem(id: UUID): ItemEnrichmentResult
     suspend fun detectItems(file: MultipartBody.Part, usePlugins: Boolean = true): DetectionResult

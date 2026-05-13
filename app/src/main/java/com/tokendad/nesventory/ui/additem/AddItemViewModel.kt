@@ -40,6 +40,8 @@ class AddItemViewModel @Inject constructor(
     var estimatedValue by mutableStateOf("")
     var retailer by mutableStateOf("")
     var selectedLocationId by mutableStateOf<UUID?>(null)
+    var selectedPhotoType by mutableStateOf("default")
+    val photoTypeOptions = listOf("default", "data_tag", "receipt", "warranty", "optional", "profile")
     
     // Barcode Lookup
     var barcodeInput by mutableStateOf("")
@@ -269,6 +271,7 @@ class AddItemViewModel @Inject constructor(
                     purchase_date = purchaseDate.ifBlank { null },
                     estimated_value = estimatedValue.ifBlank { null },
                     retailer = retailer.ifBlank { null },
+                    upc = barcodeInput.ifBlank { null },
                     location_id = selectedLocationId
                 )
                 val createdItem = itemRepository.createItem(newItemRequest)
@@ -278,7 +281,14 @@ class AddItemViewModel @Inject constructor(
                     try {
                         val requestFile = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, bytes.size)
                         val body = MultipartBody.Part.createFormData("file", "item_photo.jpg", requestFile)
-                        itemRepository.uploadItemPhoto(createdItem.id, body, isPrimary = true)
+                        val isDataTag = selectedPhotoType == "data_tag"
+                        itemRepository.uploadItemPhoto(
+                            createdItem.id,
+                            body,
+                            isPrimary = true,
+                            isDataTag = isDataTag,
+                            photoType = selectedPhotoType
+                        )
                     } catch (e: Exception) {
                         android.util.Log.w("AddItemViewModel", "Photo upload failed after item creation", e)
                     }
