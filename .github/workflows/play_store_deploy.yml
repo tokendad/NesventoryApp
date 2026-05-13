@@ -83,5 +83,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: com.tokendad.nesventorynew
           releaseFiles: app/build/outputs/bundle/release/*.aab
-          track: internal
+          tracks: internal
           whatsNewDirectory: distribution/whatsnew
