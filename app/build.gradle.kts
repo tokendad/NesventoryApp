@@ -17,7 +17,7 @@ android {
         applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
-        versionCode = (System.getenv("VERSION_CODE")?.toIntOrNull() ?: 5)
+        versionCode = (System.getenv("VERSION_CODE")?.toIntOrNull() ?: 6)
         versionName = versionText
         buildConfigField("String", "DEFAULT_REMOTE_URL", "\"https://nesdemo.welshrd.com\"")
         buildConfigField("String", "DEFAULT_LOCAL_URL", "\"http://192.168.1.100:8000\"")
