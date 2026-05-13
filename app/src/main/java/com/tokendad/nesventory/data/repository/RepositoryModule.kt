@@ -8,6 +8,7 @@ import com.tokendad.nesventory.data.repository.impl.SystemRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.UserRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.CollectionRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.GDriveRepositoryImpl
+import com.tokendad.nesventory.data.repository.impl.ImportRepositoryImpl
 import com.tokendad.nesventory.data.repository.impl.TagRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -50,6 +51,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindGDriveRepository(impl: GDriveRepositoryImpl): GDriveRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindImportRepository(impl: ImportRepositoryImpl): ImportRepository
 
     @Binds
     @Singleton

@@ -80,7 +80,10 @@ fun ServerScreen(
     onRequestSsidScan: () -> Unit,
     onPrinterSettingsClick: () -> Unit,
     onGDriveBackupClick: () -> Unit,
+    onImportToolsClick: () -> Unit,
+    onAdminLogsClick: () -> Unit,
     isLoggedIn: Boolean,
+    isAdmin: Boolean,
     onExit: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -238,6 +241,42 @@ fun ServerScreen(
                 if (!isLoggedIn) {
                     Text(
                         text = "Login required to manage cloud backups.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            NesSectionCard(
+                title = "Import / Export",
+                icon = Icons.Default.Cloud
+            ) {
+                NesSecondaryButton(
+                    text = "Import Tools",
+                    onClick = onImportToolsClick,
+                    enabled = isLoggedIn
+                )
+                if (!isLoggedIn) {
+                    Text(
+                        text = "Login required to use import tools.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            NesSectionCard(
+                title = "Admin",
+                icon = Icons.Default.Psychology
+            ) {
+                NesSecondaryButton(
+                    text = "Admin Logs",
+                    onClick = onAdminLogsClick,
+                    enabled = isAdmin
+                )
+                if (!isAdmin) {
+                    Text(
+                        text = "Admin role required.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

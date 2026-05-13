@@ -1,6 +1,7 @@
 package com.tokendad.nesventory.data.remote
 
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.Field
@@ -197,6 +198,36 @@ interface NesVentoryApi {
 
     @DELETE("api/gdrive/backups/{backup_id}")
     suspend fun deleteGDriveBackup(@Path("backup_id") backupId: String): Response<Unit>
+
+    @Multipart
+    @POST("api/import/csv")
+    suspend fun importCsv(@Part file: MultipartBody.Part): CsvImportResult
+
+    @Multipart
+    @POST("api/encircle/preview")
+    suspend fun previewEncircleImport(@Part file: MultipartBody.Part): EncirclePreviewResult
+
+    @Multipart
+    @POST("api/encircle")
+    suspend fun importEncircle(@Part file: MultipartBody.Part): CsvImportResult
+
+    @POST("api/network/scan")
+    suspend fun scanNetwork(): NetworkScanResult
+
+    @POST("api/network/import")
+    suspend fun importNetworkItems(@Body itemIds: List<String>): CsvImportResult
+
+    @GET("api/logs/")
+    suspend fun listLogFiles(): List<String>
+
+    @GET("api/logs/{filename}")
+    suspend fun readLogFile(@Path("filename") filename: String): ResponseBody
+
+    @POST("api/logs/rotate")
+    suspend fun rotateLogs(): StatusResponse
+
+    @POST("api/logs/cleanup")
+    suspend fun cleanupLogs(): StatusResponse
 
     @GET("api/users/me")
     suspend fun getMyProfile(): UserProfile

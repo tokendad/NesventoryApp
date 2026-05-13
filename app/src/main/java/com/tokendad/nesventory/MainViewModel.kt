@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.preferences.SecurePreferencesManager
+import com.tokendad.nesventory.data.repository.UserRepository
 import com.tokendad.nesventory.di.NetworkModule
 import com.tokendad.nesventory.network.ForbiddenEventBus
 import com.tokendad.nesventory.util.PkceUtil
@@ -21,19 +22,25 @@ import javax.inject.Inject
 data class MainUiState(
     val isLoggedIn: Boolean = false,
     val remoteUrl: String = "",
-    val localUrl: String = ""
+    val localUrl: String = "",
+    val userRole: String? = null,
+    val isAdmin: Boolean = false
 )
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val securePreferencesManager: SecurePreferencesManager,
+    private val userRepository: UserRepository,
     forbiddenEventBus: ForbiddenEventBus
 ) : ViewModel() {
 
     private val _pendingRoute = MutableStateFlow<String?>(null)
     val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
     val forbiddenEvents = forbiddenEventBus.events
+    private val _authToken = MutableStateFlow(securePreferencesManager.getAccessToken())
+    private val _userRole = MutableStateFlow<String?>(null)
+    private val _isAdmin = MutableStateFlow(false)
 
     // PKCE state for OIDC flow
     var pendingOidcState: String? = null
@@ -41,12 +48,18 @@ class MainViewModel @Inject constructor(
     private var pendingCodeVerifier: String? = null
 
     val uiState: StateFlow<MainUiState> = preferencesManager.serverSettings
-        .combine(MutableStateFlow(Unit)) { settings, _ ->
-            val token = securePreferencesManager.getAccessToken()
+        .combine(_authToken) { settings, token -> settings to token }
+        .combine(_userRole) { pair, userRole -> Triple(pair.first, pair.second, userRole) }
+        .combine(_isAdmin) { triple, isAdmin ->
+            val settings = triple.first
+            val token = triple.second
+            val userRole = triple.third
             MainUiState(
                 isLoggedIn = !token.isNullOrBlank(),
                 remoteUrl = settings.remoteUrl,
-                localUrl = settings.localUrl
+                localUrl = settings.localUrl,
+                userRole = userRole,
+                isAdmin = isAdmin
             )
         }
         .stateIn(
@@ -54,6 +67,10 @@ class MainViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = MainUiState()
         )
+
+    init {
+        refreshAuthState()
+    }
 
     fun setPendingRoute(route: String) {
         _pendingRoute.value = route
@@ -67,6 +84,9 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             securePreferencesManager.clearAccessToken()
             NetworkModule.updateCachedToken(null)
+            _authToken.value = null
+            _userRole.value = null
+            _isAdmin.value = false
         }
     }
 
@@ -74,6 +94,32 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             securePreferencesManager.saveAccessToken(token)
             NetworkModule.updateCachedToken(token)
+            _authToken.value = token
+            refreshUserRole()
+        }
+    }
+
+    fun refreshAuthState() {
+        viewModelScope.launch {
+            val token = securePreferencesManager.getAccessToken()
+            _authToken.value = token
+            if (token.isNullOrBlank()) {
+                _userRole.value = null
+                _isAdmin.value = false
+            } else {
+                refreshUserRole()
+            }
+        }
+    }
+
+    private suspend fun refreshUserRole() {
+        try {
+            val profile = userRepository.getMyProfile()
+            _userRole.value = profile.role
+            _isAdmin.value = profile.is_admin ?: profile.role.equals("admin", ignoreCase = true)
+        } catch (_: Exception) {
+            _userRole.value = null
+            _isAdmin.value = false
         }
     }
 

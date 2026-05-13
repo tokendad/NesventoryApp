@@ -32,7 +32,9 @@ import com.tokendad.nesventory.ui.locationdetail.LocationDetailScreen
 import com.tokendad.nesventory.ui.main.MainScreen
 import com.tokendad.nesventory.ui.login.LoginScreen
 import com.tokendad.nesventory.ui.profile.ProfileScreen
+import com.tokendad.nesventory.ui.server.AdminLogsScreen
 import com.tokendad.nesventory.ui.server.GDriveBackupScreen
+import com.tokendad.nesventory.ui.server.ImportScreen
 import com.tokendad.nesventory.ui.theme.NesventoryTheme
 import com.tokendad.nesventory.ui.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -136,6 +138,7 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.LOGIN) {
                             LoginScreen(
                                 onLoginSuccess = {
+                                    viewModel.refreshAuthState()
                                     navController.navigate(Routes.DASHBOARD) {
                                         popUpTo(Routes.LOGIN) { inclusive = true }
                                     }
@@ -171,7 +174,10 @@ class MainActivity : ComponentActivity() {
                                 onRequestSsidScan = { dashboardViewModel.requestSsidScan() },
                                 onPrinterSettingsClick = { navController.navigate(Routes.PRINTER_SETTINGS) },
                                 onGDriveBackupClick = { navController.navigate(Routes.GDRIVE_BACKUP) },
+                                onImportToolsClick = { navController.navigate(Routes.IMPORT_TOOLS) },
+                                onAdminLogsClick = { navController.navigate(Routes.ADMIN_LOGS) },
                                 isLoggedIn = uiState.isLoggedIn,
+                                isAdmin = uiState.isAdmin,
                                 onExit = { navController.popBackStack() }
                             )
                         }
@@ -303,6 +309,25 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
+
+                        composable(Routes.IMPORT_TOOLS) {
+                            ImportScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Routes.ADMIN_LOGS) {
+                            if (uiState.isAdmin) {
+                                AdminLogsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            } else {
+                                LaunchedEffect(Unit) {
+                                    snackbarHostState.showSnackbar("Admin access required.")
+                                    navController.popBackStack()
+                                }
+                            }
+                        }
                         }
                     }
                 }
@@ -319,6 +344,8 @@ object Routes {
     const val SERVER_SETTINGS = "server_settings"
     const val PRINTER_SETTINGS = "printer_settings"
     const val GDRIVE_BACKUP = "gdrive_backup"
+    const val IMPORT_TOOLS = "import_tools"
+    const val ADMIN_LOGS = "admin_logs"
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val EDIT_ITEM = "edit_item/{itemId}"

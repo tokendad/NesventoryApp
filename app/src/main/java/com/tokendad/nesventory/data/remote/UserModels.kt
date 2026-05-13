@@ -8,6 +8,8 @@ data class UserProfile(
     val email: String? = null,
     val full_name: String? = null,
     val avatar_url: String? = null,
+    val role: String? = null,
+    val is_admin: Boolean? = null,
     val has_password: Boolean = true,
     val created_at: String
 )
