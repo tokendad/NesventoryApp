@@ -1,8 +1,5 @@
 package com.tokendad.nesventory.ui.items
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.remote.Item
@@ -11,12 +8,18 @@ import com.tokendad.nesventory.data.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class ItemsViewModel @Inject constructor(
@@ -25,42 +28,55 @@ class ItemsViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
-    var items by mutableStateOf<List<Item>>(emptyList())
-    var locationNames by mutableStateOf<Map<UUID, String>>(emptyMap())
-    var searchQuery by mutableStateOf("")
-    var livingTypeFilter by mutableStateOf<LivingItemType?>(null)
-    
-    // Default to the known base URL, but update from prefs
-    var serverUrl by mutableStateOf(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL) 
-    
-    var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
+    private val _items = MutableStateFlow<List<Item>>(emptyList())
+    val items: StateFlow<List<Item>> = _items.asStateFlow()
 
-    val filteredItems: List<Item>
-        get() {
-            val livingFiltered = when (livingTypeFilter) {
-                LivingItemType.PERSON -> items.filter {
-                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PERSON
-                }
-                LivingItemType.PET -> items.filter {
-                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PET
-                }
-                LivingItemType.PLANT -> items.filter {
-                    LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PLANT
-                }
-                LivingItemType.NON_LIVING -> items.filter { !it.is_living }
-                null -> items
+    private val _locationNames = MutableStateFlow<Map<UUID, String>>(emptyMap())
+    val locationNames: StateFlow<Map<UUID, String>> = _locationNames.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _livingTypeFilter = MutableStateFlow<LivingItemType?>(null)
+    val livingTypeFilter: StateFlow<LivingItemType?> = _livingTypeFilter.asStateFlow()
+
+    private val _serverUrl = MutableStateFlow(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL)
+    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    val filteredItems: StateFlow<List<Item>> = combine(
+        _items,
+        _searchQuery,
+        _livingTypeFilter
+    ) { currentItems, query, livingFilter ->
+        val livingFiltered = when (livingFilter) {
+            LivingItemType.PERSON -> currentItems.filter {
+                LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PERSON
             }
+            LivingItemType.PET -> currentItems.filter {
+                LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PET
+            }
+            LivingItemType.PLANT -> currentItems.filter {
+                LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PLANT
+            }
+            LivingItemType.NON_LIVING -> currentItems.filter { !it.is_living }
+            null -> currentItems
+        }
 
-            return if (searchQuery.isBlank()) {
-                livingFiltered
-            } else {
-                livingFiltered.filter {
-                it.name.contains(searchQuery, ignoreCase = true) ||
-                (it.brand?.contains(searchQuery, ignoreCase = true) == true)
+        if (query.isBlank()) {
+            livingFiltered
+        } else {
+            livingFiltered.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                    (it.brand?.contains(query, ignoreCase = true) == true)
             }
         }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         fetchData()
@@ -71,11 +87,11 @@ class ItemsViewModel @Inject constructor(
         viewModelScope.launch {
             val initial = preferencesManager.serverSettings.first()
             if (initial.remoteUrl.isNotBlank()) {
-                serverUrl = initial.remoteUrl.trimEnd('/')
+                _serverUrl.value = initial.remoteUrl.trimEnd('/')
             }
             preferencesManager.serverSettings.collect { settings ->
                 if (settings.remoteUrl.isNotBlank()) {
-                    serverUrl = settings.remoteUrl.trimEnd('/')
+                    _serverUrl.value = settings.remoteUrl.trimEnd('/')
                 }
             }
         }
@@ -83,10 +99,10 @@ class ItemsViewModel @Inject constructor(
 
     fun fetchData() {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
-                val (isLiving, relationshipType) = when (livingTypeFilter) {
+                val (isLiving, relationshipType) = when (_livingTypeFilter.value) {
                     LivingItemType.PET -> true to "pet"
                     LivingItemType.PLANT -> true to "plant"
                     LivingItemType.NON_LIVING -> false to null
@@ -102,37 +118,37 @@ class ItemsViewModel @Inject constructor(
                     }
                     val locationsDeferred = async { locationRepository.getLocations() }
                     
-                    items = itemsDeferred.await()
+                    _items.value = itemsDeferred.await()
                     val locations = locationsDeferred.await()
-                    locationNames = locations.associate { it.id to it.name }
+                    _locationNames.value = locations.associate { it.id to it.name }
                 }
             } catch (e: Exception) {
-                errorMessage = "Failed to load data: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to load data: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }
     
     fun onSearchQueryChange(query: String) {
-        searchQuery = query
+        _searchQuery.value = query
     }
 
     fun onLivingFilterChange(filter: LivingItemType?) {
-        livingTypeFilter = filter
+        _livingTypeFilter.value = filter
         fetchData()
     }
 
     fun deleteItem(itemId: UUID) {
         viewModelScope.launch {
-            isLoading = true
+            _isLoading.value = true
             try {
                 itemRepository.deleteItem(itemId)
                 fetchData()
             } catch (e: Exception) {
-                errorMessage = "Failed to delete item: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to delete item: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }

@@ -1,8 +1,5 @@
 package com.tokendad.nesventory.ui.collections
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.remote.Collection
@@ -12,6 +9,9 @@ import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.repository.CollectionRepository
 import com.tokendad.nesventory.data.repository.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -22,24 +22,50 @@ class CollectionsViewModel @Inject constructor(
     private val itemRepository: ItemRepository
 ) : ViewModel() {
 
-    var collections by mutableStateOf<List<Collection>>(emptyList())
-    var selectedCollectionId by mutableStateOf<UUID?>(null)
-    var selectedCollection by mutableStateOf<Collection?>(null)
-    var selectedCollectionItems by mutableStateOf<List<Item>>(emptyList())
-    var availableItems by mutableStateOf<List<Item>>(emptyList())
-    var selectedAssignableItemIds by mutableStateOf<Set<UUID>>(emptySet())
+    private val _collections = MutableStateFlow<List<Collection>>(emptyList())
+    val collections: StateFlow<List<Collection>> = _collections.asStateFlow()
 
-    var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
+    private val _selectedCollectionId = MutableStateFlow<UUID?>(null)
+    val selectedCollectionId: StateFlow<UUID?> = _selectedCollectionId.asStateFlow()
 
-    var showCreateDialog by mutableStateOf(false)
-    var showEditDialog by mutableStateOf(false)
-    var showAssignItemsDialog by mutableStateOf(false)
+    private val _selectedCollection = MutableStateFlow<Collection?>(null)
+    val selectedCollection: StateFlow<Collection?> = _selectedCollection.asStateFlow()
 
-    var newName by mutableStateOf("")
-    var newDescription by mutableStateOf("")
-    var newIcon by mutableStateOf("")
-    var newColor by mutableStateOf("")
+    private val _selectedCollectionItems = MutableStateFlow<List<Item>>(emptyList())
+    val selectedCollectionItems: StateFlow<List<Item>> = _selectedCollectionItems.asStateFlow()
+
+    private val _availableItems = MutableStateFlow<List<Item>>(emptyList())
+    val availableItems: StateFlow<List<Item>> = _availableItems.asStateFlow()
+
+    private val _selectedAssignableItemIds = MutableStateFlow<Set<UUID>>(emptySet())
+    val selectedAssignableItemIds: StateFlow<Set<UUID>> = _selectedAssignableItemIds.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _showCreateDialog = MutableStateFlow(false)
+    val showCreateDialog: StateFlow<Boolean> = _showCreateDialog.asStateFlow()
+
+    private val _showEditDialog = MutableStateFlow(false)
+    val showEditDialog: StateFlow<Boolean> = _showEditDialog.asStateFlow()
+
+    private val _showAssignItemsDialog = MutableStateFlow(false)
+    val showAssignItemsDialog: StateFlow<Boolean> = _showAssignItemsDialog.asStateFlow()
+
+    private val _newName = MutableStateFlow("")
+    val newName: StateFlow<String> = _newName.asStateFlow()
+
+    private val _newDescription = MutableStateFlow("")
+    val newDescription: StateFlow<String> = _newDescription.asStateFlow()
+
+    private val _newIcon = MutableStateFlow("")
+    val newIcon: StateFlow<String> = _newIcon.asStateFlow()
+
+    private val _newColor = MutableStateFlow("")
+    val newColor: StateFlow<String> = _newColor.asStateFlow()
 
     init {
         fetchCollections()
@@ -47,155 +73,175 @@ class CollectionsViewModel @Inject constructor(
 
     fun fetchCollections() {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
-                collections = collectionRepository.getCollections()
-                if (selectedCollectionId == null && collections.isNotEmpty()) {
-                    selectedCollectionId = collections.first().id
+                _collections.value = collectionRepository.getCollections()
+                if (_selectedCollectionId.value == null && _collections.value.isNotEmpty()) {
+                    _selectedCollectionId.value = _collections.value.first().id
                 }
                 refreshSelectedCollectionDetails()
             } catch (e: Exception) {
-                errorMessage = "Failed to load collections: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to load collections: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }
 
+    fun onNewNameChange(value: String) {
+        _newName.value = value
+    }
+
+    fun onNewDescriptionChange(value: String) {
+        _newDescription.value = value
+    }
+
+    fun onNewIconChange(value: String) {
+        _newIcon.value = value
+    }
+
+    fun onNewColorChange(value: String) {
+        _newColor.value = value
+    }
+
+    fun openCreateDialog() {
+        _showCreateDialog.value = true
+    }
+
     fun createCollection() {
-        if (newName.isBlank()) {
-            errorMessage = "Collection name is required"
+        if (_newName.value.isBlank()) {
+            _errorMessage.value = "Collection name is required"
             return
         }
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
                 collectionRepository.createCollection(
                     CollectionCreate(
-                        name = newName.trim(),
-                        description = newDescription.ifBlank { null },
-                        icon = newIcon.ifBlank { null },
-                        color = newColor.ifBlank { null }
+                        name = _newName.value.trim(),
+                        description = _newDescription.value.ifBlank { null },
+                        icon = _newIcon.value.ifBlank { null },
+                        color = _newColor.value.ifBlank { null }
                     )
                 )
-                showCreateDialog = false
+                _showCreateDialog.value = false
                 resetFormFields()
                 fetchCollections()
             } catch (e: Exception) {
-                errorMessage = "Failed to create collection: ${e.localizedMessage}"
-                isLoading = false
+                _errorMessage.value = "Failed to create collection: ${e.localizedMessage}"
+                _isLoading.value = false
             }
         }
     }
 
     fun openEditDialog(collection: Collection) {
-        selectedCollectionId = collection.id
-        newName = collection.name
-        newDescription = collection.description ?: ""
-        newIcon = collection.icon ?: ""
-        newColor = collection.color ?: ""
-        showEditDialog = true
+        _selectedCollectionId.value = collection.id
+        _newName.value = collection.name
+        _newDescription.value = collection.description ?: ""
+        _newIcon.value = collection.icon ?: ""
+        _newColor.value = collection.color ?: ""
+        _showEditDialog.value = true
     }
 
     fun updateCollection() {
-        val collectionId = selectedCollectionId ?: return
-        if (newName.isBlank()) {
-            errorMessage = "Collection name is required"
+        val collectionId = _selectedCollectionId.value ?: return
+        if (_newName.value.isBlank()) {
+            _errorMessage.value = "Collection name is required"
             return
         }
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
                 collectionRepository.updateCollection(
                     collectionId,
                     CollectionUpdate(
-                        name = newName.trim(),
-                        description = newDescription.ifBlank { null },
-                        icon = newIcon.ifBlank { null },
-                        color = newColor.ifBlank { null }
+                        name = _newName.value.trim(),
+                        description = _newDescription.value.ifBlank { null },
+                        icon = _newIcon.value.ifBlank { null },
+                        color = _newColor.value.ifBlank { null }
                     )
                 )
-                showEditDialog = false
+                _showEditDialog.value = false
                 resetFormFields()
                 fetchCollections()
             } catch (e: Exception) {
-                errorMessage = "Failed to update collection: ${e.localizedMessage}"
-                isLoading = false
+                _errorMessage.value = "Failed to update collection: ${e.localizedMessage}"
+                _isLoading.value = false
             }
         }
     }
 
     fun deleteCollection(collectionId: UUID) {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
                 collectionRepository.deleteCollection(collectionId)
-                if (selectedCollectionId == collectionId) {
-                    selectedCollectionId = null
-                    selectedCollection = null
-                    selectedCollectionItems = emptyList()
+                if (_selectedCollectionId.value == collectionId) {
+                    _selectedCollectionId.value = null
+                    _selectedCollection.value = null
+                    _selectedCollectionItems.value = emptyList()
                 }
                 fetchCollections()
             } catch (e: Exception) {
-                errorMessage = "Failed to delete collection: ${e.localizedMessage}"
-                isLoading = false
+                _errorMessage.value = "Failed to delete collection: ${e.localizedMessage}"
+                _isLoading.value = false
             }
         }
     }
 
     fun selectCollection(collectionId: UUID) {
-        selectedCollectionId = collectionId
+        _selectedCollectionId.value = collectionId
         refreshSelectedCollectionDetails()
     }
 
     private fun refreshSelectedCollectionDetails() {
-        val collectionId = selectedCollectionId ?: return
+        val collectionId = _selectedCollectionId.value ?: return
         viewModelScope.launch {
             try {
-                selectedCollection = collectionRepository.getCollection(collectionId)
-                selectedCollectionItems = collectionRepository.getCollectionItems(collectionId)
+                _selectedCollection.value = collectionRepository.getCollection(collectionId)
+                _selectedCollectionItems.value = collectionRepository.getCollectionItems(collectionId)
             } catch (e: Exception) {
-                errorMessage = "Failed to load collection details: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to load collection details: ${e.localizedMessage}"
             }
         }
     }
 
     fun openAssignItemsDialog() {
-        val collectionId = selectedCollectionId ?: return
+        val collectionId = _selectedCollectionId.value ?: return
         viewModelScope.launch {
             try {
-                availableItems = itemRepository.getItems()
+                _availableItems.value = itemRepository.getItems()
                 val alreadyInCollection = collectionRepository.getCollectionItems(collectionId)
                     .map { it.id }
                     .toSet()
-                selectedAssignableItemIds = alreadyInCollection
-                showAssignItemsDialog = true
+                _selectedAssignableItemIds.value = alreadyInCollection
+                _showAssignItemsDialog.value = true
             } catch (e: Exception) {
-                errorMessage = "Failed to load items: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to load items: ${e.localizedMessage}"
             }
         }
     }
 
     fun toggleAssignableItem(itemId: UUID) {
-        selectedAssignableItemIds = if (selectedAssignableItemIds.contains(itemId)) {
-            selectedAssignableItemIds - itemId
+        _selectedAssignableItemIds.value = if (_selectedAssignableItemIds.value.contains(itemId)) {
+            _selectedAssignableItemIds.value - itemId
         } else {
-            selectedAssignableItemIds + itemId
+            _selectedAssignableItemIds.value + itemId
         }
     }
 
     fun saveAssignedItems() {
-        val collectionId = selectedCollectionId ?: return
+        val collectionId = _selectedCollectionId.value ?: return
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
-                val currentIds = selectedCollectionItems.map { it.id }.toSet()
-                val targetIds = selectedAssignableItemIds
+                val currentIds = _selectedCollectionItems.value.map { it.id }.toSet()
+                val targetIds = _selectedAssignableItemIds.value
 
                 val toAdd = targetIds - currentIds
                 val toRemove = currentIds - targetIds
@@ -207,46 +253,50 @@ class CollectionsViewModel @Inject constructor(
                     collectionRepository.removeItemFromCollection(collectionId, itemId)
                 }
 
-                showAssignItemsDialog = false
+                _showAssignItemsDialog.value = false
                 refreshSelectedCollectionDetails()
             } catch (e: Exception) {
-                errorMessage = "Failed to update collection items: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to update collection items: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }
 
     fun removeItemFromSelectedCollection(itemId: UUID) {
-        val collectionId = selectedCollectionId ?: return
+        val collectionId = _selectedCollectionId.value ?: return
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
                 collectionRepository.removeItemFromCollection(collectionId, itemId)
                 refreshSelectedCollectionDetails()
             } catch (e: Exception) {
-                errorMessage = "Failed to remove item: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to remove item: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }
 
+    fun dismissAssignItemsDialog() {
+        _showAssignItemsDialog.value = false
+    }
+
     fun dismissCreateDialog() {
-        showCreateDialog = false
+        _showCreateDialog.value = false
         resetFormFields()
     }
 
     fun dismissEditDialog() {
-        showEditDialog = false
+        _showEditDialog.value = false
         resetFormFields()
     }
 
     private fun resetFormFields() {
-        newName = ""
-        newDescription = ""
-        newIcon = ""
-        newColor = ""
+        _newName.value = ""
+        _newDescription.value = ""
+        _newIcon.value = ""
+        _newColor.value = ""
     }
 }

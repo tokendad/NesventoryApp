@@ -37,11 +37,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tokendad.nesventory.data.remote.Collection
 import com.tokendad.nesventory.ui.components.NesCard
 import com.tokendad.nesventory.ui.components.NesEmptyState
@@ -58,59 +60,75 @@ fun CollectionsScreen(
     modifier: Modifier = Modifier,
     viewModel: CollectionsViewModel = hiltViewModel()
 ) {
+    val collections by viewModel.collections.collectAsStateWithLifecycle()
+    val selectedCollectionId by viewModel.selectedCollectionId.collectAsStateWithLifecycle()
+    val selectedCollection by viewModel.selectedCollection.collectAsStateWithLifecycle()
+    val selectedCollectionItems by viewModel.selectedCollectionItems.collectAsStateWithLifecycle()
+    val availableItems by viewModel.availableItems.collectAsStateWithLifecycle()
+    val selectedAssignableItemIds by viewModel.selectedAssignableItemIds.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val showCreateDialog by viewModel.showCreateDialog.collectAsStateWithLifecycle()
+    val showEditDialog by viewModel.showEditDialog.collectAsStateWithLifecycle()
+    val showAssignItemsDialog by viewModel.showAssignItemsDialog.collectAsStateWithLifecycle()
+    val newName by viewModel.newName.collectAsStateWithLifecycle()
+    val newDescription by viewModel.newDescription.collectAsStateWithLifecycle()
+    val newIcon by viewModel.newIcon.collectAsStateWithLifecycle()
+    val newColor by viewModel.newColor.collectAsStateWithLifecycle()
+
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(viewModel.errorMessage) {
-        viewModel.errorMessage?.let {
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
             snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
         }
     }
 
-    if (viewModel.showCreateDialog) {
+    if (showCreateDialog) {
         CollectionEditorDialog(
             title = "New Collection",
             confirmLabel = "Create",
-            name = viewModel.newName,
-            onNameChange = { viewModel.newName = it },
-            description = viewModel.newDescription,
-            onDescriptionChange = { viewModel.newDescription = it },
-            icon = viewModel.newIcon,
-            onIconChange = { viewModel.newIcon = it },
-            color = viewModel.newColor,
-            onColorChange = { viewModel.newColor = it },
+            name = newName,
+            onNameChange = viewModel::onNewNameChange,
+            description = newDescription,
+            onDescriptionChange = viewModel::onNewDescriptionChange,
+            icon = newIcon,
+            onIconChange = viewModel::onNewIconChange,
+            color = newColor,
+            onColorChange = viewModel::onNewColorChange,
             onConfirm = viewModel::createCollection,
             onDismiss = viewModel::dismissCreateDialog
         )
     }
 
-    if (viewModel.showEditDialog) {
+    if (showEditDialog) {
         CollectionEditorDialog(
             title = "Edit Collection",
             confirmLabel = "Save",
-            name = viewModel.newName,
-            onNameChange = { viewModel.newName = it },
-            description = viewModel.newDescription,
-            onDescriptionChange = { viewModel.newDescription = it },
-            icon = viewModel.newIcon,
-            onIconChange = { viewModel.newIcon = it },
-            color = viewModel.newColor,
-            onColorChange = { viewModel.newColor = it },
+            name = newName,
+            onNameChange = viewModel::onNewNameChange,
+            description = newDescription,
+            onDescriptionChange = viewModel::onNewDescriptionChange,
+            icon = newIcon,
+            onIconChange = viewModel::onNewIconChange,
+            color = newColor,
+            onColorChange = viewModel::onNewColorChange,
             onConfirm = viewModel::updateCollection,
             onDismiss = viewModel::dismissEditDialog
         )
     }
 
-    if (viewModel.showAssignItemsDialog) {
+    if (showAssignItemsDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.showAssignItemsDialog = false },
+            onDismissRequest = viewModel::dismissAssignItemsDialog,
             title = { Text("Assign Items") },
             text = {
-                if (viewModel.availableItems.isEmpty()) {
+                if (availableItems.isEmpty()) {
                     Text("No items available.")
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)) {
-                        items(viewModel.availableItems) { item ->
-                            val checked = viewModel.selectedAssignableItemIds.contains(item.id)
+                        items(availableItems) { item ->
+                            val checked = selectedAssignableItemIds.contains(item.id)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -137,7 +155,7 @@ fun CollectionsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.showAssignItemsDialog = false }) {
+                TextButton(onClick = viewModel::dismissAssignItemsDialog) {
                     Text("Cancel")
                 }
             }
@@ -148,13 +166,13 @@ fun CollectionsScreen(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showCreateDialog = true }) {
+            FloatingActionButton(onClick = viewModel::openCreateDialog) {
                 Icon(Icons.Default.Add, contentDescription = "Add collection")
             }
         }
     ) { padding ->
         when {
-            viewModel.isLoading && viewModel.collections.isEmpty() -> {
+            isLoading && collections.isEmpty() -> {
                 NesLoadingState(
                     message = "Loading collections...",
                     modifier = Modifier
@@ -162,17 +180,17 @@ fun CollectionsScreen(
                         .padding(padding)
                 )
             }
-            viewModel.errorMessage != null && viewModel.collections.isEmpty() -> {
+            errorMessage != null && collections.isEmpty() -> {
                 NesErrorState(
                     title = "Couldn't load collections",
-                    message = viewModel.errorMessage ?: "Failed to load collections",
+                    message = errorMessage ?: "Failed to load collections",
                     onRetry = viewModel::fetchCollections,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
                 )
             }
-            viewModel.collections.isEmpty() -> {
+            collections.isEmpty() -> {
                 NesEmptyState(
                     title = "No collections",
                     message = "Create a collection to organize related items.",
@@ -196,28 +214,28 @@ fun CollectionsScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
-                    items(viewModel.collections) { collection ->
+                    items(collections) { collection ->
                         CollectionRow(
                             collection = collection,
-                            selected = viewModel.selectedCollectionId == collection.id,
+                            selected = selectedCollectionId == collection.id,
                             onSelect = { viewModel.selectCollection(collection.id) },
                             onEdit = { viewModel.openEditDialog(collection) },
                             onDelete = { viewModel.deleteCollection(collection.id) }
                         )
                     }
 
-                    viewModel.selectedCollection?.let { selected ->
+                    selectedCollection?.let { selected ->
                         item {
                             HorizontalDivider(modifier = Modifier.padding(vertical = NesSpacing.sm))
                         }
                         item {
                             CollectionDetailsCard(
                                 collection = selected,
-                                itemCount = viewModel.selectedCollectionItems.size,
+                                itemCount = selectedCollectionItems.size,
                                 onAssignItems = viewModel::openAssignItemsDialog
                             )
                         }
-                        if (viewModel.selectedCollectionItems.isEmpty()) {
+                        if (selectedCollectionItems.isEmpty()) {
                             item {
                                 NesEmptyState(
                                     title = "No items in this collection",
@@ -226,7 +244,7 @@ fun CollectionsScreen(
                                 )
                             }
                         } else {
-                            items(viewModel.selectedCollectionItems) { item ->
+                            items(selectedCollectionItems) { item ->
                                 NesListItemCard(onClick = {}) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),

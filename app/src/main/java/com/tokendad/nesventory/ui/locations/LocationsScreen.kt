@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.ui.components.NesEmptyState
@@ -62,18 +63,25 @@ fun LocationsScreen(
     onExit: () -> Unit = {},
     viewModel: LocationsViewModel = hiltViewModel()
 ) {
+    val currentParent by viewModel.currentParent.collectAsStateWithLifecycle()
+    val currentParentId by viewModel.currentParentId.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val displayedLocations by viewModel.displayedLocations.collectAsStateWithLifecycle()
+    val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             Column {
                 TopAppBar(
                     title = {
                         Text(
-                            text = viewModel.currentParent?.name ?: "Locations",
+                            text = currentParent?.name ?: "Locations",
                             style = MaterialTheme.typography.titleMedium
                         )
                     },
                     navigationIcon = {
-                        if (viewModel.currentParentId != null) {
+                        if (currentParentId != null) {
                             IconButton(onClick = { viewModel.navigateBack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
@@ -86,7 +94,7 @@ fun LocationsScreen(
                     }
                 )
                 NesSearchField(
-                    value = viewModel.searchQuery,
+                    value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     placeholder = "Search locations...",
                     modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
@@ -103,7 +111,7 @@ fun LocationsScreen(
         }
     ) { padding ->
         when {
-            viewModel.isLoading -> {
+            isLoading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -113,7 +121,7 @@ fun LocationsScreen(
                     NesLoadingState(message = "Loading locations...")
                 }
             }
-            viewModel.displayedLocations.isEmpty() -> {
+            displayedLocations.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -122,20 +130,20 @@ fun LocationsScreen(
                 ) {
                     NesEmptyState(
                         title = when {
-                            viewModel.searchQuery.isNotEmpty() -> "No locations found"
-                            viewModel.currentParentId != null -> "No sub-locations"
+                            searchQuery.isNotEmpty() -> "No locations found"
+                            currentParentId != null -> "No sub-locations"
                             else -> "No locations yet"
                         },
                         message = when {
-                            viewModel.searchQuery.isNotEmpty() -> "Try adjusting your search query"
-                            viewModel.currentParentId != null -> "Add a sub-location to organize this area"
+                            searchQuery.isNotEmpty() -> "Try adjusting your search query"
+                            currentParentId != null -> "Add a sub-location to organize this area"
                             else -> "Add your first location to get started"
                         },
-                        icon = if (viewModel.searchQuery.isNotEmpty())
+                        icon = if (searchQuery.isNotEmpty())
                             Icons.Outlined.FolderOff
                         else
                             Icons.Outlined.Place,
-                        action = if (viewModel.searchQuery.isEmpty()) {
+                        action = if (searchQuery.isEmpty()) {
                             {
                                 NesPrimaryButton(
                                     text = "Add Location",
@@ -155,10 +163,10 @@ fun LocationsScreen(
                     contentPadding = PaddingValues(NesSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
                 ) {
-                    items(viewModel.displayedLocations) { location ->
+                    items(displayedLocations) { location ->
                         LocationRow(
                             location = location,
-                            serverUrl = viewModel.serverUrl,
+                            serverUrl = serverUrl,
                             onNavigate = { viewModel.navigateTo(location.id) },
                             onViewDetails = { onLocationClick(location.id) },
                             onEdit = { onEditLocationClick(location.id) },

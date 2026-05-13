@@ -9,23 +9,20 @@ import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.repository.LocationRepository
-import com.tokendad.nesventory.data.repository.PrinterRepository
-import com.tokendad.nesventory.ui.printer.PrintJobExecutor
-import com.tokendad.nesventory.ui.printer.PrinterModel
+import com.tokendad.nesventory.ui.printer.PrintJobRouter
+import com.tokendad.nesventory.ui.printer.PrintResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class LocationDetailViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
-    private val printerRepository: PrinterRepository,
     private val preferencesManager: PreferencesManager,
-    private val printJobExecutor: PrintJobExecutor,
+    private val printJobRouter: PrintJobRouter,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -34,10 +31,6 @@ class LocationDetailViewModel @Inject constructor(
     var errorMessage by mutableStateOf<String?>(null)
     var successMessage by mutableStateOf<String?>(null)
     var serverUrl by mutableStateOf(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL)
-
-    private var printMethod by mutableStateOf("local")
-    private var selectedModel by mutableStateOf(PrinterModel.D11_H)
-    private var localDensity by mutableStateOf(3)
 
     init {
         val locationIdString: String? = savedStateHandle["locationId"]
@@ -55,91 +48,29 @@ class LocationDetailViewModel @Inject constructor(
     private fun loadSettings() {
         viewModelScope.launch {
             val initial = preferencesManager.serverSettings.first()
-            printMethod = initial.printMethod
             if (initial.remoteUrl.isNotBlank()) {
                 serverUrl = initial.remoteUrl.trimEnd('/')
             }
-            PrinterModel.fromString(initial.localPrinterModel)?.let {
-                selectedModel = it
-            }
-            localDensity = initial.localPrinterDensity
 
             preferencesManager.serverSettings.collect { settings ->
-                printMethod = settings.printMethod
                 if (settings.remoteUrl.isNotBlank()) {
                     serverUrl = settings.remoteUrl.trimEnd('/')
                 }
-                // Load selected local printer model
-                PrinterModel.fromString(settings.localPrinterModel)?.let {
-                    selectedModel = it
-                }
-                localDensity = settings.localPrinterDensity
             }
         }
     }
 
     fun printLabel() {
-        if (printMethod == "server") {
-            printLabelOnServer()
-        } else {
-            printLabelLocally()
-        }
-    }
-
-    private fun printLabelOnServer() {
         val currentLocation = location ?: return
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
             successMessage = null
-            try {
-                val request = com.tokendad.nesventory.data.remote.PrintJobRequest(
-                    entity_id = currentLocation.id,
-                    entity_type = "location",
-                    quantity = 1
-                )
-                printerRepository.printLabel(request)
-                successMessage = "Print job sent to server!"
-            } catch (e: Exception) {
-                errorMessage = "Server print failed: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
+            when (val result = printJobRouter.printLocation(currentLocation)) {
+                is PrintResult.Success -> successMessage = result.message
+                is PrintResult.Error -> errorMessage = result.message
             }
-        }
-    }
-
-    private fun printLabelLocally() {
-        val currentLocation = location ?: return
-
-        if (!printJobExecutor.isConnected()) {
-            errorMessage = "Printer not connected. Go to Printer Settings."
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            isLoading = true
-            errorMessage = null
-            successMessage = null
-            try {
-                val qrUrl = "${serverUrl}/api/locations/${currentLocation.id}"
-                printJobExecutor.printLabel(
-                    labelText = currentLocation.name,
-                    labelSubtitle = currentLocation.id.toString().take(8),
-                    qrContent = qrUrl,
-                    iconType = "location",
-                    model = selectedModel,
-                    density = localDensity
-                )
-                withContext(Dispatchers.Main) {
-                    successMessage = "Label printed successfully!"
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    errorMessage = "Print failed: ${e.localizedMessage}"
-                }
-            } finally {
-                isLoading = false
-            }
+            isLoading = false
         }
     }
     

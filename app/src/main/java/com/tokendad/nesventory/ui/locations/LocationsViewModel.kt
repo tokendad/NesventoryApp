@@ -1,16 +1,18 @@
 package com.tokendad.nesventory.ui.locations
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.Location
 import com.tokendad.nesventory.data.repository.LocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -21,35 +23,45 @@ class LocationsViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
-    private var allLocations = listOf<Location>()
-    var searchQuery by mutableStateOf("")
-    var serverUrl by mutableStateOf("")
-    
-    // Drill-down state
-    var currentParentId by mutableStateOf<UUID?>(null)
-    private var navigationStack = mutableStateListOf<UUID?>()
+    private val _allLocations = MutableStateFlow<List<Location>>(emptyList())
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
+    private val _serverUrl = MutableStateFlow("")
+    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
-    val currentParent: Location?
-        get() = allLocations.find { it.id == currentParentId }
+    private val _currentParentId = MutableStateFlow<UUID?>(null)
+    val currentParentId: StateFlow<UUID?> = _currentParentId.asStateFlow()
+    private val navigationStack = mutableListOf<UUID?>()
 
-    val displayedLocations: List<Location>
-        get() {
-            if (searchQuery.isNotBlank()) {
-                return allLocations.filter {
-                    it.name.contains(searchQuery, ignoreCase = true) ||
-                    (it.friendly_name?.contains(searchQuery, ignoreCase = true) == true)
-                }
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    val currentParent: StateFlow<Location?> = combine(_allLocations, _currentParentId) { all, parentId ->
+        all.find { it.id == parentId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val displayedLocations: StateFlow<List<Location>> = combine(
+        _allLocations,
+        _searchQuery,
+        _currentParentId
+    ) { all, query, parentId ->
+        if (query.isNotBlank()) {
+            all.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                    (it.friendly_name?.contains(query, ignoreCase = true) == true)
             }
-
-            return allLocations.filter { it.parent_id == currentParentId }
+        } else {
+            all.filter { it.parent_id == parentId }
                 .sortedWith(
                     compareByDescending<Location> { it.is_primary_location }
                         .thenBy { it.name }
                 )
         }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         fetchLocations()
@@ -60,11 +72,11 @@ class LocationsViewModel @Inject constructor(
         viewModelScope.launch {
             val initial = preferencesManager.serverSettings.first()
             if (initial.remoteUrl.isNotBlank()) {
-                serverUrl = initial.remoteUrl.trimEnd('/')
+                _serverUrl.value = initial.remoteUrl.trimEnd('/')
             }
             preferencesManager.serverSettings.collect { settings ->
                 if (settings.remoteUrl.isNotBlank()) {
-                    serverUrl = settings.remoteUrl.trimEnd('/')
+                    _serverUrl.value = settings.remoteUrl.trimEnd('/')
                 }
             }
         }
@@ -72,32 +84,32 @@ class LocationsViewModel @Inject constructor(
 
     fun fetchLocations() {
         viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
-                allLocations = locationRepository.getLocations()
+                _allLocations.value = locationRepository.getLocations()
             } catch (e: Exception) {
-                errorMessage = "Failed to load locations: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to load locations: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }
     
     fun onSearchQueryChange(query: String) {
-        searchQuery = query
+        _searchQuery.value = query
     }
 
     fun navigateTo(parentId: UUID?) {
-        if (parentId != currentParentId) {
-            navigationStack.add(currentParentId)
-            currentParentId = parentId
+        if (parentId != _currentParentId.value) {
+            navigationStack.add(_currentParentId.value)
+            _currentParentId.value = parentId
         }
     }
 
     fun navigateBack(): Boolean {
         if (navigationStack.isNotEmpty()) {
-            currentParentId = navigationStack.removeAt(navigationStack.size - 1)
+            _currentParentId.value = navigationStack.removeAt(navigationStack.size - 1)
             return true
         }
         return false
@@ -105,14 +117,14 @@ class LocationsViewModel @Inject constructor(
     
     fun deleteLocation(locationId: UUID) {
         viewModelScope.launch {
-            isLoading = true
+            _isLoading.value = true
             try {
                 locationRepository.deleteLocation(locationId)
                 fetchLocations()
             } catch (e: Exception) {
-                errorMessage = "Failed to delete location: ${e.localizedMessage}"
+                _errorMessage.value = "Failed to delete location: ${e.localizedMessage}"
             } finally {
-                isLoading = false
+                _isLoading.value = false
             }
         }
     }

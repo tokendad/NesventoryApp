@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.ui.components.NesEmptyState
@@ -69,6 +70,13 @@ fun ItemsScreen(
     onExit: () -> Unit = {},
     viewModel: ItemsViewModel = hiltViewModel()
 ) {
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val livingTypeFilter by viewModel.livingTypeFilter.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val filteredItems by viewModel.filteredItems.collectAsStateWithLifecycle()
+    val locationNames by viewModel.locationNames.collectAsStateWithLifecycle()
+    val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             Column {
@@ -81,7 +89,7 @@ fun ItemsScreen(
                     }
                 )
                 NesSearchField(
-                    value = viewModel.searchQuery,
+                    value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     placeholder = "Search items...",
                     modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
@@ -93,27 +101,27 @@ fun ItemsScreen(
                     horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)
                 ) {
                     FilterChip(
-                        selected = viewModel.livingTypeFilter == null,
+                        selected = livingTypeFilter == null,
                         onClick = { viewModel.onLivingFilterChange(null) },
                         label = { Text("All") }
                     )
                     FilterChip(
-                        selected = viewModel.livingTypeFilter == LivingItemType.PERSON,
+                        selected = livingTypeFilter == LivingItemType.PERSON,
                         onClick = { viewModel.onLivingFilterChange(LivingItemType.PERSON) },
                         label = { Text("People") }
                     )
                     FilterChip(
-                        selected = viewModel.livingTypeFilter == LivingItemType.PET,
+                        selected = livingTypeFilter == LivingItemType.PET,
                         onClick = { viewModel.onLivingFilterChange(LivingItemType.PET) },
                         label = { Text("Pets") }
                     )
                     FilterChip(
-                        selected = viewModel.livingTypeFilter == LivingItemType.PLANT,
+                        selected = livingTypeFilter == LivingItemType.PLANT,
                         onClick = { viewModel.onLivingFilterChange(LivingItemType.PLANT) },
                         label = { Text("Plants") }
                     )
                     FilterChip(
-                        selected = viewModel.livingTypeFilter == LivingItemType.NON_LIVING,
+                        selected = livingTypeFilter == LivingItemType.NON_LIVING,
                         onClick = { viewModel.onLivingFilterChange(LivingItemType.NON_LIVING) },
                         label = { Text("Non-living") }
                     )
@@ -130,7 +138,7 @@ fun ItemsScreen(
         }
     ) { padding ->
         when {
-            viewModel.isLoading -> {
+            isLoading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -140,7 +148,7 @@ fun ItemsScreen(
                     NesLoadingState(message = "Loading items...")
                 }
             }
-            viewModel.filteredItems.isEmpty() -> {
+            filteredItems.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -148,16 +156,16 @@ fun ItemsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     NesEmptyState(
-                        title = if (viewModel.searchQuery.isNotEmpty())
+                        title = if (searchQuery.isNotEmpty())
                             "No items found"
                         else
                             "No items yet",
-                        message = if (viewModel.searchQuery.isNotEmpty())
+                        message = if (searchQuery.isNotEmpty())
                             "Try adjusting your search query"
                         else
                             "Add your first item to get started",
                         icon = Icons.Outlined.Inventory2,
-                        action = if (viewModel.searchQuery.isEmpty()) {
+                        action = if (searchQuery.isEmpty()) {
                             {
                                 NesPrimaryButton(
                                     text = "Add Item",
@@ -177,12 +185,12 @@ fun ItemsScreen(
                     contentPadding = PaddingValues(NesSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
                 ) {
-                    items(viewModel.filteredItems) { item ->
-                        val locationName = item.location_id?.let { viewModel.locationNames[it] }
+                    items(filteredItems) { item ->
+                        val locationName = item.location_id?.let { locationNames[it] }
                         ItemRow(
                             item = item,
                             locationName = locationName,
-                            serverUrl = viewModel.serverUrl,
+                            serverUrl = serverUrl,
                             onClick = { onItemClick(item.id) },
                             onEdit = { onEditItemClick(item.id) },
                             onDelete = { viewModel.deleteItem(item.id) }

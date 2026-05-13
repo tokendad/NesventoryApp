@@ -8,17 +8,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.remote.ContactInfo
+import com.tokendad.nesventory.data.remote.MaintenanceTask
 import com.tokendad.nesventory.data.remote.ItemUpdate
 import com.tokendad.nesventory.data.remote.Location
+import com.tokendad.nesventory.data.remote.Photo
 import com.tokendad.nesventory.data.repository.ItemRepository
 import com.tokendad.nesventory.data.repository.LocationRepository
 import com.tokendad.nesventory.data.repository.MaintenanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -52,16 +51,36 @@ class EditItemViewModel @Inject constructor(
     var availableLocations by mutableStateOf<List<Location>>(emptyList())
     var itemId: UUID? = null
 
-    var maintenanceTasks by mutableStateOf<List<com.tokendad.nesventory.data.remote.MaintenanceTask>>(emptyList())
-    var itemMedia by mutableStateOf<List<com.tokendad.nesventory.data.remote.Photo>>(emptyList())
-
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
     var serverUrl by mutableStateOf("")
 
-    // Enrichment Review State
-    var isReviewingEnrichment by mutableStateOf(false)
-    private var originalValues = mapOf<String, String>()
+    private val maintenanceDelegate = ItemMaintenanceDelegate(
+        maintenanceRepository = maintenanceRepository,
+        scope = viewModelScope,
+        onError = { errorMessage = it }
+    )
+    private val photoDelegate = ItemPhotoDelegate(
+        itemRepository = itemRepository,
+        scope = viewModelScope,
+        onError = { errorMessage = it },
+        onLoadingChange = { isLoading = it }
+    )
+    private val enrichmentDelegate = ItemEnrichmentDelegate(
+        itemRepository = itemRepository,
+        scope = viewModelScope,
+        onError = { errorMessage = it },
+        onLoadingChange = { isLoading = it }
+    )
+
+    val maintenanceTasks: List<MaintenanceTask>
+        get() = maintenanceDelegate.tasks
+
+    val itemMedia: List<Photo>
+        get() = photoDelegate.itemMedia
+
+    val isReviewingEnrichment: Boolean
+        get() = enrichmentDelegate.isReviewingEnrichment
 
     init {
         val idString: String? = savedStateHandle["itemId"]
@@ -89,24 +108,18 @@ class EditItemViewModel @Inject constructor(
 
     // ... (existing fetchItem, fetchMaintenanceTasks, fetchLocations, updateItem)
 
-    fun isFieldModified(fieldName: String, currentValue: String): Boolean {
-        return isReviewingEnrichment && originalValues[fieldName] != currentValue
-    }
+    fun isFieldModified(fieldName: String, currentValue: String): Boolean =
+        enrichmentDelegate.isFieldModified(fieldName, currentValue)
 
-    fun acceptEnrichment() {
-        isReviewingEnrichment = false
-        originalValues = emptyMap()
-    }
+    fun acceptEnrichment() = enrichmentDelegate.acceptEnrichment()
 
     fun discardEnrichment() {
-        if (isReviewingEnrichment) {
+        enrichmentDelegate.discardEnrichment { originalValues ->
             description = originalValues["description"] ?: description
             brand = originalValues["brand"] ?: brand
             modelNumber = originalValues["modelNumber"] ?: modelNumber
             serialNumber = originalValues["serialNumber"] ?: serialNumber
             estimatedValue = originalValues["estimatedValue"] ?: estimatedValue
-            isReviewingEnrichment = false
-            originalValues = emptyMap()
         }
     }
 
@@ -115,7 +128,7 @@ class EditItemViewModel @Inject constructor(
             isLoading = true
             try {
                 val item = itemRepository.getItem(id)
-                itemMedia = item.photos
+                photoDelegate.replaceItemMedia(item.photos)
                 name = item.name
                 description = item.description ?: ""
                 brand = item.brand ?: ""
@@ -142,13 +155,7 @@ class EditItemViewModel @Inject constructor(
     }
 
     private fun fetchMaintenanceTasks(id: UUID) {
-        viewModelScope.launch {
-            try {
-                maintenanceTasks = maintenanceRepository.getMaintenanceTasksForItem(id)
-            } catch (e: Exception) {
-                android.util.Log.w("EditItemViewModel", "Failed to fetch maintenance tasks", e)
-            }
-        }
+        maintenanceDelegate.fetchTasks(id)
     }
 
     private fun fetchLocations() {
@@ -236,69 +243,32 @@ class EditItemViewModel @Inject constructor(
 
     fun enrichData() {
         val id = itemId ?: return
-        viewModelScope.launch {
-            isLoading = true
-            errorMessage = null
-            try {
-                // Save current state before enrichment
-                originalValues = mapOf(
-                    "description" to description,
-                    "brand" to brand,
-                    "modelNumber" to modelNumber,
-                    "serialNumber" to serialNumber,
-                    "estimatedValue" to estimatedValue
-                )
-
-                val result = itemRepository.enrichItem(id)
-                val enriched = result.enriched_data.firstOrNull()
-                if (enriched != null) {
-                    // Update local state with enriched data
-                    description = enriched.description ?: description
-                    brand = enriched.brand ?: brand
-                    modelNumber = enriched.model_number ?: modelNumber
-                    serialNumber = enriched.serial_number ?: serialNumber
-                    estimatedValue = enriched.estimated_value ?: estimatedValue
-                    
-                    isReviewingEnrichment = true
-                } else {
-                    errorMessage = "No enriched data found: ${result.message}"
-                }
-            } catch (e: Exception) {
-                errorMessage = "Failed to enrich data: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
-            }
+        errorMessage = null
+        enrichmentDelegate.enrichItem(
+            itemId = id,
+            currentValues = mapOf(
+                "description" to description,
+                "brand" to brand,
+                "modelNumber" to modelNumber,
+                "serialNumber" to serialNumber,
+                "estimatedValue" to estimatedValue
+            )
+        ) { enrichedDescription, enrichedBrand, enrichedModel, enrichedSerial, enrichedEstimatedValue ->
+            description = enrichedDescription ?: description
+            brand = enrichedBrand ?: brand
+            modelNumber = enrichedModel ?: modelNumber
+            serialNumber = enrichedSerial ?: serialNumber
+            estimatedValue = enrichedEstimatedValue ?: estimatedValue
         }
     }
 
-    fun toggleMaintenanceTask(task: com.tokendad.nesventory.data.remote.MaintenanceTask) {
-        viewModelScope.launch {
-            try {
-                val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                val update = com.tokendad.nesventory.data.remote.MaintenanceTaskUpdate(
-                    completed = !task.completed,
-                    completed_date = if (!task.completed) currentDate else null
-                )
-                maintenanceRepository.updateMaintenanceTask(task.id, update)
-                itemId?.let { fetchMaintenanceTasks(it) }
-            } catch (e: Exception) {
-                errorMessage = "Failed to update task: ${e.localizedMessage}"
-            }
-        }
+    fun toggleMaintenanceTask(task: MaintenanceTask) {
+        val id = itemId ?: return
+        maintenanceDelegate.toggleTask(task, id)
     }
 
     fun deletePhoto(photoId: UUID) {
         val id = itemId ?: return
-        viewModelScope.launch {
-            isLoading = true
-            try {
-                itemRepository.deleteItemPhoto(id, photoId)
-                fetchItem(id)
-            } catch (e: Exception) {
-                errorMessage = "Failed to delete photo: ${e.localizedMessage}"
-            } finally {
-                isLoading = false
-            }
-        }
+        photoDelegate.deletePhoto(id, photoId) { fetchItem(id) }
     }
 }
