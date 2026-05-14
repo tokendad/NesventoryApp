@@ -19,7 +19,7 @@ import java.util.UUID
 
 // Data model for the Token response
 data class LoginResponse(
-    val access_token: String,
+    val access_token: String?,
     val token_type: String
 )
 
@@ -35,7 +35,7 @@ interface NesVentoryApi {
     suspend fun login(
         @Field("username") username: String,
         @Field("password") password: String
-    ): LoginResponse
+    ): Response<LoginResponse>
 
     /**
      * Root /token fallback for mobile compatibility with upstream auth behavior.
@@ -46,7 +46,7 @@ interface NesVentoryApi {
     suspend fun loginFallback(
         @Field("username") username: String,
         @Field("password") password: String
-    ): LoginResponse
+    ): Response<LoginResponse>
 
     /**
      * Get system status including health and version.

@@ -87,13 +87,28 @@ class LoginViewModel @Inject constructor(
                     }
                 }
 
+                if (!response.isSuccessful) {
+                    errorMessage = "Login failed: HTTP ${response.code()}"
+                    return@launch
+                }
+
+                // Token may arrive in JSON body or Set-Cookie header depending on server version
+                var accessToken = response.body()?.access_token
+                if (accessToken.isNullOrBlank()) {
+                    accessToken = extractTokenFromCookies(response.headers())
+                }
+                if (accessToken.isNullOrBlank()) {
+                    errorMessage = "Login failed: No access token in server response"
+                    return@launch
+                }
+
                 val activeProfileId = preferencesManager.serverProfiles.first().activeProfileId
                 if (activeProfileId != null) {
-                    securePreferencesManager.saveAccessToken(activeProfileId, response.access_token)
+                    securePreferencesManager.saveAccessToken(activeProfileId, accessToken)
                 } else {
-                    securePreferencesManager.saveAccessToken(response.access_token)
+                    securePreferencesManager.saveAccessToken(accessToken)
                 }
-                NetworkModule.updateCachedToken(activeProfileId, response.access_token)
+                NetworkModule.updateCachedToken(activeProfileId, accessToken)
 
                 preferencesManager.saveUsername(username, rememberCredentials)
                 if (rememberCredentials) {
@@ -118,5 +133,19 @@ class LoginViewModel @Inject constructor(
         if (baseUrl.isBlank()) error("No server configured. Please add a server URL in Settings.")
         val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
         return "$cleanBase/api/auth/oidc/login"
+    }
+
+    private fun extractTokenFromCookies(headers: okhttp3.Headers): String? {
+        for (cookie in headers.values("Set-Cookie")) {
+            val nameValue = cookie.split(";").firstOrNull() ?: continue
+            val eq = nameValue.indexOf('=')
+            if (eq <= 0) continue
+            val name = nameValue.substring(0, eq).trim()
+            val value = nameValue.substring(eq + 1).trim().removeSurrounding("\"")
+            if (name.equals("access_token", ignoreCase = true) && value.isNotBlank() && value != "deleted") {
+                return value
+            }
+        }
+        return null
     }
 }
