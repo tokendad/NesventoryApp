@@ -1,7 +1,6 @@
 package com.tokendad.nesventory.ui.login
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,13 +16,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,11 +28,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tokendad.nesventory.R
 import com.tokendad.nesventory.ui.components.NesPasswordField
 import com.tokendad.nesventory.ui.components.NesPrimaryButton
 import com.tokendad.nesventory.ui.components.NesSecondaryButton
@@ -76,10 +67,7 @@ fun LoginScreen(
                 context.startActivity(intent)
             }
         },
-        onServerSettingsClick = onServerSettingsClick,
-        isGoogleSignInAvailable = viewModel.isGoogleSignInAvailable,
-        isGoogleLoading = viewModel.isGoogleLoading,
-        onGoogleSignInClick = { viewModel.signInWithGoogle(context, onLoginSuccess) }
+        onServerSettingsClick = onServerSettingsClick
     )
 }
 
@@ -97,10 +85,7 @@ fun LoginScreenContent(
     serverConfigured: Boolean = true,
     onLoginClick: () -> Unit,
     onSsoLoginClick: () -> Unit,
-    onServerSettingsClick: () -> Unit,
-    isGoogleSignInAvailable: Boolean = false,
-    isGoogleLoading: Boolean = false,
-    onGoogleSignInClick: () -> Unit = {}
+    onServerSettingsClick: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -161,7 +146,7 @@ fun LoginScreenContent(
             NesTextField(
                 value = username,
                 onValueChange = onUsernameChange,
-                label = "Username"
+                label = "Email"
             )
 
             Spacer(modifier = Modifier.height(NesSpacing.lg))
@@ -194,7 +179,7 @@ fun LoginScreenContent(
                 text = "Login",
                 onClick = onLoginClick,
                 loading = isLoading,
-                enabled = !isGoogleLoading && serverConfigured
+                enabled = serverConfigured
             )
 
             Spacer(modifier = Modifier.height(NesSpacing.lg))
@@ -203,38 +188,8 @@ fun LoginScreenContent(
             NesSecondaryButton(
                 text = "Login with SSO",
                 onClick = onSsoLoginClick,
-                enabled = !isLoading && !isGoogleLoading && serverConfigured
+                enabled = !isLoading && serverConfigured
             )
-
-            // Google Sign-In button (only shown if enabled on server)
-            AnimatedVisibility(visible = isGoogleSignInAvailable) {
-                Column {
-                    Spacer(modifier = Modifier.height(NesSpacing.md))
-
-                    // Divider with "or" text
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f))
-                        Text(
-                            text = "  or  ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f))
-                    }
-
-                    Spacer(modifier = Modifier.height(NesSpacing.md))
-
-                    // Google Sign-In button
-                    GoogleSignInButton(
-                        onClick = onGoogleSignInClick,
-                        isLoading = isGoogleLoading,
-                        enabled = !isLoading && serverConfigured
-                    )
-                }
-            }
 
             // Error message
             AnimatedVisibility(visible = errorMessage != null) {
@@ -253,41 +208,6 @@ fun LoginScreenContent(
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
-        }
-    }
-}
-
-/**
- * Google Sign-In button following Google's branding guidelines.
- */
-@Composable
-fun GoogleSignInButton(
-    onClick: () -> Unit,
-    isLoading: Boolean,
-    enabled: Boolean,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled && !isLoading,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp
-            )
-        } else {
-            // Google "G" logo
-            Image(
-                painter = painterResource(id = R.drawable.ic_google),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(NesSpacing.sm))
-            Text("Sign in with Google")
         }
     }
 }

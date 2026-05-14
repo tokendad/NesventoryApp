@@ -49,23 +49,6 @@ interface NesVentoryApi {
     ): LoginResponse
 
     /**
-     * Google OAuth authentication endpoint.
-     * Exchanges Google ID token for NesVentory access token.
-     *
-     * Returns [retrofit2.Response] so callers can inspect HTTP status, headers
-     * (especially Set-Cookie) and the parsed body independently.
-     */
-    @POST("api/auth/google")
-    suspend fun loginWithGoogle(@Body request: GoogleAuthRequest): retrofit2.Response<GoogleAuthResponse>
-
-    /**
-     * Check if Google OAuth is enabled on the server.
-     * Returns the client ID needed for Android Credential Manager.
-     */
-    @GET("api/auth/google/status")
-    suspend fun getGoogleAuthStatus(): GoogleAuthStatus
-
-    /**
      * Get system status including health and version.
      */
     @GET("api/status")
