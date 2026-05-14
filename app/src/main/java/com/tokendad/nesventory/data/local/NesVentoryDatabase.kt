@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [ItemEntity::class, LocationEntity::class, SyncQueueEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class NesVentoryDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao

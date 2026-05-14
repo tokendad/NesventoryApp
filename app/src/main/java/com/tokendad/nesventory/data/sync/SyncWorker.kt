@@ -38,17 +38,17 @@ class SyncWorker @AssistedInject constructor(
                 if (!isMatchingProfile(entry.payload, activeProfileId)) {
                     false
                 } else {
-                when {
-                    entry.operation == SyncOperation.DELETE && entry.entityType == SyncEntityType.ITEM -> {
-                        api.deleteItem(UUID.fromString(entry.entityId))
-                        true
+                    when {
+                        entry.operation == SyncOperation.DELETE && entry.entityType == SyncEntityType.ITEM -> {
+                            api.deleteItem(UUID.fromString(entry.entityId))
+                            true
+                        }
+                        entry.operation == SyncOperation.DELETE && entry.entityType == SyncEntityType.LOCATION -> {
+                            api.deleteLocation(UUID.fromString(entry.entityId))
+                            true
+                        }
+                        else -> true // Drop unknown/unsupported entries so they don't block the queue.
                     }
-                    entry.operation == SyncOperation.DELETE && entry.entityType == SyncEntityType.LOCATION -> {
-                        api.deleteLocation(UUID.fromString(entry.entityId))
-                        true
-                    }
-                    else -> true // Drop unknown/unsupported entries so they don't block the queue.
-                }
                 }
             } catch (http: HttpException) {
                 if (http.code() == 404 || http.code() == 410) {

@@ -29,6 +29,8 @@ import com.tokendad.nesventory.data.repository.ItemRepository
 import okhttp3.MultipartBody
 import retrofit2.HttpException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -43,6 +45,7 @@ class ItemRepositoryImpl @Inject constructor(
 
     private data class DeleteSyncPayload(val profileId: String? = null)
     @Volatile private var activeCacheProfileId: String? = null
+    private val cacheMutex = Mutex()
 
     private fun Item.toEntity(): ItemEntity = ItemEntity(
         id = id.toString(),
@@ -228,9 +231,11 @@ class ItemRepositoryImpl @Inject constructor(
 
     private suspend fun ensureProfileScopedCache() {
         val profileId = activeProfileId()
-        if (profileId != activeCacheProfileId) {
-            itemDao.clearAll()
-            activeCacheProfileId = profileId
+        cacheMutex.withLock {
+            if (profileId != activeCacheProfileId) {
+                itemDao.clearAll()
+                activeCacheProfileId = profileId
+            }
         }
     }
 }

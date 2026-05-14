@@ -1,5 +1,11 @@
 package com.tokendad.nesventory.di
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
+import android.os.Build
 import com.tokendad.nesventory.BuildConfig
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.preferences.SecurePreferencesManager
@@ -8,6 +14,7 @@ import com.tokendad.nesventory.network.ForbiddenEventBus
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -22,6 +29,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.net.InetAddress
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Singleton
 
 @Module
@@ -33,13 +41,15 @@ object NetworkModule {
     private const val BASE_URL = "https://placeholder.invalid/"
     private const val PLACEHOLDER_HOST = "placeholder.invalid"
 
-    @Volatile private var cachedNetworkState = NetworkState(
-        profileId = null,
-        remoteUrl = "",
-        localUrl = "",
-        prioritizeLocal = false,
-        localSsid = "",
-        token = null
+    private val cachedNetworkStateRef = AtomicReference(
+        NetworkState(
+            profileId = null,
+            remoteUrl = "",
+            localUrl = "",
+            prioritizeLocal = false,
+            localSsid = "",
+            token = null
+        )
     )
     
     private data class NetworkState(
@@ -69,6 +79,22 @@ object NetworkModule {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun getCurrentSsid(context: Context): String? {
+        val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val cm = context.getSystemService(ConnectivityManager::class.java)
+            val network = cm.activeNetwork ?: return null
+            val caps = cm.getNetworkCapabilities(network) ?: return null
+            (caps.transportInfo as? WifiInfo)?.ssid
+        } else {
+            @Suppress("DEPRECATION")
+            context.applicationContext.getSystemService(WifiManager::class.java)
+                ?.connectionInfo?.ssid
+        }
+        return raw?.removePrefix("\"")?.removeSuffix("\"")
+            ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+    }
+
     private fun isAllowedCleartext(url: HttpUrl): Boolean {
         if (!url.isHttps) {
             val host = url.host
@@ -90,6 +116,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
+        @ApplicationContext context: Context,
         loggingInterceptor: HttpLoggingInterceptor,
         preferencesManager: PreferencesManager,
         securePreferencesManager: SecurePreferencesManager,
@@ -116,7 +143,7 @@ object NetworkModule {
                 token = resolvedToken
             )
         }
-        cachedNetworkState = initialState
+        cachedNetworkStateRef.set(initialState)
 
         // Keep settings and token in sync with profile changes.
         applicationScope.launch {
@@ -131,14 +158,14 @@ object NetworkModule {
                     // Never use a token from a different profile context.
                     resolvedToken = null
                 }
-                cachedNetworkState = NetworkState(
+                cachedNetworkStateRef.set(NetworkState(
                     profileId = active?.id,
                     remoteUrl = active?.remoteUrl.orEmpty(),
                     localUrl = active?.localUrl.orEmpty(),
                     prioritizeLocal = active?.prioritizeLocal ?: false,
                     localSsid = active?.localSsid.orEmpty(),
                     token = resolvedToken
-                )
+                ))
             }
         }
 
@@ -146,16 +173,28 @@ object NetworkModule {
             // 1. Host Selection Interceptor
             .addInterceptor(Interceptor { chain ->
                 var request = chain.request()
-                val networkState = cachedNetworkState
+                val networkState = cachedNetworkStateRef.get()
                 val currentHost = request.url.host
                 
                 if (currentHost == PLACEHOLDER_HOST) {
-                    val targetUrlStr = if (networkState.remoteUrl.isNotBlank()) {
-                        networkState.remoteUrl
-                    } else if (networkState.localUrl.isNotBlank()) {
-                        networkState.localUrl
-                    } else {
-                        null
+                    // Route to local URL when on the configured local SSID, otherwise remote.
+                    val targetUrlStr = run {
+                        if (networkState.prioritizeLocal &&
+                            networkState.localSsid.isNotBlank() &&
+                            networkState.localUrl.isNotBlank()
+                        ) {
+                            val currentSsid = getCurrentSsid(context)
+                            if (currentSsid != null &&
+                                currentSsid.equals(networkState.localSsid, ignoreCase = true)
+                            ) {
+                                return@run networkState.localUrl
+                            }
+                        }
+                        when {
+                            networkState.remoteUrl.isNotBlank() -> networkState.remoteUrl
+                            networkState.localUrl.isNotBlank() -> networkState.localUrl
+                            else -> null
+                        }
                     } ?: throw IOException("No server configured. Tap ⚙ on the login screen to add your server URL.")
 
                     val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
@@ -206,14 +245,16 @@ object NetworkModule {
                         when {
                             requestProfileId != null -> {
                                 securePreferencesManager.deleteAccessToken(requestProfileId)
-                                if (cachedNetworkState.profileId == requestProfileId) {
-                                    cachedNetworkState = cachedNetworkState.copy(token = null)
+                                cachedNetworkStateRef.getAndUpdate { state ->
+                                    if (state.profileId == requestProfileId) state.copy(token = null)
+                                    else state
                                 }
                             }
                             authContext?.usedLegacyToken == true -> {
                                 securePreferencesManager.clearAccessToken()
-                                if (cachedNetworkState.profileId == null) {
-                                    cachedNetworkState = cachedNetworkState.copy(token = null)
+                                cachedNetworkStateRef.getAndUpdate { state ->
+                                    if (state.profileId == null) state.copy(token = null)
+                                    else state
                                 }
                             }
                         }
@@ -249,10 +290,10 @@ object NetworkModule {
      * Updates the cached token. Called after login/logout.
      */
     fun updateCachedToken(token: String?) {
-        cachedNetworkState = cachedNetworkState.copy(token = token)
+        cachedNetworkStateRef.getAndUpdate { it.copy(token = token) }
     }
 
     fun updateCachedToken(profileId: String?, token: String?) {
-        cachedNetworkState = cachedNetworkState.copy(profileId = profileId, token = token)
+        cachedNetworkStateRef.getAndUpdate { it.copy(profileId = profileId, token = token) }
     }
 }

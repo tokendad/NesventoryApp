@@ -14,6 +14,8 @@ android {
     val versionText = if (versionFile.exists()) versionFile.readText().trim() else "1.0.0"
 
     defaultConfig {
+        // applicationId intentionally differs from namespace: "nesventorynew" suffix is required
+        // to maintain continuity with the existing Play Store / App Insights entry.
         applicationId = "com.tokendad.nesventorynew"
         minSdk = 24
         targetSdk = 36
@@ -139,4 +141,8 @@ dependencies {
 
     // Zxing
     implementation(libs.zxing.core)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }

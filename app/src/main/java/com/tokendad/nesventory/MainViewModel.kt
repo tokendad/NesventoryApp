@@ -48,23 +48,21 @@ class MainViewModel @Inject constructor(
     // PKCE state for OIDC flow
     var pendingOidcState: String? = null
         private set
-    private var pendingCodeVerifier: String? = null
 
-    val uiState: StateFlow<MainUiState> = preferencesManager.serverSettings
-        .combine(_authToken) { settings, token -> settings to token }
-        .combine(_userRole) { pair, userRole -> Triple(pair.first, pair.second, userRole) }
-        .combine(_isAdmin) { triple, isAdmin ->
-            val settings = triple.first
-            val token = triple.second
-            val userRole = triple.third
-            MainUiState(
-                isLoggedIn = !token.isNullOrBlank(),
-                remoteUrl = settings.remoteUrl,
-                localUrl = settings.localUrl,
-                userRole = userRole,
-                isAdmin = isAdmin
-            )
-        }
+    val uiState: StateFlow<MainUiState> = combine(
+        preferencesManager.serverSettings,
+        _authToken,
+        _userRole,
+        _isAdmin
+    ) { settings, token, userRole, isAdmin ->
+        MainUiState(
+            isLoggedIn = !token.isNullOrBlank(),
+            remoteUrl = settings.remoteUrl,
+            localUrl = settings.localUrl,
+            userRole = userRole,
+            isAdmin = isAdmin
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -174,14 +172,12 @@ class MainViewModel @Inject constructor(
     /**
      * Generates PKCE parameters for an OIDC authorization URL.
      * NOTE: The backend currently returns tokens directly via callback (not
-     * authorization codes), so the code_verifier is not exchanged yet. When the
-     * backend supports standard authorization-code exchange, the code_verifier
-     * stored in [pendingCodeVerifier] should be sent to the token endpoint.
+     * authorization codes), so the code_verifier is not exchanged yet.
      */
     fun buildOidcUrlWithPkce(baseAuthUrl: String): String {
         pendingOidcState = PkceUtil.generateState()
-        pendingCodeVerifier = PkceUtil.generateCodeVerifier()
-        val challenge = PkceUtil.deriveCodeChallenge(pendingCodeVerifier!!)
+        val codeVerifier = PkceUtil.generateCodeVerifier()
+        val challenge = PkceUtil.deriveCodeChallenge(codeVerifier)
 
         val separator = if (baseAuthUrl.contains("?")) "&" else "?"
         return "$baseAuthUrl${separator}code_challenge=$challenge&code_challenge_method=S256&state=$pendingOidcState"

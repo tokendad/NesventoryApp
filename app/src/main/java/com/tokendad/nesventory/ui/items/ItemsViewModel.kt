@@ -32,7 +32,6 @@ import java.util.UUID
 import javax.inject.Inject
 
 import com.tokendad.nesventory.data.preferences.PreferencesManager
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
@@ -152,10 +151,6 @@ class ItemsViewModel @Inject constructor(
     
     private fun loadServerUrl() {
         viewModelScope.launch {
-            val initial = preferencesManager.serverSettings.first()
-            if (initial.remoteUrl.isNotBlank()) {
-                _serverUrl.value = initial.remoteUrl.trimEnd('/')
-            }
             preferencesManager.serverSettings.collect { settings ->
                 if (settings.remoteUrl.isNotBlank()) {
                     _serverUrl.value = settings.remoteUrl.trimEnd('/')
@@ -221,7 +216,6 @@ class ItemsViewModel @Inject constructor(
 
     fun onLivingFilterChange(filter: LivingItemType?) {
         _livingTypeFilter.value = filter
-        fetchData()
     }
 
     fun onTagFilterChange(tagId: UUID?) {

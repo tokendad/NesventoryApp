@@ -19,7 +19,6 @@ import com.tokendad.nesventory.data.remote.Photo
 import okhttp3.MultipartBody
 import java.util.UUID
 
-@Suppress("unused")
 interface ItemRepository {
     suspend fun getItems(
         search: String? = null,
