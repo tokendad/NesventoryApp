@@ -1,6 +1,7 @@
 package com.tokendad.nesventory.ui.login
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,7 +25,9 @@ import com.tokendad.nesventory.data.remote.NesVentoryApi
 import com.tokendad.nesventory.di.NetworkModule
 import com.tokendad.nesventory.BuildConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -44,6 +47,9 @@ class LoginViewModel @Inject constructor(
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    var serverConfigured by mutableStateOf(false)
         private set
 
     // Google Sign-In state
@@ -67,7 +73,20 @@ class LoginViewModel @Inject constructor(
                 }
             }
         }
-        checkGoogleAuthStatus()
+        viewModelScope.launch {
+            preferencesManager.serverSettings
+                .map { it.isConfigured() }
+                .distinctUntilChanged()
+                .collect { configured ->
+                    serverConfigured = configured
+                    if (configured) {
+                        checkGoogleAuthStatus()
+                    } else {
+                        isGoogleSignInAvailable = false
+                        googleClientId = null
+                    }
+                }
+        }
     }
 
     /**
@@ -97,6 +116,10 @@ class LoginViewModel @Inject constructor(
      */
     fun login(onLoginSuccess: () -> Unit) {
         // Basic validation before network call
+        if (!serverConfigured) {
+            errorMessage = "No server configured. Tap ⚙ to add your server."
+            return
+        }
         if (username.isBlank() || password.isBlank()) {
             errorMessage = "Please enter both username and password"
             return
@@ -152,6 +175,10 @@ class LoginViewModel @Inject constructor(
      * @param onSuccess Callback when login succeeds
      */
     fun signInWithGoogle(context: Context, onSuccess: () -> Unit) {
+        if (!serverConfigured) {
+            errorMessage = "No server configured. Tap ⚙ to add your server."
+            return
+        }
         val clientId = googleClientId
         if (clientId == null) {
             errorMessage = "Google Sign-In is not configured on the server"
@@ -397,7 +424,8 @@ class LoginViewModel @Inject constructor(
 
     suspend fun getSsoUrl(): String {
         val settings = preferencesManager.serverSettings.first()
-        val baseUrl = if (settings.remoteUrl.isNotBlank()) settings.remoteUrl else "${com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL}/"
+        val baseUrl = settings.remoteUrl.ifBlank { settings.localUrl }
+        if (baseUrl.isBlank()) error("No server configured. Please add a server URL in Settings.")
         val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
         return "$cleanBase/api/auth/oidc/login"
     }

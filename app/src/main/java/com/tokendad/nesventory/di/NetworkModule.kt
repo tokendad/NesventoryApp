@@ -5,7 +5,6 @@ import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.preferences.SecurePreferencesManager
 import com.tokendad.nesventory.data.remote.NesVentoryApi
 import com.tokendad.nesventory.network.ForbiddenEventBus
-import com.tokendad.nesventory.util.Constants
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +28,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    private val BASE_URL = "${Constants.DEFAULT_REMOTE_URL}/"
+    // A fixed, non-resolvable sentinel host. The host-selection interceptor
+    // rewrites every request to the user-configured server URL at runtime.
+    private const val BASE_URL = "https://placeholder.invalid/"
+    private const val PLACEHOLDER_HOST = "placeholder.invalid"
 
     @Volatile private var cachedNetworkState = NetworkState(
         profileId = null,
@@ -146,33 +148,29 @@ object NetworkModule {
                 var request = chain.request()
                 val networkState = cachedNetworkState
                 val currentHost = request.url.host
-                val placeholderHost = "nesdemo.welshrd.com"
                 
-                if (currentHost == placeholderHost) {
+                if (currentHost == PLACEHOLDER_HOST) {
                     val targetUrlStr = if (networkState.remoteUrl.isNotBlank()) {
                         networkState.remoteUrl
                     } else if (networkState.localUrl.isNotBlank()) {
                         networkState.localUrl
                     } else {
                         null
+                    } ?: throw IOException("No server configured. Tap ⚙ on the login screen to add your server URL.")
+
+                    val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
+                    val newBaseUrl = safeTarget.toHttpUrlOrNull()
+                        ?: throw IOException("Invalid server URL: \"$targetUrlStr\". Please check your server settings.")
+
+                    if (!isAllowedCleartext(newBaseUrl)) {
+                        throw IOException("Cleartext HTTP is only allowed for localhost and private LAN hosts.")
                     }
-                    
-                    if (targetUrlStr != null) {
-                        val safeTarget = if (targetUrlStr.endsWith("/")) targetUrlStr else "$targetUrlStr/"
-                        val newBaseUrl = safeTarget.toHttpUrlOrNull()
-                        
-                        if (newBaseUrl != null) {
-                            if (!isAllowedCleartext(newBaseUrl)) {
-                                throw IOException("Cleartext HTTP is only allowed for localhost and private LAN hosts.")
-                            }
-                            val apiPath = request.url.encodedPath.trimStart('/')
-                            val newUrl = newBaseUrl.newBuilder()
-                                .addEncodedPathSegments(apiPath)
-                                .query(request.url.query)
-                                .build()
-                            request = request.newBuilder().url(newUrl).build()
-                        }
-                    }
+                    val apiPath = request.url.encodedPath.trimStart('/')
+                    val newUrl = newBaseUrl.newBuilder()
+                        .addEncodedPathSegments(apiPath)
+                        .query(request.url.query)
+                        .build()
+                    request = request.newBuilder().url(newUrl).build()
                 }
                 request = request.newBuilder()
                     .tag(

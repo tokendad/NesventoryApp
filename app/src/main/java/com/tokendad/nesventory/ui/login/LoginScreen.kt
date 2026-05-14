@@ -64,6 +64,7 @@ fun LoginScreen(
         onRememberCredentialsChange = { viewModel.rememberCredentials = it },
         isLoading = viewModel.isLoading,
         errorMessage = viewModel.errorMessage,
+        serverConfigured = viewModel.serverConfigured,
         onLoginClick = { viewModel.login(onLoginSuccess) },
         onSsoLoginClick = {
             scope.launch {
@@ -93,6 +94,7 @@ fun LoginScreenContent(
     onRememberCredentialsChange: (Boolean) -> Unit,
     isLoading: Boolean,
     errorMessage: String?,
+    serverConfigured: Boolean = true,
     onLoginClick: () -> Unit,
     onSsoLoginClick: () -> Unit,
     onServerSettingsClick: () -> Unit,
@@ -125,6 +127,33 @@ fun LoginScreenContent(
                 text = "Welcome Back",
                 style = MaterialTheme.typography.headlineMedium
             )
+
+            // No server configured banner
+            AnimatedVisibility(visible = !serverConfigured) {
+                Column {
+                    Spacer(modifier = Modifier.height(NesSpacing.lg))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(NesSpacing.lg)) {
+                            Text(
+                                text = "No Server Configured",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(NesSpacing.xs))
+                            Text(
+                                text = "Tap ⚙ in the top-right corner to add your NesVentory server URL.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
 
@@ -165,7 +194,7 @@ fun LoginScreenContent(
                 text = "Login",
                 onClick = onLoginClick,
                 loading = isLoading,
-                enabled = !isGoogleLoading
+                enabled = !isGoogleLoading && serverConfigured
             )
 
             Spacer(modifier = Modifier.height(NesSpacing.lg))
@@ -174,7 +203,7 @@ fun LoginScreenContent(
             NesSecondaryButton(
                 text = "Login with SSO",
                 onClick = onSsoLoginClick,
-                enabled = !isLoading && !isGoogleLoading
+                enabled = !isLoading && !isGoogleLoading && serverConfigured
             )
 
             // Google Sign-In button (only shown if enabled on server)
@@ -202,7 +231,7 @@ fun LoginScreenContent(
                     GoogleSignInButton(
                         onClick = onGoogleSignInClick,
                         isLoading = isGoogleLoading,
-                        enabled = !isLoading
+                        enabled = !isLoading && serverConfigured
                     )
                 }
             }
@@ -222,26 +251,6 @@ fun LoginScreenContent(
             }
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
-
-            // Test credentials card (debug builds only)
-            if (com.tokendad.nesventory.BuildConfig.DEBUG) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(NesSpacing.lg)) {
-                    Text(
-                        text = "Test Credentials:",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                    Spacer(modifier = Modifier.height(NesSpacing.xs))
-                    Text("Username: Demouser")
-                    Text("Password: demo123")
-                }
-            }
-            }
 
             Spacer(modifier = Modifier.height(NesSpacing.xxl))
         }
