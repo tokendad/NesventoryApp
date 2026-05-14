@@ -210,9 +210,18 @@ class LoginViewModel @Inject constructor(
                 handleGoogleSignInResult(result, onSuccess)
 
             } catch (e: GetCredentialCancellationException) {
-                // User cancelled - don't show error
-                android.util.Log.d("LoginViewModel", "Google Sign-In cancelled by user")
-                errorMessage = null
+                // Can be a true user cancel OR a Play Services rejection (e.g. the Google
+                // Cloud Console OAuth client isn't authorized for this Android app's SHA-1).
+                android.util.Log.w("LoginViewModel", "Google Sign-In cancelled/rejected: ${e.message}", e)
+                // Only hide the error when there really was no error to report
+                if (errorMessage == null) {
+                    errorMessage = if (BuildConfig.DEBUG)
+                        "Google Sign-In was cancelled or rejected by Play Services. " +
+                        "Ensure your server's Google Web Client ID is authorized for " +
+                        "this app's package name and SHA-1 fingerprint in Google Cloud Console."
+                    else
+                        "Google Sign-In failed. Please try again or use username/password."
+                }
             } catch (e: NoCredentialException) {
                 // Try fallback with GetGoogleIdOption
                 android.util.Log.d("LoginViewModel", "NoCredentialException - trying fallback: ${e.message}")
@@ -257,8 +266,12 @@ class LoginViewModel @Inject constructor(
             handleGoogleSignInResult(result, onSuccess)
 
         } catch (e: GetCredentialCancellationException) {
-            android.util.Log.d("LoginViewModel", "Fallback cancelled by user")
-            errorMessage = null
+            android.util.Log.w("LoginViewModel", "Fallback also cancelled/rejected: ${e.message}", e)
+            errorMessage = if (BuildConfig.DEBUG)
+                "Google Sign-In rejected. Check that your server's Google Web Client ID " +
+                "is authorized for this app (package + SHA-1) in Google Cloud Console."
+            else
+                "Google Sign-In failed. Please try again or use username/password."
         } catch (e: Exception) {
             android.util.Log.e("LoginViewModel", "Fallback failed: ${e.javaClass.simpleName} - ${e.message}", e)
             errorMessage = "Google Sign-In not available: ${e.localizedMessage}"
@@ -276,23 +289,32 @@ class LoginViewModel @Inject constructor(
 
         when (credential) {
             is CustomCredential -> {
-                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                // Accept both the GetGoogleIdOption type and the GetSignInWithGoogleOption
+                // (SIWG) type — both carry the same Bundle payload parsed by createFrom().
+                val isGoogleCredential =
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL ||
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL
+                if (isGoogleCredential) {
                     try {
                         val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                         val idToken = googleIdTokenCredential.idToken
+                        android.util.Log.d("LoginViewModel", "Got Google ID token (type=${credential.type})")
 
                         // Exchange Google ID token for NesVentory access token
                         exchangeGoogleToken(idToken, onSuccess)
 
                     } catch (e: GoogleIdTokenParsingException) {
+                        android.util.Log.e("LoginViewModel", "Failed to parse Google ID token", e)
                         errorMessage = "Invalid Google credential"
                         if (BuildConfig.DEBUG) e.printStackTrace()
                     }
                 } else {
-                    errorMessage = "Unexpected credential type"
+                    android.util.Log.e("LoginViewModel", "Unexpected credential type: ${credential.type}")
+                    errorMessage = "Unexpected credential type: ${credential.type}"
                 }
             }
             else -> {
+                android.util.Log.e("LoginViewModel", "Non-custom credential type: ${credential.javaClass.simpleName}")
                 errorMessage = "Unexpected credential type"
             }
         }
