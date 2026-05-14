@@ -61,7 +61,7 @@ class PreferencesManager @Inject constructor(
     private fun parseServerProfiles(json: String?): List<ServerProfile> {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
-            gson.fromJson<List<ServerProfile>>(json, object : TypeToken<List<ServerProfile>>() {}.type)
+            gson.fromJson<List<ServerProfile>>(json, TypeToken.getParameterized(List::class.java, ServerProfile::class.java).type)
         }.getOrDefault(emptyList())
     }
 

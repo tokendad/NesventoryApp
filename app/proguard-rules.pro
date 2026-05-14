@@ -23,6 +23,11 @@
 # Retrofit/Gson models — snake_case field names must survive R8
 -keepclassmembers class com.tokendad.nesventory.data.remote.** { *; }
 -keepclassmembers class com.tokendad.nesventory.data.model.** { *; }
+-keepclassmembers class com.tokendad.nesventory.data.preferences.** { *; }
+
+# Gson TypeToken — anonymous subclasses are not R8-safe; keep for belt-and-suspenders
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 
 # Hilt
 -keep class dagger.hilt.** { *; }
