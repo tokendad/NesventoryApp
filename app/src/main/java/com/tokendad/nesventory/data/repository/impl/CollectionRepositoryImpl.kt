@@ -7,6 +7,7 @@ import com.tokendad.nesventory.data.remote.CollectionUpdate
 import com.tokendad.nesventory.data.remote.Item
 import com.tokendad.nesventory.data.remote.NesVentoryApi
 import com.tokendad.nesventory.data.repository.CollectionRepository
+import com.tokendad.nesventory.data.repository.ItemRepository
 import okhttp3.MultipartBody
 import java.util.UUID
 import javax.inject.Inject
@@ -14,7 +15,8 @@ import javax.inject.Singleton
 
 @Singleton
 class CollectionRepositoryImpl @Inject constructor(
-    private val api: NesVentoryApi
+    private val api: NesVentoryApi,
+    private val itemRepository: ItemRepository
 ) : CollectionRepository {
     override suspend fun getCollections(): List<Collection> = api.getCollections()
 
@@ -31,7 +33,10 @@ class CollectionRepositoryImpl @Inject constructor(
         api.deleteCollection(id)
     }
 
-    override suspend fun getCollectionItems(id: UUID): List<Item> = api.getCollectionItems(id)
+    // Uses GET /api/items/?collection_id={id} (plain array) instead of
+    // GET /api/collections/{id}/items which returns a paginated object.
+    override suspend fun getCollectionItems(id: UUID): List<Item> =
+        itemRepository.getItems(collectionId = id)
 
     override suspend fun addItemsToCollection(collectionId: UUID, itemIds: List<UUID>) {
         api.addItemsToCollection(collectionId, AddItemsToCollectionRequest(item_ids = itemIds))
