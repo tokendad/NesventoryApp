@@ -244,10 +244,10 @@ interface NesVentoryApi {
     /**
      * Maintenance Tasks
      */
-    @GET("api/maintenance")
+    @GET("api/maintenance/")
     suspend fun getMaintenanceTasks(): List<MaintenanceTask>
 
-    @POST("api/maintenance")
+    @POST("api/maintenance/")
     suspend fun createMaintenanceTask(@Body task: MaintenanceTaskCreate): MaintenanceTask
 
     @GET("api/maintenance/item/{item_id}")
