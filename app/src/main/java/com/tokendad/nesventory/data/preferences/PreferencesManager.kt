@@ -56,6 +56,9 @@ class PreferencesManager @Inject constructor(
         private val KEY_SERVER_PROFILES_JSON = stringPreferencesKey("server_profiles_json")
         private val KEY_ACTIVE_PROFILE_ID = stringPreferencesKey("active_server_profile_id")
         private val KEY_PROFILES_MIGRATED = booleanPreferencesKey("server_profiles_migrated")
+
+        // Onboarding
+        private val KEY_PERMISSIONS_SEEN = booleanPreferencesKey("permissions_onboarding_seen")
     }
 
     private fun parseServerProfiles(json: String?): List<ServerProfile> {
@@ -94,6 +97,13 @@ class PreferencesManager @Inject constructor(
             localPrinterModel = preferences[KEY_LOCAL_PRINTER_MODEL] ?: "D11_H",
             localPrinterDensity = preferences[KEY_LOCAL_PRINTER_DENSITY] ?: 3
         )
+    }
+
+    val hasSeenPermissionsPrompt: Flow<Boolean> = context.dataStore.data
+        .map { it[KEY_PERMISSIONS_SEEN] ?: false }
+
+    suspend fun setPermissionsSeen() {
+        context.dataStore.edit { it[KEY_PERMISSIONS_SEEN] = true }
     }
 
     suspend fun saveServerSettings(settings: ServerSettings) {

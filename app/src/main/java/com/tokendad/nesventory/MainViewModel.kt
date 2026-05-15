@@ -27,7 +27,8 @@ data class MainUiState(
     val remoteUrl: String = "",
     val localUrl: String = "",
     val userRole: String? = null,
-    val isAdmin: Boolean = false
+    val isAdmin: Boolean = false,
+    val hasSeenPermissionsPrompt: Boolean = true  // default true avoids flash for existing users
 )
 
 @HiltViewModel
@@ -51,16 +52,18 @@ class MainViewModel @Inject constructor(
 
     val uiState: StateFlow<MainUiState> = combine(
         preferencesManager.serverSettings,
+        preferencesManager.hasSeenPermissionsPrompt,
         _authToken,
         _userRole,
         _isAdmin
-    ) { settings, token, userRole, isAdmin ->
+    ) { settings, permissionsSeen, token, userRole, isAdmin ->
         MainUiState(
             isLoggedIn = !token.isNullOrBlank(),
             remoteUrl = settings.remoteUrl,
             localUrl = settings.localUrl,
             userRole = userRole,
-            isAdmin = isAdmin
+            isAdmin = isAdmin,
+            hasSeenPermissionsPrompt = permissionsSeen
         )
     }
         .stateIn(
@@ -72,6 +75,10 @@ class MainViewModel @Inject constructor(
     init {
         refreshAuthState()
         observeActiveProfileChanges()
+    }
+
+    fun markPermissionsSeen() {
+        viewModelScope.launch { preferencesManager.setPermissionsSeen() }
     }
 
     fun setPendingRoute(route: String) {

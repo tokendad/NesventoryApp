@@ -96,6 +96,16 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(uiState.hasSeenPermissionsPrompt) {
+                    if (!uiState.hasSeenPermissionsPrompt &&
+                        navController.currentDestination?.route != Routes.PERMISSIONS_ONBOARDING
+                    ) {
+                        navController.navigate(Routes.PERMISSIONS_ONBOARDING) {
+                            popUpTo(Routes.LOGIN) { inclusive = false }
+                        }
+                    }
+                }
+
                 // Auth State Observer
                 val pendingRouteState = viewModel.pendingRoute.collectAsState()
                 val pendingRoute = pendingRouteState.value
@@ -138,6 +148,18 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = Routes.LOGIN
                         ) {
+                        // Permissions Onboarding (shown once on first launch)
+                        composable(Routes.PERMISSIONS_ONBOARDING) {
+                            com.tokendad.nesventory.ui.permissions.PermissionOnboardingScreen(
+                                onComplete = {
+                                    viewModel.markPermissionsSeen()
+                                    navController.navigate(Routes.LOGIN) {
+                                        popUpTo(Routes.PERMISSIONS_ONBOARDING) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         // 1. Login Screen
                         composable(Routes.LOGIN) {
                             LoginScreen(
@@ -373,6 +395,7 @@ class MainActivity : ComponentActivity() {
  */
 object Routes {
     const val LOGIN = "login"
+    const val PERMISSIONS_ONBOARDING = "permissions_onboarding"
     const val SERVER_SETTINGS = "server_settings"
     const val PRINTER_SETTINGS = "printer_settings"
     const val GDRIVE_BACKUP = "gdrive_backup"
