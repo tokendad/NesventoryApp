@@ -69,9 +69,9 @@ class ItemsViewModel @Inject constructor(
     private val _selectedHomeId = MutableStateFlow<UUID?>(null)
     val selectedHomeId: StateFlow<UUID?> = _selectedHomeId.asStateFlow()
 
-    /** Top-level locations (homes): parent_id == null or is_primary_location == true. */
+    /** Top-level locations (homes): root locations only (parent_id == null). */
     val homes: StateFlow<List<Location>> = _locations
-        .map { locs -> locs.filter { it.parent_id == null || it.is_primary_location } }
+        .map { locs -> locs.filter { it.parent_id == null } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Set of all location IDs that belong to the currently selected home (including sub-locations). */

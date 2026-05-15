@@ -2,10 +2,12 @@ package com.tokendad.nesventory.di
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import com.tokendad.nesventory.BuildConfig
 import com.tokendad.nesventory.data.preferences.PreferencesManager
 import com.tokendad.nesventory.data.preferences.SecurePreferencesManager
@@ -79,20 +81,29 @@ object NetworkModule {
         }
     }
 
-    @SuppressLint("MissingPermission")
     private fun getCurrentSsid(context: Context): String? {
-        val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val cm = context.getSystemService(ConnectivityManager::class.java)
-            val network = cm.activeNetwork ?: return null
-            val caps = cm.getNetworkCapabilities(network) ?: return null
-            (caps.transportInfo as? WifiInfo)?.ssid
-        } else {
-            @Suppress("DEPRECATION")
-            context.applicationContext.getSystemService(WifiManager::class.java)
-                ?.connectionInfo?.ssid
+        val hasLocationPermission = ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasLocationPermission) return null
+
+        return try {
+            @SuppressLint("MissingPermission")
+            val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val cm = context.getSystemService(ConnectivityManager::class.java)
+                val network = cm.activeNetwork ?: return null
+                val caps = cm.getNetworkCapabilities(network) ?: return null
+                (caps.transportInfo as? WifiInfo)?.ssid
+            } else {
+                @Suppress("DEPRECATION")
+                context.applicationContext.getSystemService(WifiManager::class.java)
+                    ?.connectionInfo?.ssid
+            }
+            raw?.removePrefix("\"")?.removeSuffix("\"")
+                ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+        } catch (_: SecurityException) {
+            null
         }
-        return raw?.removePrefix("\"")?.removeSuffix("\"")
-            ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
     }
 
     private fun isAllowedCleartext(url: HttpUrl): Boolean {
