@@ -162,7 +162,7 @@ fun DetailsTab(location: Location, serverUrl: String) {
         verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
     ) {
         // Primary Photo
-        val primaryPhoto = location.location_photos.find { it.is_primary }
+        val primaryPhoto = location.location_photos.orEmpty().find { it.is_primary }
         if (primaryPhoto != null) {
             val imageUrl = PhotoUrlValidator.buildPhotoUrl(primaryPhoto.path, serverUrl)
 
@@ -178,10 +178,10 @@ fun DetailsTab(location: Location, serverUrl: String) {
             }
         }
 
-        if (location.location_photos.size > 1) {
+        if (location.location_photos.orEmpty().size > 1) {
             NesSectionCard(title = "Photos", icon = Icons.Default.PhotoLibrary) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
-                    items(location.location_photos) { photo ->
+                    items(location.location_photos.orEmpty()) { photo ->
                         val imageUrl = PhotoUrlValidator.buildPhotoUrl(photo.path, serverUrl)
                         ElevatedCard(modifier = Modifier.size(width = 120.dp, height = 90.dp)) {
                             AsyncImage(
@@ -253,10 +253,10 @@ fun DetailsTab(location: Location, serverUrl: String) {
                 }
             }
 
-            if (location.paint_info.isNotEmpty()) {
+            if (location.paint_info.orEmpty().isNotEmpty()) {
                 NesSectionCard(title = "Paint Info", icon = Icons.Default.Palette) {
                     Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
-                        location.paint_info.forEach { paint ->
+                        location.paint_info.orEmpty().forEach { paint ->
                             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                                 Column(
                                     modifier = Modifier.padding(NesSpacing.md),
@@ -374,12 +374,12 @@ fun InsuranceTab(insuranceInfo: InsuranceInfo?) {
             }
 
             // Additional Holders
-            if (insuranceInfo.additional_holders.isNotEmpty()) {
+            if (insuranceInfo.additional_holders.orEmpty().isNotEmpty()) {
                 InsuranceSection(
                     title = "Additional Policy Holders",
                     icon = Icons.Default.People
                 ) {
-                    insuranceInfo.additional_holders.forEachIndexed { index, holder ->
+                    insuranceInfo.additional_holders.orEmpty().forEachIndexed { index, holder ->
                         if (index > 0) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         }

@@ -117,8 +117,8 @@ class EditLocationViewModel @Inject constructor(
                 isPrimaryLocation = loc.is_primary_location
                 isContainer = loc.is_container
                 locationCategory = loc.location_category
-                locationPhotos = loc.location_photos
-                existingPaintInfo = loc.paint_info.map {
+                locationPhotos = loc.location_photos.orEmpty()
+                existingPaintInfo = loc.paint_info.orEmpty().map {
                     PaintInfoCreate(
                         vendor = it.vendor,
                         color_name = it.color_name,
