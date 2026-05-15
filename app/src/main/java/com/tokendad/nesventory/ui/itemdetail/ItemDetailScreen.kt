@@ -170,7 +170,7 @@ fun DetailsTab(item: Item, serverUrl: String, itemCollections: List<Collection>)
         verticalArrangement = Arrangement.spacedBy(NesSpacing.lg)
     ) {
         // Primary Photo
-        val primaryPhoto = item.photos.find { it.is_primary }
+        val primaryPhoto = item.photos.orEmpty().find { it.is_primary }
         if (primaryPhoto != null) {
             val imageUrl = PhotoUrlValidator.buildPhotoUrl(primaryPhoto.path, serverUrl)
 
@@ -289,10 +289,10 @@ fun DetailsTab(item: Item, serverUrl: String, itemCollections: List<Collection>)
             }
         }
 
-        if (item.warranties.isNotEmpty()) {
+        if (item.warranties.orEmpty().isNotEmpty()) {
             NesSectionCard(title = "Warranties", icon = Icons.Default.VerifiedUser) {
                 Column(verticalArrangement = Arrangement.spacedBy(NesSpacing.sm)) {
-                    item.warranties.forEach { warranty ->
+                    item.warranties.orEmpty().forEach { warranty ->
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier.padding(NesSpacing.md),
@@ -318,13 +318,13 @@ fun DetailsTab(item: Item, serverUrl: String, itemCollections: List<Collection>)
             }
         }
 
-        if (item.tags.isNotEmpty()) {
+        if (item.tags.orEmpty().isNotEmpty()) {
             NesSectionCard(title = "Tags", icon = Icons.Default.LocalOffer) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(NesSpacing.xs)
                 ) {
-                    item.tags.forEach { tag ->
+                    item.tags.orEmpty().forEach { tag ->
                         NesTagChip(tag = tag)
                     }
                 }

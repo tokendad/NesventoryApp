@@ -1,7 +1,9 @@
 package com.tokendad.nesventory.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -164,6 +166,7 @@ fun NesSearchField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String = "Search...",
+    compact: Boolean = false,
     onSearch: (() -> Unit)? = null
 ) {
     OutlinedTextField(
@@ -184,7 +187,9 @@ fun NesSearchField(
         keyboardActions = KeyboardActions(
             onSearch = onSearch?.let { { it() } }
         ),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (compact) Modifier.heightIn(max = 52.dp) else Modifier)
     )
 }
 

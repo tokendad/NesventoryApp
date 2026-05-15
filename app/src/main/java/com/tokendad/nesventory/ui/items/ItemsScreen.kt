@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +24,8 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
@@ -30,6 +34,8 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,9 +43,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -47,6 +55,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -94,14 +103,19 @@ fun ItemsScreen(
     val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
     val availableTags by viewModel.availableTags.collectAsStateWithLifecycle()
     val selectedTagId by viewModel.selectedTagId.collectAsStateWithLifecycle()
+    val selectedHomeId by viewModel.selectedHomeId.collectAsStateWithLifecycle()
+    val homes by viewModel.homes.collectAsStateWithLifecycle()
     val locations by viewModel.locations.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedItemIds by viewModel.selectedItemIds.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
     val pagedItems = viewModel.pagedItems.collectAsLazyPagingItems()
-    val usePagedList = selectedTagId == null && !isSelectionMode
+    val usePagedList = selectedTagId == null && selectedHomeId == null && !isSelectionMode
+    val activeFilterCount = listOfNotNull(selectedHomeId, livingTypeFilter, selectedTagId).size
 
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showMoveDialog by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
     var selectedMoveLocationId by remember(locations) {
@@ -201,6 +215,100 @@ fun ItemsScreen(
         )
     }
 
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState = filterSheetState,
+            contentWindowInsets = { WindowInsets(0) }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Filters", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = { viewModel.clearAllFilters() }) {
+                    Text("Clear all")
+                }
+            }
+
+            if (homes.size >= 2) {
+                HorizontalDivider()
+                FilterSheetSection(title = "Home") {
+                    FilterChip(
+                        selected = selectedHomeId == null,
+                        onClick = { viewModel.onHomeFilterChange(null) },
+                        leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(NesSize.iconSmall)) },
+                        label = { Text("All") }
+                    )
+                    homes.forEach { home ->
+                        FilterChip(
+                            selected = selectedHomeId == home.id,
+                            onClick = { viewModel.onHomeFilterChange(home.id) },
+                            label = { Text(home.friendly_name ?: home.name) }
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider()
+            FilterSheetSection(title = "Type") {
+                FilterChip(
+                    selected = livingTypeFilter == null,
+                    onClick = { viewModel.onLivingFilterChange(null) },
+                    label = { Text("All") }
+                )
+                FilterChip(
+                    selected = livingTypeFilter == LivingItemType.NON_LIVING,
+                    onClick = { viewModel.onLivingFilterChange(LivingItemType.NON_LIVING) },
+                    label = { Text("Items") }
+                )
+                FilterChip(
+                    selected = livingTypeFilter == LivingItemType.PERSON,
+                    onClick = { viewModel.onLivingFilterChange(LivingItemType.PERSON) },
+                    label = { Text("People") }
+                )
+                FilterChip(
+                    selected = livingTypeFilter == LivingItemType.PET,
+                    onClick = { viewModel.onLivingFilterChange(LivingItemType.PET) },
+                    label = { Text("Pets") }
+                )
+                FilterChip(
+                    selected = livingTypeFilter == LivingItemType.PLANT,
+                    onClick = { viewModel.onLivingFilterChange(LivingItemType.PLANT) },
+                    label = { Text("Plants") }
+                )
+            }
+
+            if (availableTags.isNotEmpty()) {
+                HorizontalDivider()
+                FilterSheetSection(title = "Tags") {
+                    FilterChip(
+                        selected = selectedTagId == null,
+                        onClick = { viewModel.onTagFilterChange(null) },
+                        label = { Text("All") }
+                    )
+                    availableTags.forEach { tag ->
+                        val tagColor = ColorUtils.parseHexColor(tag.color)
+                        FilterChip(
+                            selected = selectedTagId == tag.id,
+                            onClick = { viewModel.onTagFilterChange(tag.id) },
+                            label = { Text(tag.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = tagColor?.copy(alpha = 0.25f)
+                                    ?: MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NesSpacing.xl))
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -234,6 +342,17 @@ fun ItemsScreen(
                                 Icon(Icons.Default.LocalOffer, contentDescription = "Tag selected")
                             }
                         } else {
+                            BadgedBox(
+                                badge = {
+                                    if (activeFilterCount > 0) {
+                                        Badge { Text("$activeFilterCount") }
+                                    }
+                                }
+                            ) {
+                                IconButton(onClick = { showFilterSheet = true }) {
+                                    Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                                }
+                            }
                             IconButton(onClick = onExit) {
                                 Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Exit")
                             }
@@ -244,64 +363,9 @@ fun ItemsScreen(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChange(it) },
                     placeholder = "Search items...",
+                    compact = true,
                     modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
                 )
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = NesSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)
-                ) {
-                    FilterChip(
-                        selected = livingTypeFilter == null,
-                        onClick = { viewModel.onLivingFilterChange(null) },
-                        label = { Text("All") }
-                    )
-                    FilterChip(
-                        selected = livingTypeFilter == LivingItemType.PERSON,
-                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PERSON) },
-                        label = { Text("People") }
-                    )
-                    FilterChip(
-                        selected = livingTypeFilter == LivingItemType.PET,
-                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PET) },
-                        label = { Text("Pets") }
-                    )
-                    FilterChip(
-                        selected = livingTypeFilter == LivingItemType.PLANT,
-                        onClick = { viewModel.onLivingFilterChange(LivingItemType.PLANT) },
-                        label = { Text("Plants") }
-                    )
-                    FilterChip(
-                        selected = livingTypeFilter == LivingItemType.NON_LIVING,
-                        onClick = { viewModel.onLivingFilterChange(LivingItemType.NON_LIVING) },
-                        label = { Text("Non-living") }
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs),
-                    horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)
-                ) {
-                    FilterChip(
-                        selected = selectedTagId == null,
-                        onClick = { viewModel.onTagFilterChange(null) },
-                        label = { Text("All tags") }
-                    )
-                    availableTags.forEach { tag ->
-                        val tagColor = ColorUtils.parseHexColor(tag.color)
-                        FilterChip(
-                            selected = selectedTagId == tag.id,
-                            onClick = { viewModel.onTagFilterChange(tag.id) },
-                            label = { Text(tag.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = tagColor?.copy(alpha = 0.25f)
-                                    ?: MaterialTheme.colorScheme.secondaryContainer
-                            )
-                        )
-                    }
-                }
                 if (isOffline) {
                     NesOfflineBanner(
                         modifier = Modifier.padding(horizontal = NesSpacing.sm, vertical = NesSpacing.xs)
@@ -337,16 +401,18 @@ fun ItemsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     NesEmptyState(
-                        title = if (searchQuery.isNotEmpty())
+                        title = if (searchQuery.isNotEmpty() || activeFilterCount > 0)
                             "No items found"
                         else
                             "No items yet",
                         message = if (searchQuery.isNotEmpty())
-                            "Try adjusting your search query"
+                            "Try adjusting your search or filters"
+                        else if (activeFilterCount > 0)
+                            "No items match the active filters"
                         else
                             "Add your first item to get started",
                         icon = Icons.Outlined.Inventory2,
-                        action = if (searchQuery.isEmpty()) {
+                        action = if (searchQuery.isEmpty() && activeFilterCount == 0) {
                             {
                                 NesPrimaryButton(
                                     text = "Add Item",
@@ -407,6 +473,27 @@ fun ItemsScreen(
 }
 
 @Composable
+private fun FilterSheetSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = NesSpacing.lg, vertical = NesSpacing.sm)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = NesSpacing.xs)
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(NesSpacing.xs)
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
 fun ItemRow(
     item: Item,
     locationName: String?,
@@ -434,7 +521,7 @@ fun ItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Primary Photo
-            val primaryPhoto = item.photos.find { it.is_primary }
+            val primaryPhoto = item.photos.orEmpty().find { it.is_primary }
             val imageUrl = primaryPhoto?.let { photo ->
                 PhotoUrlValidator.buildPhotoUrl(photo.path, serverUrl)
             }

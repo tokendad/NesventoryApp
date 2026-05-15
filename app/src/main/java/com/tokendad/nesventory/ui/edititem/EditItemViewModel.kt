@@ -168,7 +168,7 @@ class EditItemViewModel @Inject constructor(
                 contactPhone = item.contact_info?.phone ?: ""
                 contactEmail = item.contact_info?.email ?: ""
                 contactNotes = item.contact_info?.notes ?: ""
-                itemTagIds = item.tags.map { it.id }.toSet()
+                itemTagIds = item.tags.orEmpty().map { it.id }.toSet()
                 tagsInitialized = true
             } catch (e: Exception) {
                 errorMessage = "Failed to load item: ${e.localizedMessage}"

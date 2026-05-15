@@ -166,7 +166,7 @@ fun DashboardItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Primary Photo Thumbnail
-            val primaryPhoto = item.photos.find { it.is_primary }
+            val primaryPhoto = item.photos.orEmpty().find { it.is_primary }
             val imageUrl = primaryPhoto?.let { photo ->
                 PhotoUrlValidator.buildPhotoUrl(photo.path, serverUrl)
             }

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -65,6 +66,20 @@ class ItemsViewModel @Inject constructor(
     private val _selectedTagId = MutableStateFlow<UUID?>(null)
     val selectedTagId: StateFlow<UUID?> = _selectedTagId.asStateFlow()
 
+    private val _selectedHomeId = MutableStateFlow<UUID?>(null)
+    val selectedHomeId: StateFlow<UUID?> = _selectedHomeId.asStateFlow()
+
+    /** Top-level locations (homes): parent_id == null or is_primary_location == true. */
+    val homes: StateFlow<List<Location>> = _locations
+        .map { locs -> locs.filter { it.parent_id == null || it.is_primary_location } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Set of all location IDs that belong to the currently selected home (including sub-locations). */
+    private val _homeLocationIds: StateFlow<Set<UUID>> = combine(_selectedHomeId, _locations) { homeId, locs ->
+        if (homeId == null) emptySet()
+        else buildLocationIdsForHome(locs, homeId)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
     private val _serverUrl = MutableStateFlow(com.tokendad.nesventory.util.Constants.DEFAULT_REMOTE_URL)
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
@@ -88,26 +103,33 @@ class ItemsViewModel @Inject constructor(
         _items,
         _searchQuery,
         _livingTypeFilter,
-        _selectedTagId
-    ) { currentItems, query, livingFilter, selectedTagId ->
+        _selectedTagId,
+        _homeLocationIds
+    ) { currentItems, query, livingFilter, selectedTagId, homeLocationIds ->
+        val homeFiltered = if (homeLocationIds.isEmpty()) {
+            currentItems
+        } else {
+            currentItems.filter { it.location_id != null && it.location_id in homeLocationIds }
+        }
+
         val livingFiltered = when (livingFilter) {
-            LivingItemType.PERSON -> currentItems.filter {
+            LivingItemType.PERSON -> homeFiltered.filter {
                 LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PERSON
             }
-            LivingItemType.PET -> currentItems.filter {
+            LivingItemType.PET -> homeFiltered.filter {
                 LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PET
             }
-            LivingItemType.PLANT -> currentItems.filter {
+            LivingItemType.PLANT -> homeFiltered.filter {
                 LivingItemType.from(it.is_living, it.relationship_type) == LivingItemType.PLANT
             }
-            LivingItemType.NON_LIVING -> currentItems.filter { !it.is_living }
-            null -> currentItems
+            LivingItemType.NON_LIVING -> homeFiltered.filter { !it.is_living }
+            null -> homeFiltered
         }
 
         val tagFiltered = if (selectedTagId == null) {
             livingFiltered
         } else {
-            livingFiltered.filter { item -> item.tags.any { it.id == selectedTagId } }
+            livingFiltered.filter { item -> item.tags.orEmpty().any { it.id == selectedTagId } }
         }
 
         if (query.isBlank()) {
@@ -222,6 +244,16 @@ class ItemsViewModel @Inject constructor(
         _selectedTagId.value = tagId
     }
 
+    fun onHomeFilterChange(homeId: UUID?) {
+        _selectedHomeId.value = homeId
+    }
+
+    fun clearAllFilters() {
+        _selectedHomeId.value = null
+        _livingTypeFilter.value = null
+        _selectedTagId.value = null
+    }
+
     fun enterSelectionMode(itemId: UUID) {
         _isSelectionMode.value = true
         _selectedItemIds.value = _selectedItemIds.value + itemId
@@ -328,5 +360,17 @@ class ItemsViewModel @Inject constructor(
 
     private fun refreshPagedItems() {
         _pagingRefreshSignal.value = _pagingRefreshSignal.value + 1
+    }
+
+    /** Returns all location IDs that are descendants of (or equal to) [homeId]. */
+    private fun buildLocationIdsForHome(locations: List<Location>, homeId: UUID): Set<UUID> {
+        val result = mutableSetOf(homeId)
+        var frontier = listOf(homeId)
+        while (frontier.isNotEmpty()) {
+            val children = locations.filter { it.parent_id in frontier }.map { it.id }
+            result.addAll(children)
+            frontier = children
+        }
+        return result
     }
 }

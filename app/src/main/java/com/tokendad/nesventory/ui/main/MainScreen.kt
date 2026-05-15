@@ -71,7 +71,7 @@ fun MainScreen(
                         selected = selectedTab == 3,
                         onClick = { selectedTab = 3 },
                         icon = { Icon(Icons.Default.Collections, contentDescription = "Collections") },
-                        label = { Text("Collections", style = MaterialTheme.typography.labelSmall) }
+                        label = { Text("Collect", style = MaterialTheme.typography.labelSmall, maxLines = 1) }
                     )
                     NavigationBarItem(
                         selected = selectedTab == 4,
